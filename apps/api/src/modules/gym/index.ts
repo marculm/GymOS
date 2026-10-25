@@ -1,20 +1,15 @@
 import { Hono } from "hono";
+import { prisma } from "../../db/client.ts";
 import { logger } from "../../lib/logger.ts";
 
 const gymLogger = logger.child({ module: "gym" });
 
 export const gymModule = new Hono();
 
-gymModule.get("/exercises", (c) => {
-  gymLogger.debug("Fetching exercises list");
-  return c.json({
-    exercises: [
-      {
-        id: "11111111-1111-1111-1111-111111111111",
-        name: "Bench Press",
-        muscleGroup: "chest",
-        description: "Barbell Flat Bench Press",
-      },
-    ],
+gymModule.get("/exercises", async (c) => {
+  gymLogger.debug("Fetching exercises list from database");
+  const exercises = await prisma.exercise.findMany({
+    orderBy: { name: "asc" },
   });
+  return c.json({ exercises });
 });
