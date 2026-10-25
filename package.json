@@ -15,7 +15,12 @@
     "typecheck": "bun check",
     "lint": "bunx oxlint",
     "lint:adr": "bun run tools/check-architecture.ts",
-    "lint:all": "bun run lint && bun run lint:adr"
+    "lint:all": "bun run lint && bun run lint:adr",
+    "db:up": "docker compose -f deploy/docker/docker-compose.yml up -d",
+    "db:down": "docker compose -f deploy/docker/docker-compose.yml down",
+    "db:migrate": "bun --filter @gymos/api db:migrate",
+    "db:seed": "bun --filter @gymos/api db:seed",
+    "db:studio": "bun --filter @gymos/api db:studio"
   },
   "devDependencies": {
     "@types/bun": "latest",

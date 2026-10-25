@@ -7,16 +7,22 @@
     "start": "bun src/index.ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "bun check"
+    "typecheck": "bun check",
+    "db:generate": "bunx prisma generate",
+    "db:migrate": "bunx prisma migrate dev",
+    "db:seed": "bun prisma/seed.ts",
+    "db:studio": "bunx prisma studio"
   },
   "dependencies": {
     "@gymos/shared": "workspace:*",
+    "@prisma/client": "^6.4.0",
     "hono": "^4.7.2",
     "pino": "^9.6.0",
     "zod": "^4.6.6"
   },
   "devDependencies": {
     "pino-pretty": "^13.0.0",
+    "prisma": "^6.4.0",
     "vitest": "^4.1.11"
   }
 }
