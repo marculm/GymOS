@@ -4,10 +4,15 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "typecheck": "bun check"
+    "typecheck": "bun check",
+    "lint": "bunx oxlint",
+    "lint:adr": "bun run tools/check-architecture.ts",
+    "lint:all": "bun run lint && bun run lint:adr"
   },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "oxfmt": "^0.74.0",
+    "oxlint": "^1.89.0"
   },
   "peerDependencies": {
     "typescript": "^7"
