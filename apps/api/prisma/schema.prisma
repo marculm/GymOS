@@ -1,0 +1,94 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id              String           @id @default(uuid())
+  email           String           @unique
+  name            String
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  workoutSessions WorkoutSession[]
+  nutritionLogs   NutritionLog[]
+  recipes         Recipe[]
+
+  @@map("users")
+}
+
+model Exercise {
+  id          String       @id @default(uuid())
+  name        String       @unique
+  muscleGroup String
+  description String?
+  createdAt   DateTime     @default(now())
+  sets        WorkoutSet[]
+
+  @@map("exercises")
+}
+
+model WorkoutSession {
+  id          String       @id @default(uuid())
+  userId      String
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  startedAt   DateTime     @default(now())
+  completedAt DateTime?
+  sets        WorkoutSet[]
+  createdAt   DateTime     @default(now())
+
+  @@map("workout_sessions")
+}
+
+model WorkoutSet {
+  id               String         @id @default(uuid())
+  workoutSessionId String
+  workoutSession   WorkoutSession @relation(fields: [workoutSessionId], references: [id], onDelete: Cascade)
+  exerciseId       String
+  exercise         Exercise       @relation(fields: [exerciseId], references: [id], onDelete: Restrict)
+  setNumber        Int
+  reps             Int
+  weightKg         Float
+  rpe              Float?
+  createdAt        DateTime       @default(now())
+
+  @@map("workout_sets")
+}
+
+model Recipe {
+  id           String   @id @default(uuid())
+  userId       String?
+  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  title        String
+  sourceUrl    String?
+  servings     Int      @default(1)
+  calories     Float
+  proteinGrams Float
+  carbsGrams   Float
+  fatGrams     Float
+  ingredients  Json
+  instructions Json
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("recipes")
+}
+
+model NutritionLog {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  loggedAt     DateTime @default(now())
+  name         String
+  calories     Float
+  proteinGrams Float
+  carbsGrams   Float
+  fatGrams     Float
+  createdAt    DateTime @default(now())
+
+  @@map("nutrition_logs")
+}
