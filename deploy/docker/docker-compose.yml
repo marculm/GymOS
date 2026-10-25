@@ -1,0 +1,22 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: gymos-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: gymos
+      POSTGRES_PASSWORD: gymos_dev_password
+      POSTGRES_DB: gymos
+    ports:
+      # Port 5433 mapped to host to prevent conflict with other local Postgres instances on 5432
+      - "5433:5432"
+    volumes:
+      - gymos_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gymos -d gymos"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  gymos_postgres_data:
