@@ -4,16 +4,15 @@ services:
     container_name: gymos-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: gymos
-      POSTGRES_PASSWORD: gymos_dev_password
-      POSTGRES_DB: gymos
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
-      # Port 5433 mapped to host to prevent conflict with other local Postgres instances on 5432
-      - "5433:5432"
+      - "${POSTGRES_PORT:-5433}:5432"
     volumes:
       - gymos_postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U gymos -d gymos"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 5
