@@ -114,7 +114,7 @@ function checkContent(filename: string, content: string): Violation[] {
         message: `Missing required section ${bold(`## ${section}`)}`,
       });
     } else {
-      const body = h2Sections.get(section)!;
+      const body = h2Sections.get(section) ?? "";
       if (body.length === 0) {
         violations.push({
           file: filename,
