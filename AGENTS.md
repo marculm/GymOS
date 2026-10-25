@@ -27,6 +27,12 @@ This document specifies mandatory rules and operational conventions for all AI a
 - **Do NOT execute `git push` under any circumstances.**
 - Remote synchronization and pushing is strictly reserved for the human user.
 
+### 🔒 Strictly No `.env` Access
+- **Do NOT touch `.env` files.**
+- Agents must **NEVER read, write, create, edit, or inspect** any `.env` file (including `.env.local`, `.env.*`, etc.).
+- Agents may only reference or update template files like `.env.example`.
+- All secret configuration and `.env` files are exclusively managed by the human user.
+
 ### 📦 Commit Conventions
 - Keep commits **small, lean, and logically cohesive** (atomic commits).
 - Never bundle unrelated changes (e.g. documentation, fixes, features, configuration) into a single commit.
