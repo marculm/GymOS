@@ -56,3 +56,10 @@ This document specifies mandatory rules and operational conventions for all AI a
   bun run lint:all
   bun run test
   ```
+
+---
+
+## 4. Code Style & Comments
+
+- **Self-Documenting Code:** Prefer clean, expressive code with descriptive naming over comments.
+- **Sparse Comments:** Only write code comments when the logic is inherently complex, non-obvious, or difficult to understand. Do not add comments for self-explanatory code.
