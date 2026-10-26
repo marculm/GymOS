@@ -187,53 +187,106 @@ export async function findRecentSessions(
   }));
 }
 
-export async function createSession(
+async function withSerializableRetry<T>(
+  operation: (tx: Prisma.TransactionClient) => Promise<T>
+): Promise<T> {
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      return await prisma.$transaction(operation, {
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+      });
+    } catch (error) {
+      const retryable =
+        error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034";
+      if (!retryable || attempt >= 2) throw error;
+    }
+  }
+}
+
+export async function createSessionIfNoActive(
   userId: string,
   input: { title: string; planId: string | null }
-): Promise<WorkoutSessionDetail> {
-  const session = await prisma.workoutSession.create({
-    data: { userId, title: input.title, planId: input.planId },
-    include: sessionInclude,
+): Promise<WorkoutSessionDetail | null> {
+  return withSerializableRetry(async (tx) => {
+    const active = await tx.workoutSession.findFirst({
+      where: { userId, completedAt: null },
+      select: { id: true },
+    });
+    if (active) return null;
+
+    const session = await tx.workoutSession.create({
+      data: { userId, title: input.title, planId: input.planId },
+      include: sessionInclude,
+    });
+    return toSessionDetail(session);
   });
-  return toSessionDetail(session);
 }
 
-export async function maxSetNumber(
-  sessionId: string,
-  exerciseId: string
-): Promise<number> {
-  const result = await prisma.workoutSet.aggregate({
-    where: { workoutSessionId: sessionId, exerciseId },
-    _max: { setNumber: true },
-  });
-  return result._max.setNumber ?? 0;
-}
+export type LogSetResult =
+  | { kind: "created"; set: LoggedSet }
+  | { kind: "not_found" }
+  | { kind: "completed" }
+  | { kind: "unknown_exercise" };
 
-export async function createSet(
+export async function createSetIfSessionOpen(
+  userId: string,
   sessionId: string,
   input: { exerciseId: string; reps: number; weightKg: number; rpe?: number }
-): Promise<LoggedSet> {
-  const setNumber = (await maxSetNumber(sessionId, input.exerciseId)) + 1;
-  const set = await prisma.workoutSet.create({
-    data: {
-      workoutSessionId: sessionId,
-      exerciseId: input.exerciseId,
-      setNumber,
-      reps: input.reps,
-      weightKg: input.weightKg,
-      rpe: input.rpe ?? null,
-    },
+): Promise<LogSetResult> {
+  return withSerializableRetry(async (tx) => {
+    const session = await tx.workoutSession.findFirst({
+      where: { id: sessionId, userId },
+      select: { id: true, completedAt: true },
+    });
+    if (!session) return { kind: "not_found" } as const;
+    if (session.completedAt) return { kind: "completed" } as const;
+
+    const exercise = await tx.exercise.findUnique({
+      where: { id: input.exerciseId },
+      select: { id: true },
+    });
+    if (!exercise) return { kind: "unknown_exercise" } as const;
+
+    const max = await tx.workoutSet.aggregate({
+      where: { workoutSessionId: sessionId, exerciseId: input.exerciseId },
+      _max: { setNumber: true },
+    });
+    const set = await tx.workoutSet.create({
+      data: {
+        workoutSessionId: sessionId,
+        exerciseId: input.exerciseId,
+        setNumber: (max._max.setNumber ?? 0) + 1,
+        reps: input.reps,
+        weightKg: input.weightKg,
+        rpe: input.rpe ?? null,
+      },
+    });
+    return { kind: "created", set: toSet(set) } as const;
   });
-  return toSet(set);
 }
 
-export async function markSessionCompleted(
+export type CompleteSessionResult =
+  | { kind: "completed"; session: WorkoutSessionDetail }
+  | { kind: "not_found" }
+  | { kind: "already_completed" };
+
+export async function completeSessionIfOpen(
+  userId: string,
   sessionId: string
-): Promise<WorkoutSessionDetail> {
-  const session = await prisma.workoutSession.update({
-    where: { id: sessionId },
-    data: { completedAt: new Date() },
-    include: sessionInclude,
+): Promise<CompleteSessionResult> {
+  return withSerializableRetry(async (tx) => {
+    const session = await tx.workoutSession.findFirst({
+      where: { id: sessionId, userId },
+      select: { id: true, completedAt: true },
+    });
+    if (!session) return { kind: "not_found" } as const;
+    if (session.completedAt) return { kind: "already_completed" } as const;
+
+    const updated = await tx.workoutSession.update({
+      where: { id: sessionId },
+      data: { completedAt: new Date() },
+      include: sessionInclude,
+    });
+    return { kind: "completed", session: toSessionDetail(updated) } as const;
   });
-  return toSessionDetail(session);
 }

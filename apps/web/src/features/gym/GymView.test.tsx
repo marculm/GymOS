@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { Exercise, WorkoutPlan, WorkoutSessionDetail } from "@gymos/shared";
+import { ApiError } from "../../api/client.ts";
 import { GymView } from "./GymView.tsx";
 import {
   addSet,
@@ -59,6 +60,7 @@ const session: WorkoutSessionDetail = {
 };
 
 beforeEach(() => {
+  vi.clearAllMocks();
   vi.mocked(listExercises).mockResolvedValue([exercise]);
   vi.mocked(listPlans).mockResolvedValue([plan]);
   vi.mocked(getActiveSession).mockResolvedValue(null);
@@ -165,6 +167,49 @@ describe("GymView", () => {
     });
     expect(
       await screen.findByText("No completed workouts yet")
+    ).toBeInTheDocument();
+  });
+
+  it("resumes the active session when starting returns 409", async () => {
+    vi.mocked(startSession).mockRejectedValueOnce(
+      new ApiError(409, "An active session is already in progress")
+    );
+    vi.mocked(getActiveSession)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(session);
+
+    render(<GymView />);
+
+    await screen.findByText("Push Day");
+    fireEvent.click(screen.getByRole("button", { name: /start free workout/i }));
+
+    await waitFor(() => {
+      expect(getActiveSession).toHaveBeenCalledTimes(2);
+    });
+    expect(
+      await screen.findByRole("heading", { name: "Push Day" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /finish workout/i })
+    ).toBeInTheDocument();
+  });
+
+  it("shows a duplicate plan name error", async () => {
+    vi.mocked(createPlan).mockRejectedValueOnce(
+      new ApiError(409, "A plan with this name already exists")
+    );
+
+    render(<GymView />);
+
+    await screen.findByText("Push Day");
+    fireEvent.click(screen.getByRole("button", { name: /create plan/i }));
+    fireEvent.change(screen.getByLabelText("Name"), {
+      target: { value: "Push Day" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /save plan/i }));
+
+    expect(
+      await screen.findByText("A plan with this name already exists")
     ).toBeInTheDocument();
   });
 

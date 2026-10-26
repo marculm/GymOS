@@ -77,6 +77,8 @@ describe("Gym plan routes", () => {
       ],
     });
     expect(res.status).toBe(400);
+    const data = (await res.json()) as { error: string };
+    expect(data.error).toContain("Unknown exercise IDs");
   });
 
   it("rejects duplicate plan names", async () => {
@@ -90,6 +92,8 @@ describe("Gym plan routes", () => {
 
     const second = await postJson(body);
     expect(second.status).toBe(409);
+    const data = (await second.json()) as { error: string };
+    expect(data.error).toBe("A plan with this name already exists");
   });
 
   it("still lists exercises", async () => {

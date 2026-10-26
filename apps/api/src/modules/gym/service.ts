@@ -12,9 +12,10 @@ import type {
 import { HTTPException } from "hono/http-exception";
 import { getCurrentUser } from "../../lib/current-user.ts";
 import {
+  completeSessionIfOpen,
   createPlanWithExercises,
-  createSession,
-  createSet,
+  createSessionIfNoActive,
+  createSetIfSessionOpen,
   findActiveSession,
   findExerciseIds,
   findExercises,
@@ -22,7 +23,8 @@ import {
   findPlansByUser,
   findRecentSessions,
   findSessionById,
-  markSessionCompleted,
+  type CompleteSessionResult,
+  type LogSetResult,
 } from "./repository.ts";
 
 export function listExercises(): Promise<Exercise[]> {
@@ -61,10 +63,6 @@ export async function startSession(
   input: CreateWorkoutSessionInput
 ): Promise<WorkoutSessionDetail> {
   const user = await getCurrentUser();
-  const active = await findActiveSession(user.id);
-  if (active) {
-    throw new HTTPException(409, { message: "An active session is already in progress" });
-  }
 
   let planId: string | null = null;
   let title = input.title;
@@ -78,7 +76,24 @@ export async function startSession(
     title = title ?? plan.name;
   }
 
-  return createSession(user.id, { title: title ?? "Free Workout", planId });
+  let session: WorkoutSessionDetail | null;
+  try {
+    session = await createSessionIfNoActive(user.id, {
+      title: title ?? "Free Workout",
+      planId,
+    });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034") {
+      throw new HTTPException(409, { message: "Concurrent update, retry" });
+    }
+    throw error;
+  }
+
+  if (!session) {
+    throw new HTTPException(409, { message: "An active session is already in progress" });
+  }
+
+  return session;
 }
 
 export async function getActiveSession(): Promise<WorkoutSessionDetail | null> {
@@ -105,26 +120,33 @@ export async function logSet(
   input: CreateWorkoutSetInput
 ): Promise<LoggedSet> {
   const user = await getCurrentUser();
-  const session = await findSessionById(user.id, sessionId);
-  if (!session) {
-    throw new HTTPException(404, { message: "Session not found" });
-  }
-  if (session.completedAt) {
-    throw new HTTPException(409, { message: "Session is already completed" });
-  }
 
-  const exerciseIds = await findExerciseIds([input.exerciseId]);
-  if (exerciseIds.length === 0) {
-    throw new HTTPException(400, { message: `Unknown exercise ID: ${input.exerciseId}` });
-  }
-
+  let result: LogSetResult;
   try {
-    return await createSet(sessionId, input);
+    result = await createSetIfSessionOpen(user.id, sessionId, input);
   } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-      throw new HTTPException(409, { message: "Set was already logged, retry" });
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === "P2002") {
+        throw new HTTPException(409, { message: "Set was already logged, retry" });
+      }
+      if (error.code === "P2034") {
+        throw new HTTPException(409, { message: "Concurrent update, retry" });
+      }
     }
     throw error;
+  }
+
+  switch (result.kind) {
+    case "created":
+      return result.set;
+    case "not_found":
+      throw new HTTPException(404, { message: "Session not found" });
+    case "completed":
+      throw new HTTPException(409, { message: "Session is already completed" });
+    case "unknown_exercise":
+      throw new HTTPException(400, {
+        message: `Unknown exercise ID: ${input.exerciseId}`,
+      });
   }
 }
 
@@ -132,12 +154,23 @@ export async function completeSession(
   sessionId: string
 ): Promise<WorkoutSessionDetail> {
   const user = await getCurrentUser();
-  const session = await findSessionById(user.id, sessionId);
-  if (!session) {
-    throw new HTTPException(404, { message: "Session not found" });
+
+  let result: CompleteSessionResult;
+  try {
+    result = await completeSessionIfOpen(user.id, sessionId);
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034") {
+      throw new HTTPException(409, { message: "Concurrent update, retry" });
+    }
+    throw error;
   }
-  if (session.completedAt) {
-    throw new HTTPException(409, { message: "Session is already completed" });
+
+  switch (result.kind) {
+    case "completed":
+      return result.session;
+    case "not_found":
+      throw new HTTPException(404, { message: "Session not found" });
+    case "already_completed":
+      throw new HTTPException(409, { message: "Session is already completed" });
   }
-  return markSessionCompleted(sessionId);
 }

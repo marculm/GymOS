@@ -1,10 +1,13 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { prisma } from "../src/db/client.ts";
 import { app } from "../src/index.ts";
+import { createSessionIfNoActive } from "../src/modules/gym/repository.ts";
 import {
   cleanupTestUser,
   clearTestUserData,
   createTestUser,
   firstExercise,
+  TEST_EMAIL,
 } from "./helpers.ts";
 
 let exerciseId: string;
@@ -60,6 +63,27 @@ describe("Gym session routes", () => {
     expect(res.status).toBe(409);
   });
 
+  it("allows only one active session under concurrent starts", async () => {
+    const responses = await Promise.all(
+      Array.from({ length: 5 }, () => postJson("/api/gym/sessions", {}))
+    );
+    const statuses = responses.map((response) => response.status);
+
+    expect(statuses.filter((status) => status === 201)).toHaveLength(1);
+    expect(statuses.filter((status) => status === 409)).toHaveLength(4);
+  });
+
+  it("serializes concurrent session creation in the repository", async () => {
+    const user = await prisma.user.findUniqueOrThrow({ where: { email: TEST_EMAIL } });
+
+    const results = await Promise.all([
+      createSessionIfNoActive(user.id, { title: "First", planId: null }),
+      createSessionIfNoActive(user.id, { title: "Second", planId: null }),
+    ]);
+
+    expect(results.filter((session) => session !== null)).toHaveLength(1);
+  });
+
   it("starts a session from a plan", async () => {
     const plan = await createPlan("Plan Session");
     const session = await startSession({ planId: plan.id });
@@ -101,6 +125,8 @@ describe("Gym session routes", () => {
       weightKg: 20,
     });
     expect(res.status).toBe(409);
+    const data = (await res.json()) as { error: string };
+    expect(data.error).toBe("Session is already completed");
   });
 
   it("rejects unknown exercise IDs", async () => {
@@ -112,6 +138,8 @@ describe("Gym session routes", () => {
       weightKg: 20,
     });
     expect(res.status).toBe(400);
+    const data = (await res.json()) as { error: string };
+    expect(data.error).toContain("Unknown exercise ID");
   });
 
   it("completes a session and clears the active session", async () => {
@@ -147,6 +175,19 @@ describe("Gym session routes", () => {
     expect(data.sessions).toHaveLength(1);
     expect(data.sessions[0]?.id).toBe(session.id);
     expect(data.sessions[0]?.totalSets).toBe(1);
+  });
+
+  it("excludes an active session from history", async () => {
+    const completed = await startSession();
+    await postJson(`/api/gym/sessions/${completed.id}/complete`, {});
+    const active = await startSession();
+
+    const history = await app.request("/api/gym/sessions");
+    expect(history.status).toBe(200);
+    const data = (await history.json()) as { sessions: Array<{ id: string }> };
+
+    expect(data.sessions.map((session) => session.id)).toEqual([completed.id]);
+    expect(data.sessions.some((session) => session.id === active.id)).toBe(false);
   });
 
   it("returns a session with its logged sets", async () => {
