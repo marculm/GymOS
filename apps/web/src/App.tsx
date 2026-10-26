@@ -1,101 +1,59 @@
-import React, { useState } from "react";
-import { Dumbbell, Utensils, Sparkles } from "lucide-react";
+import { useState } from "react";
+import { Dumbbell, Sparkles, Utensils, type LucideIcon } from "lucide-react";
+
+type Tab = "gym" | "nutrition" | "extractor";
+
+const TABS: Array<{ id: Tab; label: string; icon: LucideIcon }> = [
+  { id: "gym", label: "Gym", icon: Dumbbell },
+  { id: "nutrition", label: "Nutrition", icon: Utensils },
+  { id: "extractor", label: "AI Extractor", icon: Sparkles },
+];
 
 export function App() {
-  const [activeTab, setActiveTab] = useState<"gym" | "nutrition" | "extractor">("gym");
+  const [activeTab, setActiveTab] = useState<Tab>("gym");
 
   return (
-    <div style={{ maxWidth: 600, margin: "0 auto", padding: 16 }}>
-      <header style={{ marginBottom: 24, textAlign: "center" }}>
-        <h1 style={{ fontSize: "1.8rem", margin: "8px 0" }}>🏋️ GymOS</h1>
-        <p style={{ color: "#94a3b8", margin: 0 }}>All-in-one Gym & Nutrition OS</p>
+    <div className="app">
+      <header className="app-header">
+        <h1>🏋️ GymOS</h1>
+        <p className="muted">All-in-one Gym & Nutrition OS</p>
       </header>
 
-      <nav style={{ display: "flex", gap: 8, marginBottom: 24 }}>
-        <button
-          type="button"
-          onClick={() => setActiveTab("gym")}
-          style={{
-            flex: 1,
-            padding: 12,
-            borderRadius: 8,
-            border: "none",
-            cursor: "pointer",
-            background: activeTab === "gym" ? "#3b82f6" : "#1e293b",
-            color: "#fff",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 8,
-          }}
-        >
-          <Dumbbell size={18} />
-          Gym
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab("nutrition")}
-          style={{
-            flex: 1,
-            padding: 12,
-            borderRadius: 8,
-            border: "none",
-            cursor: "pointer",
-            background: activeTab === "nutrition" ? "#3b82f6" : "#1e293b",
-            color: "#fff",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 8,
-          }}
-        >
-          <Utensils size={18} />
-          Nutrition
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab("extractor")}
-          style={{
-            flex: 1,
-            padding: 12,
-            borderRadius: 8,
-            border: "none",
-            cursor: "pointer",
-            background: activeTab === "extractor" ? "#3b82f6" : "#1e293b",
-            color: "#fff",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 8,
-          }}
-        >
-          <Sparkles size={18} />
-          AI Extractor
-        </button>
-      </nav>
-
-      <main style={{ background: "#1e293b", padding: 20, borderRadius: 12 }}>
+      <main className="content">
         {activeTab === "gym" && (
-          <div>
-            <h2 style={{ marginTop: 0 }}>Workout Tracker</h2>
-            <p style={{ color: "#cbd5e1" }}>Track sets, reps, weight, and RPE.</p>
-          </div>
+          <section className="card">
+            <h2 className="card-title">Workout Tracker</h2>
+            <p className="muted">Track sets, reps, weight, and RPE.</p>
+          </section>
         )}
         {activeTab === "nutrition" && (
-          <div>
-            <h2 style={{ marginTop: 0 }}>Nutrition & Mealprep</h2>
-            <p style={{ color: "#cbd5e1" }}>Calculate macros, plan meals, and log recipes.</p>
-          </div>
+          <section className="card">
+            <h2 className="card-title">Nutrition & Mealprep</h2>
+            <p className="muted">Calculate macros, plan meals, and log recipes.</p>
+          </section>
         )}
         {activeTab === "extractor" && (
-          <div>
-            <h2 style={{ marginTop: 0 }}>TikTok / Reels AI Extractor</h2>
-            <p style={{ color: "#cbd5e1" }}>Import recipes and ingredients directly from video URLs.</p>
-          </div>
+          <section className="card">
+            <h2 className="card-title">TikTok / Reels AI Extractor</h2>
+            <p className="muted">Import recipes and ingredients directly from video URLs.</p>
+          </section>
         )}
       </main>
+
+      <nav className="tab-bar" aria-label="Main navigation">
+        {TABS.map(({ id, label, icon: Icon }) => (
+          <button
+            key={id}
+            type="button"
+            className={activeTab === id ? "tab tab-active" : "tab"}
+            aria-pressed={activeTab === id}
+            onClick={() => setActiveTab(id)}
+          >
+            <Icon size={20} aria-hidden="true" />
+            {label}
+          </button>
+        ))}
+      </nav>
     </div>
   );
 }

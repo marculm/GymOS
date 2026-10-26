@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, within } from "@testing-library/react";
 import React from "react";
 import { App } from "./App.tsx";
 
@@ -21,5 +21,12 @@ describe("GymOS App Component", () => {
     const extractorBtn = screen.getByRole("button", { name: /AI Extractor/i });
     fireEvent.click(extractorBtn);
     expect(screen.getByText(/TikTok \/ Reels AI Extractor/i)).toBeInTheDocument();
+  });
+
+  it("shows the three main tabs in the navigation", () => {
+    render(<App />);
+    const nav = screen.getByRole("navigation", { name: /main navigation/i });
+    expect(nav).toBeInTheDocument();
+    expect(within(nav).getAllByRole("button")).toHaveLength(3);
   });
 });
