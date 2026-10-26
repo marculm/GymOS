@@ -1,15 +1,15 @@
 import { Hono } from "hono";
-import { prisma } from "../../db/client.ts";
-import { logger } from "../../lib/logger.ts";
-
-const gymLogger = logger.child({ module: "gym" });
+import { CreateWorkoutPlanSchema } from "@gymos/shared";
+import { zJson } from "../../lib/validation.ts";
+import { createPlan, listExercises, listPlans } from "./service.ts";
 
 export const gymModule = new Hono();
 
-gymModule.get("/exercises", async (c) => {
-  gymLogger.debug("Fetching exercises list from database");
-  const exercises = await prisma.exercise.findMany({
-    orderBy: { name: "asc" },
-  });
-  return c.json({ exercises });
+gymModule.get("/exercises", async (c) => c.json({ exercises: await listExercises() }));
+
+gymModule.get("/plans", async (c) => c.json({ plans: await listPlans() }));
+
+gymModule.post("/plans", zJson(CreateWorkoutPlanSchema), async (c) => {
+  const plan = await createPlan(c.req.valid("json"));
+  return c.json({ plan }, 201);
 });
