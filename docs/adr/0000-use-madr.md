@@ -21,4 +21,4 @@ We will use [MADR](https://adr.github.io/madr/) (Markdown Any Decision Records) 
 
 - Every significant architecture decision gets documented before or during implementation.
 - Superseded ADRs are marked with status `Superseded by [NNNN]`, not deleted.
-- The `lint:arch` script validates that code conforms to the rules defined in ADRs.
+- The `lint:adr` script validates that code conforms to the rules defined in ADRs.
