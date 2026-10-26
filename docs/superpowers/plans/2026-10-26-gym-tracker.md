@@ -8,7 +8,7 @@
 
 **Tech Stack:** Bun, TypeScript (strict), Hono 4, Prisma 6 + PostgreSQL, Zod 4, React 19 + Vite 6 PWA, Vitest 4, plain CSS.
 
-**Spec:** `tmp/design.txt` (project vision) plus the decisions recorded in Global Constraints below.
+**Spec:** The binding decisions are recorded in ADR-0009, ADR-0010, ADR-0011, and ADR-0012, plus the Global Constraints below. The original scratch vision file (`tmp/design.txt`) was removed on 2026-10-26 and is not part of the repository.
 
 ## Global Constraints
 
@@ -100,7 +100,7 @@ In the root `package.json` `scripts` block, add:
 - [ ] **Step 5: Verify ADR and build**
 
 Run: `bun run lint:adr`
-Expected: `All 11 ADR(s) conform to MADR format.`
+Expected: `All 13 ADR(s) conform to MADR format.`
 
 Run: `bun run build`
 Expected: Vite build completes with exit code 0.
@@ -1235,7 +1235,7 @@ bun run build
 Expected:
 - `bun check`: no type errors.
 - `oxlint`: no errors.
-- ADR linter: `All 11 ADR(s) conform to MADR format.`
+- ADR linter: `All 13 ADR(s) conform to MADR format.`
 - Vitest: all API, web, and shared suites pass.
 - Vite build: exit code 0.
 
