@@ -16,6 +16,7 @@ model User {
   workoutSessions WorkoutSession[]
   nutritionLogs   NutritionLog[]
   recipes         Recipe[]
+  plans           WorkoutPlan[]
 
   @@map("users")
 }
@@ -27,6 +28,7 @@ model Exercise {
   description String?
   createdAt   DateTime     @default(now())
   sets        WorkoutSet[]
+  planExercises WorkoutPlanExercise[]
 
   @@map("exercises")
 }
@@ -38,9 +40,12 @@ model WorkoutSession {
   title       String
   startedAt   DateTime     @default(now())
   completedAt DateTime?
+  planId      String?
+  plan        WorkoutPlan? @relation(fields: [planId], references: [id], onDelete: SetNull)
   sets        WorkoutSet[]
   createdAt   DateTime     @default(now())
 
+  @@index([userId, completedAt])
   @@map("workout_sessions")
 }
 
@@ -56,6 +61,7 @@ model WorkoutSet {
   rpe              Float?
   createdAt        DateTime       @default(now())
 
+  @@unique([workoutSessionId, exerciseId, setNumber])
   @@map("workout_sets")
 }
 
@@ -91,4 +97,35 @@ model NutritionLog {
   createdAt    DateTime @default(now())
 
   @@map("nutrition_logs")
+}
+
+model WorkoutPlan {
+  id          String                @id @default(uuid())
+  userId      String
+  user        User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+  exercises   WorkoutPlanExercise[]
+  sessions    WorkoutSession[]
+
+  @@unique([userId, name])
+  @@map("workout_plans")
+}
+
+model WorkoutPlanExercise {
+  id             String      @id @default(uuid())
+  planId         String
+  plan           WorkoutPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  exerciseId     String
+  exercise       Exercise    @relation(fields: [exerciseId], references: [id], onDelete: Restrict)
+  position       Int
+  targetSets     Int
+  targetReps     Int
+  targetWeightKg Float?
+  notes          String?
+
+  @@unique([planId, position])
+  @@map("workout_plan_exercises")
 }
