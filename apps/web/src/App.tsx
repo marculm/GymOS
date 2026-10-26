@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Dumbbell, Sparkles, Utensils, type LucideIcon } from "lucide-react";
+import { GymView } from "./features/gym/GymView.tsx";
 
 type Tab = "gym" | "nutrition" | "extractor";
 
@@ -20,12 +21,7 @@ export function App() {
       </header>
 
       <main className="content">
-        {activeTab === "gym" && (
-          <section className="card">
-            <h2 className="card-title">Workout Tracker</h2>
-            <p className="muted">Track sets, reps, weight, and RPE.</p>
-          </section>
-        )}
+        {activeTab === "gym" && <GymView />}
         {activeTab === "nutrition" && (
           <section className="card">
             <h2 className="card-title">Nutrition & Mealprep</h2>

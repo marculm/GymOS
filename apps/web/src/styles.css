@@ -226,6 +226,20 @@ button {
   padding: 20px 0;
 }
 
+.plan-card {
+  border-left: 3px solid var(--accent);
+}
+
+.plan-exercise {
+  border: 1px solid var(--surface-2);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+}
+
+.grow {
+  flex: 1 1 160px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
