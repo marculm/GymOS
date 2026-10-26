@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type {
   CreateWorkoutPlanInput,
+  CreateWorkoutSetInput,
   Exercise,
   WorkoutPlan,
   WorkoutSessionDetail,
@@ -8,6 +9,8 @@ import type {
 } from "@gymos/shared";
 import { ApiError } from "../../api/client.ts";
 import {
+  addSet,
+  completeSession,
   createPlan,
   getActiveSession,
   listExercises,
@@ -16,6 +19,7 @@ import {
   startSession,
 } from "../../api/gym.ts";
 import { PlanForm } from "./PlanForm.tsx";
+import { SessionView } from "./SessionView.tsx";
 
 function messageOf(error: unknown): string {
   return error instanceof Error ? error.message : "Something went wrong";
@@ -86,6 +90,25 @@ export function GymView() {
     setShowPlanForm(false);
   }
 
+  async function handleLogSet(input: CreateWorkoutSetInput) {
+    if (!activeSession) return;
+    const set = await addSet(activeSession.id, input);
+    setActiveSession((current) =>
+      current ? { ...current, sets: [...current.sets, set] } : current
+    );
+  }
+
+  async function handleComplete() {
+    if (!activeSession) return;
+    await completeSession(activeSession.id);
+    setActiveSession(null);
+    try {
+      setHistory(await listSessions(10));
+    } catch {
+      // The workout is already complete; history will refresh on the next load.
+    }
+  }
+
   if (loading) {
     return <p className="muted">Loading gym data…</p>;
   }
@@ -102,11 +125,17 @@ export function GymView() {
   }
 
   if (activeSession) {
+    const matchingPlan =
+      plans.find((plan) => plan.id === activeSession.planId) ?? null;
+
     return (
-      <section className="card stack">
-        <p className="muted">Workout in progress</p>
-        <h2 className="card-title">{activeSession.title}</h2>
-      </section>
+      <SessionView
+        session={activeSession}
+        plan={matchingPlan}
+        exercises={exercises}
+        onLogSet={handleLogSet}
+        onComplete={handleComplete}
+      />
     );
   }
 

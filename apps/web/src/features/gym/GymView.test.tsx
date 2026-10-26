@@ -3,6 +3,8 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { Exercise, WorkoutPlan, WorkoutSessionDetail } from "@gymos/shared";
 import { GymView } from "./GymView.tsx";
 import {
+  addSet,
+  completeSession,
   createPlan,
   getActiveSession,
   listExercises,
@@ -83,7 +85,12 @@ describe("GymView", () => {
     await waitFor(() => {
       expect(startSession).toHaveBeenCalledWith({ planId: "plan-1" });
     });
-    expect(await screen.findByText("Workout in progress")).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "Push Day" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /finish workout/i })
+    ).toBeInTheDocument();
   });
 
   it("creates a plan from the form", async () => {
@@ -110,6 +117,55 @@ describe("GymView", () => {
         })
       );
     });
+  });
+
+  it("logs a set and finishes the active session", async () => {
+    vi.mocked(getActiveSession).mockResolvedValue(session);
+    vi.mocked(addSet).mockResolvedValue({
+      id: "set-1",
+      exerciseId: "exercise-1",
+      setNumber: 1,
+      reps: 8,
+      weightKg: 80,
+      rpe: null,
+      createdAt: "2026-10-26T18:05:00.000Z",
+    });
+    vi.mocked(completeSession).mockResolvedValue({
+      ...session,
+      completedAt: "2026-10-26T19:00:00.000Z",
+    });
+
+    render(<GymView />);
+
+    expect(
+      await screen.findByRole("heading", { name: "Push Day" })
+    ).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Weight (kg)"), {
+      target: { value: "80" },
+    });
+    fireEvent.change(screen.getByLabelText("Reps"), {
+      target: { value: "8" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Log set" }));
+
+    await waitFor(() => {
+      expect(addSet).toHaveBeenCalledWith("session-1", {
+        exerciseId: "exercise-1",
+        weightKg: 80,
+        reps: 8,
+        rpe: undefined,
+      });
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Finish workout" }));
+
+    await waitFor(() => {
+      expect(completeSession).toHaveBeenCalledWith("session-1");
+    });
+    expect(
+      await screen.findByText("No completed workouts yet")
+    ).toBeInTheDocument();
   });
 
   it("shows an error with retry when loading fails", async () => {
