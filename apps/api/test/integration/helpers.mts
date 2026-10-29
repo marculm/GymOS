@@ -1,4 +1,4 @@
-import { prisma } from "../src/config/prisma-client.mts";
+import { prisma } from "../../src/config/prisma-client.mts";
 
 export const TEST_EMAIL = `test-${crypto.randomUUID()}@gymos.app`;
 let testUserId: string | null = null;
@@ -7,6 +7,14 @@ export async function createTestUser() {
   process.env.GYMOS_USER_EMAIL = TEST_EMAIL;
   const user = await prisma.user.create({ data: { email: TEST_EMAIL, name: "Test User" } });
   testUserId = user.id;
+}
+
+export async function createUser(email: string, name = "Other User") {
+  return prisma.user.create({ data: { email, name } });
+}
+
+export async function deleteUser(id: string) {
+  await prisma.user.deleteMany({ where: { id } });
 }
 
 export async function clearTestUserData() {
@@ -25,4 +33,12 @@ export async function cleanupTestUser() {
 
 export async function firstExercise() {
   return prisma.exercise.findFirstOrThrow({ orderBy: { name: "asc" } });
+}
+
+export function setUserEmail(email: string) {
+  process.env.GYMOS_USER_EMAIL = email;
+}
+
+export function currentUserEmail() {
+  return process.env.GYMOS_USER_EMAIL;
 }
