@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { HTTPException } from "hono/http-exception";
 import { logger } from "./lib/logger.ts";
 import { gymModule } from "./modules/gym/index.ts";
 import { nutritionModule } from "./modules/nutrition/index.ts";
@@ -22,6 +23,14 @@ app.use("*", async (c, next) => {
     status,
     durationMs: `${durationMs}ms`,
   }, `${method} ${path} -> ${status} (${durationMs}ms)`);
+});
+
+app.onError((err, c) => {
+  if (err instanceof HTTPException) {
+    return c.json({ error: err.message }, err.status);
+  }
+  logger.error({ err }, "Unhandled error");
+  return c.json({ error: "Internal server error" }, 500);
 });
 
 // Health check endpoint

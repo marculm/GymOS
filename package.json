@@ -8,6 +8,7 @@
   ],
   "scripts": {
     "dev": "bun --filter @gymos/api dev & bun --filter @gymos/web dev",
+    "build": "bun --filter @gymos/web build",
     "dev:api": "bun --filter @gymos/api dev",
     "dev:web": "bun --filter @gymos/web dev",
     "test": "vitest run",

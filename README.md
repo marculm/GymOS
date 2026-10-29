@@ -6,6 +6,20 @@ Built as a TypeScript Monorepo powered by **Bun**, **Hono**, **React (Vite PWA)*
 
 ---
 
+## Current Status
+
+The **Gym Tracker** slice is implemented on `feature/gym-tracker`:
+
+- Browse exercises and training plans
+- Create plans with target sets, reps, and optional weight
+- Start free or plan-based workouts
+- Log sets with weight, reps, and RPE
+- Finish workouts and review recent history
+
+Nutrition, the AI recipe extractor, authentication, and offline logging are not implemented yet. The API is single-user (no login) and must be protected before public deployment. See [`docs/known-issues.md`](docs/known-issues.md) for known limitations.
+
+---
+
 ## Prerequisites
 
 * **[Bun](https://bun.com)** (v1.2+)
@@ -30,8 +44,10 @@ Built as a TypeScript Monorepo powered by **Bun**, **Hono**, **React (Vite PWA)*
    ```bash
    bun run db:up         # Starts PostgreSQL 17 in Docker (Port 5433)
    bun run db:migrate    # Applies Prisma migrations
-   bun run db:seed       # Populates default exercises & demo user
+   bun run db:seed       # Populates exercises, demo user & Push Day plan
    ```
+
+   The seed provisions `demo@gymos.app`. The API resolves the current user from `GYMOS_USER_EMAIL` (default `demo@gymos.app`); see [`docs/known-issues.md`](docs/known-issues.md) before changing it.
 
 4. **Start development servers:**
    ```bash
@@ -57,7 +73,7 @@ Built as a TypeScript Monorepo powered by **Bun**, **Hono**, **React (Vite PWA)*
 
 | Command | Description |
 | :--- | :--- |
-| `bun run test` | Runs all Vitest suites (API & Web) in parallel |
+| `bun run test` | Runs all Vitest suites (API, Web, Shared) in parallel |
 | `bun run test:watch` | Runs Vitest in interactive watch mode |
 
 ### Database Management (PostgreSQL & Prisma)
@@ -80,6 +96,26 @@ Built as a TypeScript Monorepo powered by **Bun**, **Hono**, **React (Vite PWA)*
 
 ---
 
+## Gym API
+
+All routes are under `/api/gym` and validate their input with Zod. Errors use `{ "error": "..." }`.
+
+| Method | Route | Description |
+| :--- | :--- | :--- |
+| `GET` | `/api/gym/exercises` | List exercises |
+| `GET` | `/api/gym/plans` | List the current user's plans |
+| `POST` | `/api/gym/plans` | Create a plan (`{ name, description?, exercises[] }`) |
+| `POST` | `/api/gym/sessions` | Start a session (`{ title?, planId? }`) |
+| `GET` | `/api/gym/sessions/active` | Get the active session or `null` |
+| `GET` | `/api/gym/sessions?limit=10` | List completed sessions |
+| `GET` | `/api/gym/sessions/:id` | Get a session with its sets |
+| `POST` | `/api/gym/sessions/:id/sets` | Log a set (`{ exerciseId, reps, weightKg, rpe? }`) |
+| `POST` | `/api/gym/sessions/:id/complete` | Finish a session |
+
+There is no authentication; the API resolves a single user from `GYMOS_USER_EMAIL` (ADR-0009).
+
+---
+
 ## Repository Structure
 
 ```
@@ -92,7 +128,8 @@ GymOS/
 ├── deploy/
 │   └── docker/          # Docker Compose configurations (PostgreSQL)
 ├── docs/
-│   └── adr/             # Architecture Decision Records (MADR format)
+│   ├── adr/             # Architecture Decision Records (MADR format)
+│   └── known-issues.md  # Known limitations and deferred work
 ├── AGENTS.md            # Guidelines and rules for AI pair programming
 └── .env.example         # Template for environment variables
 ```
