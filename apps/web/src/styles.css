@@ -8,7 +8,6 @@
   --accent: #3b82f6;
   --accent-strong: #2563eb;
   --danger: #ef4444;
-  --success: #22c55e;
   --radius: 12px;
   --radius-sm: 8px;
   --space: 16px;
@@ -168,11 +167,6 @@ button {
 .btn-ghost {
   background: var(--surface-2);
   color: var(--text);
-}
-
-.btn-danger {
-  background: var(--danger);
-  color: white;
 }
 
 .field {

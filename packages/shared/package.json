@@ -11,7 +11,8 @@
     }
   },
   "scripts": {
-    "test": "vitest run"
+    "test": "vitest run",
+    "typecheck": "bun check"
   },
   "dependencies": {
     "zod": "^4.6.6"

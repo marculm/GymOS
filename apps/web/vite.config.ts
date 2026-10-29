@@ -1,10 +1,13 @@
 import { defineConfig } from "vitest/config";
-import react from "@vitejs/plugin-react";
+import { svelte } from "@sveltejs/vite-plugin-svelte";
 import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
+  resolve: {
+    conditions: ["browser"],
+  },
   plugins: [
-    react(),
+    svelte(),
     VitePWA({
       registerType: "autoUpdate",
       manifest: {
@@ -45,6 +48,6 @@ export default defineConfig({
   test: {
     environment: "happy-dom",
     globals: true,
-    setupFiles: ["./src/test/setup.ts"],
+    setupFiles: ["./src/test/setup.mts"],
   },
 });

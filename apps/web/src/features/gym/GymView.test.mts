@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/svelte";
 import type { Exercise, WorkoutPlan, WorkoutSessionDetail } from "@gymos/shared";
-import { ApiError } from "../../api/client.ts";
-import { GymView } from "./GymView.tsx";
+import { ApiError } from "../../api/client.mts";
+import GymView from "./GymView.svelte";
 import {
   addSet,
   completeSession,
@@ -12,9 +12,9 @@ import {
   listPlans,
   listSessions,
   startSession,
-} from "../../api/gym.ts";
+} from "../../api/gym.mts";
 
-vi.mock("../../api/gym.ts", () => ({
+vi.mock("../../api/gym.mts", () => ({
   listExercises: vi.fn(),
   listPlans: vi.fn(),
   createPlan: vi.fn(),
@@ -24,6 +24,18 @@ vi.mock("../../api/gym.ts", () => ({
   addSet: vi.fn(),
   completeSession: vi.fn(),
 }));
+
+function page<T>(content: T[]) {
+  return {
+    content,
+    page: {
+      size: 20,
+      number: 0,
+      totalElements: content.length,
+      totalPages: content.length > 0 ? 1 : 0,
+    },
+  };
+}
 
 const exercise: Exercise = {
   id: "exercise-1",
@@ -61,28 +73,41 @@ const session: WorkoutSessionDetail = {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.mocked(listExercises).mockResolvedValue([exercise]);
-  vi.mocked(listPlans).mockResolvedValue([plan]);
+  vi.mocked(listExercises).mockResolvedValue(page([exercise]));
+  vi.mocked(listPlans).mockResolvedValue(page([plan]));
   vi.mocked(getActiveSession).mockResolvedValue(null);
-  vi.mocked(listSessions).mockResolvedValue([]);
+  vi.mocked(listSessions).mockResolvedValue(page([]));
   vi.mocked(startSession).mockResolvedValue(session);
   vi.mocked(createPlan).mockResolvedValue(plan);
+  vi.mocked(addSet).mockResolvedValue({
+    id: "set-1",
+    exerciseId: "exercise-1",
+    setNumber: 1,
+    reps: 8,
+    weightKg: 80,
+    rpe: null,
+    createdAt: "2026-10-26T18:05:00.000Z",
+  });
+  vi.mocked(completeSession).mockResolvedValue({
+    ...session,
+    completedAt: "2026-10-26T19:00:00.000Z",
+  });
 });
 
 describe("GymView", () => {
   it("renders plans and recent workouts", async () => {
-    render(<GymView />);
+    render(GymView);
 
     expect(await screen.findByText("Push Day")).toBeInTheDocument();
-    expect(screen.getByText("1 exercise")).toBeInTheDocument();
+    expect(screen.getByText(/1\s+exercise/)).toBeInTheDocument();
     expect(screen.getByText("No completed workouts yet")).toBeInTheDocument();
   });
 
   it("starts a plan session", async () => {
-    render(<GymView />);
+    render(GymView);
 
     await screen.findByText("Push Day");
-    fireEvent.click(screen.getByRole("button", { name: /start plan/i }));
+    await fireEvent.click(screen.getByRole("button", { name: /start plan/i }));
 
     await waitFor(() => {
       expect(startSession).toHaveBeenCalledWith({ planId: "plan-1" });
@@ -96,20 +121,26 @@ describe("GymView", () => {
   });
 
   it("creates a plan from the form", async () => {
-    render(<GymView />);
+    vi.mocked(createPlan).mockResolvedValueOnce({
+      ...plan,
+      id: "plan-2",
+      name: "Leg Day",
+    });
+
+    render(GymView);
 
     await screen.findByText("Push Day");
-    fireEvent.click(screen.getByRole("button", { name: /create plan/i }));
-    fireEvent.change(screen.getByLabelText("Name"), {
+    await fireEvent.click(screen.getByRole("button", { name: /create plan/i }));
+    await fireEvent.input(screen.getByLabelText("Name"), {
       target: { value: "Leg Day" },
     });
-    fireEvent.change(screen.getByLabelText("Sets"), {
+    await fireEvent.input(screen.getByLabelText("Sets"), {
       target: { value: "5" },
     });
-    fireEvent.change(screen.getByLabelText("Reps"), {
+    await fireEvent.input(screen.getByLabelText("Reps"), {
       target: { value: "5" },
     });
-    fireEvent.click(screen.getByRole("button", { name: /save plan/i }));
+    await fireEvent.click(screen.getByRole("button", { name: /save plan/i }));
 
     await waitFor(() => {
       expect(createPlan).toHaveBeenCalledWith(
@@ -123,33 +154,20 @@ describe("GymView", () => {
 
   it("logs a set and finishes the active session", async () => {
     vi.mocked(getActiveSession).mockResolvedValue(session);
-    vi.mocked(addSet).mockResolvedValue({
-      id: "set-1",
-      exerciseId: "exercise-1",
-      setNumber: 1,
-      reps: 8,
-      weightKg: 80,
-      rpe: null,
-      createdAt: "2026-10-26T18:05:00.000Z",
-    });
-    vi.mocked(completeSession).mockResolvedValue({
-      ...session,
-      completedAt: "2026-10-26T19:00:00.000Z",
-    });
 
-    render(<GymView />);
+    render(GymView);
 
     expect(
       await screen.findByRole("heading", { name: "Push Day" })
     ).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText("Weight (kg)"), {
+    await fireEvent.input(screen.getByLabelText("Weight (kg)"), {
       target: { value: "80" },
     });
-    fireEvent.change(screen.getByLabelText("Reps"), {
+    await fireEvent.input(screen.getByLabelText("Reps"), {
       target: { value: "8" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Log set" }));
+    await fireEvent.click(screen.getByRole("button", { name: "Log set" }));
 
     await waitFor(() => {
       expect(addSet).toHaveBeenCalledWith("session-1", {
@@ -160,7 +178,7 @@ describe("GymView", () => {
       });
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Finish workout" }));
+    await fireEvent.click(screen.getByRole("button", { name: "Finish workout" }));
 
     await waitFor(() => {
       expect(completeSession).toHaveBeenCalledWith("session-1");
@@ -170,21 +188,18 @@ describe("GymView", () => {
     ).toBeInTheDocument();
   });
 
-  it("resumes the active session when starting returns 409", async () => {
+  it("retries the start once when the conflict leaves no active session", async () => {
     vi.mocked(startSession).mockRejectedValueOnce(
       new ApiError(409, "An active session is already in progress")
     );
-    vi.mocked(getActiveSession)
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce(session);
 
-    render(<GymView />);
+    render(GymView);
 
     await screen.findByText("Push Day");
-    fireEvent.click(screen.getByRole("button", { name: /start free workout/i }));
+    await fireEvent.click(screen.getByRole("button", { name: /start free workout/i }));
 
     await waitFor(() => {
-      expect(getActiveSession).toHaveBeenCalledTimes(2);
+      expect(startSession).toHaveBeenCalledTimes(2);
     });
     expect(
       await screen.findByRole("heading", { name: "Push Day" })
@@ -199,14 +214,14 @@ describe("GymView", () => {
       new ApiError(409, "A plan with this name already exists")
     );
 
-    render(<GymView />);
+    render(GymView);
 
     await screen.findByText("Push Day");
-    fireEvent.click(screen.getByRole("button", { name: /create plan/i }));
-    fireEvent.change(screen.getByLabelText("Name"), {
+    await fireEvent.click(screen.getByRole("button", { name: /create plan/i }));
+    await fireEvent.input(screen.getByLabelText("Name"), {
       target: { value: "Push Day" },
     });
-    fireEvent.click(screen.getByRole("button", { name: /save plan/i }));
+    await fireEvent.click(screen.getByRole("button", { name: /save plan/i }));
 
     expect(
       await screen.findByText("A plan with this name already exists")
@@ -216,10 +231,10 @@ describe("GymView", () => {
   it("shows an error with retry when loading fails", async () => {
     vi.mocked(listPlans).mockRejectedValueOnce(new Error("Backend unavailable"));
 
-    render(<GymView />);
+    render(GymView);
 
     expect(await screen.findByText("Backend unavailable")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /retry/i }));
+    await fireEvent.click(screen.getByRole("button", { name: /retry/i }));
     expect(await screen.findByText("Push Day")).toBeInTheDocument();
   });
 });

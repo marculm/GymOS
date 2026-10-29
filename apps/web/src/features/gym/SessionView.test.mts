@@ -1,14 +1,31 @@
-import type { ComponentProps } from "react";
 import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import type { Exercise, WorkoutPlan, WorkoutSessionDetail } from "@gymos/shared";
-import { SessionView } from "./SessionView.tsx";
+import { fireEvent, render, screen, waitFor } from "@testing-library/svelte";
+import type {
+  CreateWorkoutSetInput,
+  Exercise,
+  WorkoutPlan,
+  WorkoutSessionDetail,
+} from "@gymos/shared";
+import SessionView from "./SessionView.svelte";
 
-type Props = ComponentProps<typeof SessionView>;
+type Props = {
+  session: WorkoutSessionDetail;
+  plan: WorkoutPlan | null;
+  exercises: Exercise[];
+  onLogSet: (input: CreateWorkoutSetInput) => Promise<void>;
+  onComplete: () => Promise<void>;
+};
 
 const exercise: Exercise = {
   id: "exercise-1",
   name: "Bench Press",
+  muscleGroup: "chest",
+  description: null,
+};
+
+const extraExercise: Exercise = {
+  id: "exercise-2",
+  name: "Cable Fly",
   muscleGroup: "chest",
   description: null,
 };
@@ -44,16 +61,16 @@ function renderSession(overrides: Partial<Props> = {}) {
   const onLogSet = vi.fn().mockResolvedValue(undefined);
   const onComplete = vi.fn().mockResolvedValue(undefined);
 
-  render(
-    <SessionView
-      session={session}
-      plan={plan}
-      exercises={[exercise]}
-      onLogSet={onLogSet}
-      onComplete={onComplete}
-      {...overrides}
-    />
-  );
+  render(SessionView, {
+    props: {
+      session,
+      plan,
+      exercises: [exercise, extraExercise],
+      onLogSet,
+      onComplete,
+      ...overrides,
+    },
+  });
 
   return { onLogSet, onComplete };
 }
@@ -63,23 +80,23 @@ describe("SessionView", () => {
     renderSession();
 
     expect(screen.getByRole("heading", { name: "Bench Press" })).toBeInTheDocument();
-    expect(screen.getByText(/4 × 8/)).toBeInTheDocument();
+    expect(screen.getByText(/4\s*×\s*8/)).toBeInTheDocument();
     expect(screen.getByText(/@ 80 kg/)).toBeInTheDocument();
   });
 
   it("logs a set with the selected exercise", async () => {
     const { onLogSet } = renderSession();
 
-    fireEvent.change(screen.getByLabelText("Weight (kg)"), {
+    await fireEvent.input(screen.getByLabelText("Weight (kg)"), {
       target: { value: "82.5" },
     });
-    fireEvent.change(screen.getByLabelText("Reps"), {
+    await fireEvent.input(screen.getByLabelText("Reps"), {
       target: { value: "6" },
     });
-    fireEvent.change(screen.getByLabelText("RPE (optional)"), {
+    await fireEvent.input(screen.getByLabelText("RPE (optional)"), {
       target: { value: "9" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Log set" }));
+    await fireEvent.click(screen.getByRole("button", { name: "Log set" }));
 
     await waitFor(() => {
       expect(onLogSet).toHaveBeenCalledWith({
@@ -94,7 +111,7 @@ describe("SessionView", () => {
   it("finishes the workout", async () => {
     const { onComplete } = renderSession();
 
-    fireEvent.click(screen.getByRole("button", { name: "Finish workout" }));
+    await fireEvent.click(screen.getByRole("button", { name: "Finish workout" }));
 
     await waitFor(() => {
       expect(onComplete).toHaveBeenCalledTimes(1);
@@ -112,5 +129,27 @@ describe("SessionView", () => {
     expect(
       screen.queryByRole("button", { name: "Log set" })
     ).not.toBeInTheDocument();
+  });
+
+  it("shows sets for exercises outside the plan", () => {
+    renderSession({
+      session: {
+        ...session,
+        sets: [
+          {
+            id: "set-1",
+            exerciseId: "exercise-2",
+            setNumber: 1,
+            reps: 12,
+            weightKg: 15,
+            rpe: null,
+            createdAt: "2026-10-26T18:05:00.000Z",
+          },
+        ],
+      },
+    });
+
+    expect(screen.getByRole("heading", { name: "Cable Fly" })).toBeInTheDocument();
+    expect(screen.getByText("Set 1")).toBeInTheDocument();
   });
 });
