@@ -133,7 +133,6 @@ apps/api/
         │   │   ├── pageable.mts
         │   │   ├── slice.mts
         │   │   ├── search-params.mts
-        │   │   ├── where-builder.mts
         │   │   ├── read-service.test.mts
         │   │   └── write-service.test.mts
         │   └── repository/
@@ -141,6 +140,7 @@ apps/api/
         │       ├── plan-repository.mts
         │       ├── session-repository.mts
         │       ├── transaction.mts
+        │       ├── where-builder.mts
         │       └── mapping.mts
         ├── nutrition/
         │   ├── index.mts
@@ -284,13 +284,14 @@ List endpoints return `Page<T>`:
 
 - Query parameters: `page` (1-based input, 0-based internal) and `size`.
 - Defaults: `size = 20`; maximum `size = 100`.
-- `pageable.mts` parses and normalizes the input.
+- `pageable.mts` parses and normalizes out-of-range page and size values to the
+  defaults.
 - `slice.mts` defines `Slice<T> = { content, totalElements }`.
 - `page.mts` creates `Page<T>` with `totalPages`.
-- `search-params.mts` defines the allowed filters and `where-builder.mts` maps them to
-  Prisma `where` objects.
+- `search-params.mts` defines the allowed filters; `repository/where-builder.mts` maps
+  them to Prisma `where` objects.
 - Plans filter by `name`; sessions filter by `planId`, `from`, and `to`.
-- Unknown or invalid query parameters are rejected with `422`.
+- Malformed or unknown query parameters are rejected with `422`.
 
 See ADR-0015.
 

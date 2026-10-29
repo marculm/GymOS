@@ -15,10 +15,9 @@ covered. The Svelte migration changes the frontend test stack.
 
 GymOS uses two test tiers:
 
-1. **Unit tests** live next to services (`*.test.mts`) and use mocked repositories.
-   They cover business rules, pagination slicing, filters, error mapping, and
-   orchestration without HTTP or a database. `vitest-mock-extended` provides typed
-   mocks.
+1. **Unit tests** live next to services (`*.test.mts`) and use hand-rolled typed fakes
+   with `vi.fn`. They cover business rules, pagination slicing, filters, error mapping,
+   and orchestration without HTTP or a database.
 2. **Integration tests** live under `apps/api/test/integration/rest/` and call the
    exported Hono app against a seeded PostgreSQL database. They cover routing,
    validation, status codes, problem details, and Prisma behavior.

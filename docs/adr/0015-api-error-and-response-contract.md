@@ -35,7 +35,8 @@ collections.
 - Plans filter by `name`; sessions filter by `planId`, `from`, and `to`.
 - `pageable.mts`, `slice.mts`, `page.mts`, `search-params.mts`, and
   `where-builder.mts` implement the pattern.
-- Invalid query parameters are rejected with `422`.
+- Out-of-range `page` and `size` values are normalized to the defaults; malformed or
+  unknown query parameters are rejected with `422`.
 
 ### Responses
 

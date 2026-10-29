@@ -19,8 +19,9 @@ observability layer.
 
 - `config/env.mts` is the single source of environment values. It parses `process.env`
   once with Zod and fails at startup on invalid values:
-  `NODE_ENV`, `PORT`, `DATABASE_URL` (required when the server starts),
-  `GYMOS_USER_EMAIL`, `LOG_LEVEL`, `CORS_ORIGINS`.
+  `NODE_ENV` (defaults to `production`), `PORT`, `DATABASE_URL` (required when the
+  server starts), `GYMOS_USER_EMAIL`, `LOG_LEVEL`, `CORS_ORIGINS`. The development
+  script sets `NODE_ENV=development`.
 - `config/app.mts` holds typed runtime settings such as pagination defaults.
 - `config/paths.mts` centralizes route prefixes.
 - `config/cors.mts` holds CORS options derived from `CORS_ORIGINS`.
