@@ -28,6 +28,8 @@ The app has a single warm light theme defined by the CSS custom properties in
   near-black, `--accent-strong` for hover). There is no colored brand accent.
 - `--danger` remains a warm red (`#9c2f21`) only for semantic error states, not as an
   accent.
+- Form control borders use `--border` (`#8c8275`), which meets WCAG's 3:1 minimum for
+  non-text UI components against both `--bg` and `--surface`.
 - `color-scheme: light`; there is no dark mode.
 - `meta[name=theme-color]` in `apps/web/index.html` and the PWA manifest
   `theme_color` and `background_color` in `apps/web/vite.config.ts` use the warm white

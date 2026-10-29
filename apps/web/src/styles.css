@@ -5,6 +5,7 @@
   --surface-2: #e5ddd1;
   --text: #1f1b16;
   --muted: #5f574c;
+  --border: #8c8275;
   --accent: #1f1b16;
   --accent-strong: #3b342b;
   --danger: #9c2f21;
@@ -185,7 +186,7 @@ button {
   min-height: 42px;
   padding: 9px 10px;
   border-radius: var(--radius-sm);
-  border: 1px solid var(--surface-2);
+  border: 1px solid var(--border);
   background: var(--bg);
   color: var(--text);
 }
@@ -199,7 +200,7 @@ button {
 }
 
 .error {
-  background: rgba(156, 47, 33, 0.12);
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
   border: 1px solid var(--danger);
   border-radius: var(--radius-sm);
   padding: 10px 12px;
