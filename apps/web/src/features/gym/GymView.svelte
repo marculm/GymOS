@@ -14,8 +14,8 @@
     completeSession,
     createPlan,
     getActiveSession,
-    listExercises,
-    listPlans,
+    listAllExercises,
+    listAllPlans,
     listSessions,
     startSession,
   } from "../../api/gym.mts";
@@ -40,14 +40,14 @@
     error = null;
 
     try {
-      const [exercisePage, planPage, active, sessionPage] = await Promise.all([
-        listExercises(),
-        listPlans(),
+      const [exerciseList, planList, active, sessionPage] = await Promise.all([
+        listAllExercises(),
+        listAllPlans(),
         getActiveSession(),
         listSessions({ size: 10 }),
       ]);
-      exercises = exercisePage.content;
-      plans = planPage.content;
+      exercises = exerciseList;
+      plans = planList;
       activeSession = active;
       history = sessionPage.content;
     } catch (loadError) {

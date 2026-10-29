@@ -37,6 +37,30 @@ export function listPlans(
   return api.get<Page<WorkoutPlan>>(`/gym/plans${toQuery(params)}`);
 }
 
+const ALL_PAGE_SIZE = 100;
+
+async function collectPages<T>(
+  fetchPage: (page: number, size: number) => Promise<Page<T>>
+): Promise<T[]> {
+  const first = await fetchPage(1, ALL_PAGE_SIZE);
+  const items = [...first.content];
+
+  for (let page = 2; page <= first.page.totalPages; page += 1) {
+    const next = await fetchPage(page, ALL_PAGE_SIZE);
+    items.push(...next.content);
+  }
+
+  return items;
+}
+
+export function listAllExercises(): Promise<Exercise[]> {
+  return collectPages((page, size) => listExercises({ page, size }));
+}
+
+export function listAllPlans(): Promise<WorkoutPlan[]> {
+  return collectPages((page, size) => listPlans({ page, size }));
+}
+
 export function createPlan(input: CreateWorkoutPlanInput): Promise<WorkoutPlan> {
   return api.post<WorkoutPlan>("/gym/plans", input);
 }

@@ -3,6 +3,7 @@ import { api } from "./client.mts";
 import {
   createPlan,
   getActiveSession,
+  listAllExercises,
   listExercises,
   listSessions,
 } from "./gym.mts";
@@ -81,6 +82,43 @@ describe("gym api client", () => {
     );
   });
 
+  it("loads every exercise page", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            content: [{ id: "exercise-1", name: "Squat" }],
+            page: { size: 100, number: 0, totalElements: 2, totalPages: 2 },
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        )
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            content: [{ id: "exercise-2", name: "Bench Press" }],
+            page: { size: 100, number: 1, totalElements: 2, totalPages: 2 },
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        )
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const exercises = await listAllExercises();
+
+    expect(exercises.map((exercise) => exercise.id)).toEqual([
+      "exercise-1",
+      "exercise-2",
+    ]);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(
+      "/api/gym/exercises?page=1&size=100"
+    );
+    expect(fetchMock.mock.calls[1]?.[0]).toBe(
+      "/api/gym/exercises?page=2&size=100"
+    );
+  });
+
   it("passes page and size as query parameters", async () => {
     const fetchMock = mockFetch(
       new Response(JSON.stringify(emptyPage), {
@@ -111,6 +149,34 @@ describe("gym api client", () => {
     );
 
     await expect(getActiveSession()).resolves.toBeNull();
+  });
+
+  it("joins problem detail issues into the error message", async () => {
+    mockFetch(
+      new Response(
+        JSON.stringify({
+          title: "Unprocessable Content",
+          status: 422,
+          detail: [
+            { message: "Name is required" },
+            { message: "Too many exercises" },
+          ],
+          instance: "/api/gym/plans",
+        }),
+        {
+          status: 422,
+          headers: { "Content-Type": "application/problem+json" },
+        }
+      )
+    );
+
+    await expect(
+      createPlan({ name: "", exercises: [] })
+    ).rejects.toMatchObject({
+      name: "ApiError",
+      status: 422,
+      message: "Name is required, Too many exercises",
+    });
   });
 
   it("throws ApiError with the problem detail on failure", async () => {

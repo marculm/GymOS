@@ -38,7 +38,10 @@
     );
   }
 
+  const MAX_PLAN_EXERCISES = 50;
+
   function addRow() {
+    if (rows.length >= MAX_PLAN_EXERCISES) return;
     rows = [...rows, createRow(exercises)];
   }
 
@@ -166,8 +169,17 @@
       <p class="error">{error}</p>
     {/if}
 
+    {#if rows.length >= MAX_PLAN_EXERCISES}
+      <p class="muted">Maximum 50 exercises per plan.</p>
+    {/if}
+
     <div class="row">
-      <button type="button" class="btn btn-ghost" onclick={addRow}>
+      <button
+        type="button"
+        class="btn btn-ghost"
+        disabled={rows.length >= MAX_PLAN_EXERCISES}
+        onclick={addRow}
+      >
         Add exercise
       </button>
       <button

@@ -8,6 +8,8 @@ import {
   completeSession,
   createPlan,
   getActiveSession,
+  listAllExercises,
+  listAllPlans,
   listExercises,
   listPlans,
   listSessions,
@@ -17,6 +19,8 @@ import {
 vi.mock("../../api/gym.mts", () => ({
   listExercises: vi.fn(),
   listPlans: vi.fn(),
+  listAllExercises: vi.fn(),
+  listAllPlans: vi.fn(),
   createPlan: vi.fn(),
   startSession: vi.fn(),
   getActiveSession: vi.fn(),
@@ -75,6 +79,8 @@ beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(listExercises).mockResolvedValue(page([exercise]));
   vi.mocked(listPlans).mockResolvedValue(page([plan]));
+  vi.mocked(listAllExercises).mockResolvedValue([exercise]);
+  vi.mocked(listAllPlans).mockResolvedValue([plan]);
   vi.mocked(getActiveSession).mockResolvedValue(null);
   vi.mocked(listSessions).mockResolvedValue(page([]));
   vi.mocked(startSession).mockResolvedValue(session);
@@ -209,6 +215,33 @@ describe("GymView", () => {
     ).toBeInTheDocument();
   });
 
+  it("stops adding plan exercises at the schema limit", async () => {
+    render(GymView);
+
+    await screen.findByText("Push Day");
+    await fireEvent.click(screen.getByRole("button", { name: /create plan/i }));
+
+    const addButton = screen.getByRole("button", { name: /add exercise/i });
+    for (let index = 0; index < 49; index += 1) {
+      await fireEvent.click(addButton);
+    }
+
+    expect(screen.getByRole("button", { name: /add exercise/i })).toBeDisabled();
+  });
+
+  it("shows an error when the retried start also fails", async () => {
+    vi.mocked(startSession)
+      .mockRejectedValueOnce(new ApiError(409, "conflict"))
+      .mockRejectedValueOnce(new Error("still blocked"));
+
+    render(GymView);
+
+    await screen.findByText("Push Day");
+    await fireEvent.click(screen.getByRole("button", { name: /start free workout/i }));
+
+    expect(await screen.findByText("still blocked")).toBeInTheDocument();
+  });
+
   it("shows a duplicate plan name error", async () => {
     vi.mocked(createPlan).mockRejectedValueOnce(
       new ApiError(409, "A plan with this name already exists")
@@ -229,7 +262,7 @@ describe("GymView", () => {
   });
 
   it("shows an error with retry when loading fails", async () => {
-    vi.mocked(listPlans).mockRejectedValueOnce(new Error("Backend unavailable"));
+    vi.mocked(listAllPlans).mockRejectedValueOnce(new Error("Backend unavailable"));
 
     render(GymView);
 

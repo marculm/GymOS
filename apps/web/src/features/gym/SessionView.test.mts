@@ -108,6 +108,30 @@ describe("SessionView", () => {
     });
   });
 
+  it("omits RPE when the optional field is cleared", async () => {
+    const { onLogSet } = renderSession();
+    const rpeInput = screen.getByLabelText("RPE (optional)");
+
+    await fireEvent.input(rpeInput, { target: { value: "8" } });
+    await fireEvent.input(rpeInput, { target: { value: "" } });
+    await fireEvent.input(screen.getByLabelText("Weight (kg)"), {
+      target: { value: "80" },
+    });
+    await fireEvent.input(screen.getByLabelText("Reps"), {
+      target: { value: "8" },
+    });
+    await fireEvent.click(screen.getByRole("button", { name: "Log set" }));
+
+    await waitFor(() => {
+      expect(onLogSet).toHaveBeenCalledWith({
+        exerciseId: "exercise-1",
+        weightKg: 80,
+        reps: 8,
+        rpe: undefined,
+      });
+    });
+  });
+
   it("finishes the workout", async () => {
     const { onComplete } = renderSession();
 
@@ -129,6 +153,30 @@ describe("SessionView", () => {
     expect(
       screen.queryByRole("button", { name: "Log set" })
     ).not.toBeInTheDocument();
+  });
+
+  it("shows a set even when its exercise is not in the loaded list", () => {
+    renderSession({
+      session: {
+        ...session,
+        sets: [
+          {
+            id: "set-1",
+            exerciseId: "exercise-missing",
+            setNumber: 1,
+            reps: 12,
+            weightKg: 15,
+            rpe: null,
+            createdAt: "2026-10-26T18:05:00.000Z",
+          },
+        ],
+      },
+    });
+
+    expect(
+      screen.getByRole("heading", { name: "Unknown exercise" })
+    ).toBeInTheDocument();
+    expect(screen.getByText("Set 1")).toBeInTheDocument();
   });
 
   it("shows sets for exercises outside the plan", () => {

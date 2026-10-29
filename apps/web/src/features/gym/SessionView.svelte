@@ -25,9 +25,9 @@
   let exerciseId = $state(
     plan?.exercises[0]?.exercise.id ?? exercises[0]?.id ?? ""
   );
-  let weightKg = $state<string | number>("");
-  let reps = $state<string | number>("");
-  let rpe = $state<string | number>("");
+  let weightKg = $state<string | number | null>("");
+  let reps = $state<string | number | null>("");
+  let rpe = $state<string | number | null>("");
   let pending = $state(false);
   let error = $state<string | null>(null);
 
@@ -59,13 +59,23 @@
     new Set(plan?.exercises.map((entry) => entry.exercise.id) ?? [])
   );
 
-  const extraExercises = $derived(
-    exercises.filter(
-      (exercise) =>
-        !planExerciseIds.has(exercise.id) &&
-        (setsByExercise.get(exercise.id)?.length ?? 0) > 0
-    )
-  );
+  const setGroups = $derived.by(() => {
+    const groups: Array<{
+      exerciseId: string;
+      name: string;
+      sets: LoggedSet[];
+    }> = [];
+
+    for (const [exerciseId, sets] of setsByExercise) {
+      if (planExerciseIds.has(exerciseId)) continue;
+      const name =
+        exercises.find((exercise) => exercise.id === exerciseId)?.name ??
+        "Unknown exercise";
+      groups.push({ exerciseId, name, sets });
+    }
+
+    return groups;
+  });
 
   async function handleSubmit(event: SubmitEvent) {
     event.preventDefault();
@@ -79,7 +89,7 @@
         exerciseId,
         weightKg: Number(weightKg),
         reps: Number(reps),
-        rpe: rpe === "" ? undefined : Number(rpe),
+        rpe: rpe == null || rpe === "" ? undefined : Number(rpe),
       });
       weightKg = "";
       reps = "";
@@ -162,22 +172,13 @@
     {/each}
   {/if}
 
-  {#if plan && extraExercises.length > 0}
-    {#each extraExercises as exercise (exercise.id)}
-      <section class="card stack">
-        <h3 class="card-title">{exercise.name}</h3>
-        {#each setsByExercise.get(exercise.id) ?? [] as set (set.id)}
-          {@render setRow(set)}
-        {/each}
-      </section>
-    {/each}
-  {:else if !plan && setsByExercise.size === 0}
+  {#if !plan && setsByExercise.size === 0}
     <p class="empty">No sets logged yet</p>
-  {:else if !plan}
-    {#each extraExercises as exercise (exercise.id)}
+  {:else}
+    {#each setGroups as group (group.exerciseId)}
       <section class="card stack">
-        <h3 class="card-title">{exercise.name}</h3>
-        {#each setsByExercise.get(exercise.id) ?? [] as set (set.id)}
+        <h3 class="card-title">{group.name}</h3>
+        {#each group.sets as set (set.id)}
           {@render setRow(set)}
         {/each}
       </section>
