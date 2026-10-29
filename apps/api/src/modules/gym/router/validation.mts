@@ -1,14 +1,8 @@
 import { z } from "zod";
-import { appConfig } from "../../../config/app.mts";
 
 const PageQuerySchema = z.object({
-  page: z.coerce.number().int().min(1).default(1),
-  size: z.coerce
-    .number()
-    .int()
-    .min(1)
-    .max(appConfig.pagination.maxSize)
-    .default(appConfig.pagination.defaultSize),
+  page: z.coerce.number().int().optional(),
+  size: z.coerce.number().int().optional(),
 });
 
 export const ExerciseListQuerySchema = PageQuerySchema.strict();

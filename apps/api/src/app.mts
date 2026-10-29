@@ -54,6 +54,8 @@ if (env.NODE_ENV === "development") {
   showRoutes(app, { verbose: true });
 }
 
+app.notFound((c) => createProblemDetails(c, 404, "Route not found"));
+
 app.onError((err, c) => {
   if (err instanceof ZodError) {
     return createProblemDetails(c, 422, err.issues);

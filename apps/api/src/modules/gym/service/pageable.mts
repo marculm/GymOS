@@ -6,12 +6,17 @@ export type Pageable = {
 };
 
 export function createPageable({ page, size }: { page?: number; size?: number }): Pageable {
-  const number = Math.max(1, page ?? 1) - 1;
-  const normalizedSize = Math.min(
-    appConfig.pagination.maxSize,
-    Math.max(1, size ?? appConfig.pagination.defaultSize)
-  );
-  return { number, size: normalizedSize };
+  const validPage = page !== undefined && Number.isInteger(page) && page >= 1;
+  const validSize =
+    size !== undefined &&
+    Number.isInteger(size) &&
+    size >= 1 &&
+    size <= appConfig.pagination.maxSize;
+
+  return {
+    number: validPage ? page - 1 : 0,
+    size: validSize ? size : appConfig.pagination.defaultSize,
+  };
 }
 
 export function skipTake(pageable: Pageable) {

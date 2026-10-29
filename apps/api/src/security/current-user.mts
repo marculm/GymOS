@@ -1,6 +1,6 @@
 import type { PrismaClient, User } from "@prisma/client";
 import { createMiddleware } from "hono/factory";
-import { env } from "../config/env.mts";
+import { currentUserEmail } from "../config/env.mts";
 import { prisma } from "../config/prisma-client.mts";
 import { CurrentUserNotFoundError } from "./errors.mts";
 
@@ -14,7 +14,7 @@ export class CurrentUserService {
   constructor(private readonly db: PrismaClient = prisma) {}
 
   async get(): Promise<User> {
-    const email = process.env.GYMOS_USER_EMAIL ?? env.GYMOS_USER_EMAIL;
+    const email = currentUserEmail();
     const user = await this.db.user.findUnique({ where: { email } });
     if (!user) {
       throw new CurrentUserNotFoundError(

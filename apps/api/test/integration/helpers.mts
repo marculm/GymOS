@@ -34,11 +34,3 @@ export async function cleanupTestUser() {
 export async function firstExercise() {
   return prisma.exercise.findFirstOrThrow({ orderBy: { name: "asc" } });
 }
-
-export function setUserEmail(email: string) {
-  process.env.GYMOS_USER_EMAIL = email;
-}
-
-export function currentUserEmail() {
-  return process.env.GYMOS_USER_EMAIL;
-}

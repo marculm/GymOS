@@ -1,14 +1,14 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { app } from "../../../src/app.mts";
+import { container } from "../../../src/container.mts";
+import { NotFoundError } from "../../../src/modules/gym/service/errors.mts";
 import {
   cleanupTestUser,
   clearTestUserData,
   createTestUser,
   createUser,
-  currentUserEmail,
   deleteUser,
   firstExercise,
-  setUserEmail,
 } from "../helpers.mts";
 
 let exerciseId: string;
@@ -222,6 +222,29 @@ describe("Gym session routes", () => {
     expect(data.content.map((session) => session.id)).toEqual([planned.id]);
   });
 
+  it("filters sessions by start date range", async () => {
+    const session = await startSession();
+    await postJson(`/api/gym/sessions/${session.id}/complete`, {});
+
+    const now = Date.now();
+    const from = new Date(now - 60_000).toISOString();
+    const to = new Date(now + 60_000).toISOString();
+
+    const inside = await app.request(
+      `/api/gym/sessions?from=${from}&to=${to}`
+    );
+    const insideData = (await inside.json()) as {
+      content: Array<{ id: string }>;
+    };
+    expect(insideData.content.map((entry) => entry.id)).toEqual([session.id]);
+
+    const outside = await app.request(
+      `/api/gym/sessions?from=${to}&to=${new Date(now + 120_000).toISOString()}`
+    );
+    const outsideData = (await outside.json()) as { content: unknown[] };
+    expect(outsideData.content).toHaveLength(0);
+  });
+
   it("excludes an active session from history", async () => {
     const completed = await startSession();
     await postJson(`/api/gym/sessions/${completed.id}/complete`, {});
@@ -248,31 +271,50 @@ describe("Gym session routes", () => {
     expect(data.sets[0]?.reps).toBe(8);
   });
 
-  it("returns a 404 problem for an unknown session", async () => {
-    const res = await app.request(
-      "/api/gym/sessions/00000000-0000-4000-8000-000000000099"
-    );
+  it("returns a 404 problem with all fields for an unknown session", async () => {
+    const path = "/api/gym/sessions/00000000-0000-4000-8000-000000000099";
+    const res = await app.request(path);
     expect(res.status).toBe(404);
     expect(res.headers.get("content-type")).toContain("application/problem+json");
+
+    const data = (await res.json()) as {
+      title: string;
+      status: number;
+      detail: string;
+      instance: string;
+    };
+    expect(data).toMatchObject({
+      title: "Not Found",
+      status: 404,
+      detail: "Session not found",
+      instance: path,
+    });
   });
 
   it("isolates sessions and plans by user", async () => {
-    const ownerEmail = currentUserEmail();
     const other = await createUser(`other-${crypto.randomUUID()}@gymos.app`);
     await createPlan("Owner Plan");
     const session = await startSession();
 
     try {
-      setUserEmail(other.email);
+      const plans = await container.readService.listPlans(other.id, {
+        number: 0,
+        size: 20,
+      });
+      expect(plans.content).toHaveLength(0);
 
-      expect((await app.request(`/api/gym/sessions/${session.id}`)).status).toBe(404);
-      expect((await logSet(session.id)).status).toBe(404);
+      await expect(
+        container.readService.getSession(other.id, session.id)
+      ).rejects.toBeInstanceOf(NotFoundError);
 
-      const plans = await app.request("/api/gym/plans");
-      const data = (await plans.json()) as { content: Array<{ id: string }> };
-      expect(data.content).toHaveLength(0);
+      await expect(
+        container.writeService.logSet(other.id, session.id, {
+          exerciseId,
+          reps: 10,
+          weightKg: 20,
+        })
+      ).rejects.toBeInstanceOf(NotFoundError);
     } finally {
-      if (ownerEmail) setUserEmail(ownerEmail);
       await deleteUser(other.id);
     }
   });

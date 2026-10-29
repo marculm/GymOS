@@ -1,6 +1,6 @@
 import { app } from "./app.mts";
-import { env } from "./config/env.mts";
 import { connectDB, disconnectDB } from "./config/prisma-client.mts";
+import { serverConfig } from "./config/server.mts";
 import { getLogger } from "./logger/logger.mts";
 
 const logger = getLogger("index", "file");
@@ -8,7 +8,8 @@ const logger = getLogger("index", "file");
 await connectDB();
 
 const server = Bun.serve({
-  port: env.PORT,
+  port: serverConfig.port,
+  hostname: serverConfig.hostname,
   fetch: app.fetch,
 });
 

@@ -22,7 +22,7 @@ export const trackMetrics = createMiddleware(async (c, next) => {
 
   const labels = {
     method: c.req.method,
-    path: c.req.path,
+    path: c.req.routePath,
     status_code: c.res.status,
   };
   httpRequestsTotal.inc(labels);

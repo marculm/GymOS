@@ -6,7 +6,7 @@ import type {
 } from "@gymos/shared";
 import { prisma } from "../../../config/prisma-client.mts";
 import type { SessionSearchParams } from "../service/search-params.mts";
-import { buildSessionWhere } from "../service/where-builder.mts";
+import { buildSessionWhere } from "./where-builder.mts";
 import {
   sessionInclude,
   toSessionDetail,

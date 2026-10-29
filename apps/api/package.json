@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "bun --watch src/index.mts",
+    "dev": "NODE_ENV=development bun --watch src/index.mts",
     "start": "bun src/index.mts",
     "test": "vitest run",
     "test:watch": "vitest",

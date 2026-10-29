@@ -95,14 +95,41 @@ describe("Gym plan routes", () => {
     expect(filteredData.content.map((plan) => plan.name)).toEqual(["Push"]);
   });
 
+  it("returns empty page metadata when there are no plans", async () => {
+    const res = await app.request("/api/gym/plans");
+    expect(res.status).toBe(200);
+
+    const data = (await res.json()) as {
+      content: unknown[];
+      page: { size: number; number: number; totalElements: number; totalPages: number };
+    };
+    expect(data.content).toEqual([]);
+    expect(data.page).toEqual({
+      size: 20,
+      number: 0,
+      totalElements: 0,
+      totalPages: 0,
+    });
+  });
+
   it("rejects an empty exercise list with problem details", async () => {
     const res = await postJson({ name: "Empty", exercises: [] });
     expect(res.status).toBe(422);
     expect(res.headers.get("content-type")).toContain("application/problem+json");
   });
 
-  it("rejects invalid pagination", async () => {
-    const res = await app.request("/api/gym/plans?page=0");
+  it("normalizes out-of-range pagination", async () => {
+    const res = await app.request("/api/gym/plans?page=0&size=500");
+    expect(res.status).toBe(200);
+    const data = (await res.json()) as {
+      page: { number: number; size: number };
+    };
+    expect(data.page.number).toBe(0);
+    expect(data.page.size).toBe(20);
+  });
+
+  it("rejects malformed pagination", async () => {
+    const res = await app.request("/api/gym/plans?page=abc");
     expect(res.status).toBe(422);
   });
 

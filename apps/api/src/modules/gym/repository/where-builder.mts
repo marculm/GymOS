@@ -1,5 +1,5 @@
 import type { Prisma } from "@prisma/client";
-import type { PlanSearchParams, SessionSearchParams } from "./search-params.mts";
+import type { PlanSearchParams, SessionSearchParams } from "../service/search-params.mts";
 
 export function buildPlanWhere(
   userId: string,

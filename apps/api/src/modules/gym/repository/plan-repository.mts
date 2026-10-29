@@ -3,7 +3,7 @@ import type { CreateWorkoutPlanInput, WorkoutPlan } from "@gymos/shared";
 import { prisma } from "../../../config/prisma-client.mts";
 import { DuplicatePlanNameError } from "../service/errors.mts";
 import type { PlanSearchParams } from "../service/search-params.mts";
-import { buildPlanWhere } from "../service/where-builder.mts";
+import { buildPlanWhere } from "./where-builder.mts";
 import { planInclude, toPlan } from "./mapping.mts";
 
 export class PlanRepository {

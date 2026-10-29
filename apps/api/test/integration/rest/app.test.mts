@@ -39,4 +39,35 @@ describe("GymOS API Server", () => {
     const res = await app.request("/api/extractor/status");
     expect(res.status).toBe(501);
   });
+
+  it("labels metrics with the matched route template", async () => {
+    await app.request("/api/gym/sessions/00000000-0000-4000-8000-000000000001");
+    await app.request("/api/gym/sessions/00000000-0000-4000-8000-000000000002");
+
+    const res = await app.request("/prometheus");
+    const text = await res.text();
+
+    expect(text).toContain("http_requests_total");
+    expect(text).toContain("/sessions/:id");
+    expect(text).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}/);
+  });
+
+  it("returns problem details for an unknown route", async () => {
+    const res = await app.request("/api/gym/typo");
+    expect(res.status).toBe(404);
+    expect(res.headers.get("content-type")).toContain("application/problem+json");
+
+    const data = (await res.json()) as {
+      title: string;
+      status: number;
+      detail: string;
+      instance: string;
+    };
+    expect(data).toMatchObject({
+      title: "Not Found",
+      status: 404,
+      detail: "Route not found",
+      instance: "/api/gym/typo",
+    });
+  });
 });
