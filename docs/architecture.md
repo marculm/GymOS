@@ -300,9 +300,9 @@ See ADR-0015.
 `config/env.mts` is the single source of environment values. It parses `process.env`
 once with a Zod schema and fails fast on invalid values:
 
-- `NODE_ENV`: `development | test | production`
+- `NODE_ENV`: `development | test | production`, default `production`
 - `PORT`: positive integer, default `3000`
-- `DATABASE_URL`: non-empty string
+- `DATABASE_URL`: non-empty string, required when the server starts
 - `GYMOS_USER_EMAIL`: email, default `demo@gymos.app`
 - `LOG_LEVEL`: Pino level
 - `CORS_ORIGINS`: comma-separated origins
