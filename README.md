@@ -2,13 +2,13 @@
 
 An all-in-one Gym & Nutrition Operating System designed for mobile-first workout tracking, mealprep management, and recipe extraction.
 
-Built as a TypeScript Monorepo powered by **Bun**, **Hono**, **React (Vite PWA)**, and **PostgreSQL (Prisma)**.
+Built as a TypeScript Monorepo powered by **Bun**, **Hono**, **Svelte 5 (Vite PWA)**, and **PostgreSQL (Prisma)**.
 
 ---
 
 ## Current Status
 
-The **Gym Tracker** slice is implemented on `feature/gym-tracker`:
+The **Gym Tracker** slice is implemented:
 
 - Browse exercises and training plans
 - Create plans with target sets, reps, and optional weight
@@ -22,7 +22,7 @@ Nutrition, the AI recipe extractor, authentication, and offline logging are not 
 
 ## Prerequisites
 
-* **[Bun](https://bun.com)** (v1.2+)
+* **[Bun](https://bun.com)** (v1.4.3+)
 * **[Docker](https://www.docker.com/)** (for local PostgreSQL database)
 
 ---
@@ -90,7 +90,7 @@ Nutrition, the AI recipe extractor, authentication, and offline logging are not 
 
 | Command | Description |
 | :--- | :--- |
-| `bun run typecheck` | Validates TypeScript across all workspaces (`bun check`) |
+| `bun run typecheck` | Validates API/shared with `bun check` and the web app with `svelte-check` |
 | `bun run lint:all` | Runs `oxlint` and the architectural ADR linter |
 | `bun run lint:adr` | Validates MADR format compliance in `docs/adr/` |
 
@@ -98,21 +98,26 @@ Nutrition, the AI recipe extractor, authentication, and offline logging are not 
 
 ## Gym API
 
-All routes are under `/api/gym` and validate their input with Zod. Errors use `{ "error": "..." }`.
+All routes are under `/api/gym` and validate their input with Zod. List routes accept
+`page` and `size` and return `{ content, page }`. Errors use RFC 9457 Problem Details
+(`application/problem+json`). See [`docs/architecture.md`](docs/architecture.md) for the
+full contract.
 
 | Method | Route | Description |
 | :--- | :--- | :--- |
-| `GET` | `/api/gym/exercises` | List exercises |
-| `GET` | `/api/gym/plans` | List the current user's plans |
-| `POST` | `/api/gym/plans` | Create a plan (`{ name, description?, exercises[] }`) |
-| `POST` | `/api/gym/sessions` | Start a session (`{ title?, planId? }`) |
-| `GET` | `/api/gym/sessions/active` | Get the active session or `null` |
-| `GET` | `/api/gym/sessions?limit=10` | List completed sessions |
+| `GET` | `/api/gym/exercises?page=&size=` | List exercises as a page |
+| `GET` | `/api/gym/plans?page=&size=&name=` | List the current user's plans |
+| `POST` | `/api/gym/plans` | Create a plan (`{ name, description?, exercises[] }`); `201` + `Location` |
+| `POST` | `/api/gym/sessions` | Start a session (`{ title?, planId? }`); `201` + `Location` |
+| `GET` | `/api/gym/sessions/active` | Active session, or `404` when none exists |
+| `GET` | `/api/gym/sessions?page=&size=&planId=&from=&to=` | List completed sessions |
 | `GET` | `/api/gym/sessions/:id` | Get a session with its sets |
 | `POST` | `/api/gym/sessions/:id/sets` | Log a set (`{ exerciseId, reps, weightKg, rpe? }`) |
 | `POST` | `/api/gym/sessions/:id/complete` | Finish a session |
 
-There is no authentication; the API resolves a single user from `GYMOS_USER_EMAIL` (ADR-0009).
+`GET /health/liveness`, `GET /health/readiness`, and `GET /prometheus` are available for
+operations. There is no authentication; the API resolves a single user from
+`GYMOS_USER_EMAIL` (ADR-0009).
 
 ---
 
@@ -122,7 +127,7 @@ There is no authentication; the API resolves a single user from `GYMOS_USER_EMAI
 GymOS/
 ├── apps/
 │   ├── api/             # Backend service (Hono, Prisma, Pino logging)
-│   └── web/             # Frontend app (React, Vite, PWA, Lucide icons)
+│   └── web/             # Frontend app (Svelte 5, Vite, PWA, Lucide icons)
 ├── packages/
 │   └── shared/          # Shared Zod schemas, domain types, constants
 ├── deploy/

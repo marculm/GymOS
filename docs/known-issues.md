@@ -1,9 +1,17 @@
 # Known Issues and Deferred Work
 
-Last updated: 2026-10-26
-Scope: Gym Tracker MVP on `feature/gym-tracker`.
+Last updated: 2026-10-29
+Scope: Gym Tracker MVP on `refactor/ponytail`.
 
 These are known, non-blocking issues. They do not affect the core flow: create a plan, start a workout, log sets, finish, and review history.
+
+## Fixed during the architecture migration
+
+- Nutrition and extractor routes return `501 Not Implemented` instead of fabricated data.
+- Readiness checks the database; production logging no longer loads `pino-pretty`.
+- Plan input is bounded (50 exercises, 20 target sets, 100 target reps).
+- Regression tests cover set/completion races and two-user isolation.
+- API errors use RFC 9457 problem details; list endpoints are paginated.
 
 ## Deferred from the final review
 

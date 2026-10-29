@@ -87,7 +87,6 @@ apps/api/
 │   └── migrations/
 ├── test/
 │   └── integration/
-│       ├── setup.global.mts
 │       ├── helpers.mts
 │       └── rest/
 │           ├── app.test.mts
