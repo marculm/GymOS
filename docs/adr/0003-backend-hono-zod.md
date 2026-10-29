@@ -15,6 +15,8 @@ We will use **Hono** as the backend API framework and **Zod** for all runtime va
 - Route handlers use Hono's typed middleware for request validation.
 - All API request/response bodies are validated with Zod schemas from `packages/shared`.
 - No raw `JSON.parse()` or manual type assertions on external input.
+- Amended by ADR-0013: routers validate input with Zod `parse`; `ZodError` is mapped to
+  `422` problem details.
 
 ### Rules
 
