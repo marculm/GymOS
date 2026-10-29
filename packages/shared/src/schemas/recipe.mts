@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { MacrosSchema } from "./nutrition.ts";
+import { MacrosSchema } from "./nutrition.mts";
 
 export const RecipeIngredientSchema = z.object({
   name: z.string().min(1),

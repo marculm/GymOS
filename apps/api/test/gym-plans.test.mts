@@ -1,11 +1,11 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { app } from "../src/index.ts";
+import { app } from "../src/index.mts";
 import {
   cleanupTestUser,
   clearTestUserData,
   createTestUser,
   firstExercise,
-} from "./helpers.ts";
+} from "./helpers.mts";
 
 let exerciseId: string;
 

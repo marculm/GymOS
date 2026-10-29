@@ -1,14 +1,14 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { prisma } from "../src/db/client.ts";
-import { app } from "../src/index.ts";
-import { createSessionIfNoActive } from "../src/modules/gym/repository.ts";
+import { prisma } from "../src/db/client.mts";
+import { app } from "../src/index.mts";
+import { createSessionIfNoActive } from "../src/modules/gym/repository.mts";
 import {
   cleanupTestUser,
   clearTestUserData,
   createTestUser,
   firstExercise,
   TEST_EMAIL,
-} from "./helpers.ts";
+} from "./helpers.mts";
 
 let exerciseId: string;
 

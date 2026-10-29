@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { logger } from "../../lib/logger.ts";
+import { logger } from "../../lib/logger.mts";
 
 const extractorLogger = logger.child({ module: "extractor" });
 

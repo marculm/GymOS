@@ -10,7 +10,7 @@ import type {
   WorkoutSessionSummary,
 } from "@gymos/shared";
 import { HTTPException } from "hono/http-exception";
-import { getCurrentUser } from "../../lib/current-user.ts";
+import { getCurrentUser } from "../../lib/current-user.mts";
 import {
   completeSessionIfOpen,
   createPlanWithExercises,
@@ -25,7 +25,7 @@ import {
   findSessionById,
   type CompleteSessionResult,
   type LogSetResult,
-} from "./repository.ts";
+} from "./repository.mts";
 
 export function listExercises(): Promise<Exercise[]> {
   return findExercises();

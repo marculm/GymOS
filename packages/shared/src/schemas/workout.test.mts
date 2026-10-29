@@ -3,7 +3,7 @@ import {
   CreateWorkoutPlanSchema,
   CreateWorkoutSetSchema,
   WorkoutSessionDetailSchema,
-} from "./workout.ts";
+} from "./workout.mts";
 
 describe("CreateWorkoutPlanSchema", () => {
   it("accepts a plan with one exercise", () => {

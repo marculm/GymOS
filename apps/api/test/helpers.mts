@@ -1,4 +1,4 @@
-import { prisma } from "../src/db/client.ts";
+import { prisma } from "../src/db/client.mts";
 
 export const TEST_EMAIL = `test-${crypto.randomUUID()}@gymos.app`;
 let testUserId: string | null = null;

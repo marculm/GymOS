@@ -7,7 +7,7 @@ import type {
   WorkoutSessionDetail,
   WorkoutSessionSummary,
 } from "@gymos/shared";
-import { prisma } from "../../db/client.ts";
+import { prisma } from "../../db/client.mts";
 
 const planInclude = {
   exercises: {

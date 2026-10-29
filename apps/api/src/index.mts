@@ -1,9 +1,9 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
-import { logger } from "./lib/logger.ts";
-import { gymModule } from "./modules/gym/index.ts";
-import { nutritionModule } from "./modules/nutrition/index.ts";
-import { extractorModule } from "./modules/extractor/index.ts";
+import { logger } from "./lib/logger.mts";
+import { gymModule } from "./modules/gym/index.mts";
+import { nutritionModule } from "./modules/nutrition/index.mts";
+import { extractorModule } from "./modules/extractor/index.mts";
 
 export const app = new Hono();
 

@@ -5,7 +5,7 @@ import {
   CreateWorkoutSetSchema,
 } from "@gymos/shared";
 import { z } from "zod";
-import { zJson, zQuery } from "../../lib/validation.ts";
+import { zJson, zQuery } from "../../lib/validation.mts";
 import {
   completeSession,
   createPlan,
@@ -16,7 +16,7 @@ import {
   listSessions,
   logSet,
   startSession,
-} from "./service.ts";
+} from "./service.mts";
 
 const ListSessionsQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(50).default(10),
