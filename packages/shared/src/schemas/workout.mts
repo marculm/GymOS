@@ -14,13 +14,14 @@ export const CreateWorkoutPlanSchema = z.object({
     .array(
       z.object({
         exerciseId: z.string().uuid(),
-        targetSets: z.number().int().positive(),
-        targetReps: z.number().int().positive(),
+        targetSets: z.number().int().min(1).max(20),
+        targetReps: z.number().int().min(1).max(100),
         targetWeightKg: z.number().nonnegative().optional(),
         notes: z.string().max(500).optional(),
       })
     )
-    .min(1),
+    .min(1)
+    .max(50),
 });
 
 export const WorkoutPlanExerciseSchema = z.object({

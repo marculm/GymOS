@@ -17,6 +17,44 @@ describe("CreateWorkoutPlanSchema", () => {
   it("rejects an empty exercise list", () => {
     expect(CreateWorkoutPlanSchema.safeParse({ name: "Empty", exercises: [] }).success).toBe(false);
   });
+
+  it("accepts at most 50 exercises, 20 target sets, and 100 target reps", () => {
+    const exercises = Array.from({ length: 50 }, () => ({
+      exerciseId: "00000000-0000-4000-8000-000000000001",
+      targetSets: 20,
+      targetReps: 100,
+    }));
+    expect(CreateWorkoutPlanSchema.safeParse({ name: "Max", exercises }).success).toBe(true);
+  });
+
+  it("rejects more than 50 exercises", () => {
+    const exercises = Array.from({ length: 51 }, () => ({
+      exerciseId: "00000000-0000-4000-8000-000000000001",
+      targetSets: 3,
+      targetReps: 10,
+    }));
+    expect(CreateWorkoutPlanSchema.safeParse({ name: "Too many", exercises }).success).toBe(false);
+  });
+
+  it("rejects more than 20 target sets", () => {
+    const result = CreateWorkoutPlanSchema.safeParse({
+      name: "Too many sets",
+      exercises: [
+        { exerciseId: "00000000-0000-4000-8000-000000000001", targetSets: 21, targetReps: 10 },
+      ],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects more than 100 target reps", () => {
+    const result = CreateWorkoutPlanSchema.safeParse({
+      name: "Too many reps",
+      exercises: [
+        { exerciseId: "00000000-0000-4000-8000-000000000001", targetSets: 3, targetReps: 101 },
+      ],
+    });
+    expect(result.success).toBe(false);
+  });
 });
 
 describe("CreateWorkoutSetSchema", () => {
