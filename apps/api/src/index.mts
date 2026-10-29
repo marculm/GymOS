@@ -1,59 +1,23 @@
-import { Hono } from "hono";
-import { HTTPException } from "hono/http-exception";
-import { logger } from "./lib/logger.mts";
-import { gymModule } from "./modules/gym/index.mts";
-import { nutritionModule } from "./modules/nutrition/index.mts";
-import { extractorModule } from "./modules/extractor/index.mts";
+import { app } from "./app.mts";
+import { env } from "./config/env.mts";
+import { connectDB, disconnectDB } from "./config/prisma-client.mts";
+import { getLogger } from "./logger/logger.mts";
 
-export const app = new Hono();
+const logger = getLogger("index", "file");
 
-// Pino Request Logger Middleware
-app.use("*", async (c, next) => {
-  const start = performance.now();
-  const { method, path } = c.req;
+await connectDB();
 
-  await next();
-
-  const durationMs = (performance.now() - start).toFixed(2);
-  const status = c.res.status;
-
-  logger.info({
-    method,
-    path,
-    status,
-    durationMs: `${durationMs}ms`,
-  }, `${method} ${path} -> ${status} (${durationMs}ms)`);
-});
-
-app.onError((err, c) => {
-  if (err instanceof HTTPException) {
-    return c.json({ error: err.message }, err.status);
-  }
-  logger.error({ err }, "Unhandled error");
-  return c.json({ error: "Internal server error" }, 500);
-});
-
-// Health check endpoint
-app.get("/health", (c) => {
-  return c.json({
-    status: "ok",
-    timestamp: new Date().toISOString(),
-    service: "GymOS API",
-  });
-});
-
-// Feature modules
-app.route("/api/gym", gymModule);
-app.route("/api/nutrition", nutritionModule);
-app.route("/api/extractor", extractorModule);
-
-const port = Number(process.env.PORT) || 3000;
-
-export default {
-  port,
+const server = Bun.serve({
+  port: env.PORT,
   fetch: app.fetch,
+});
+
+logger.info(`GymOS API listening on ${server.url}`);
+
+const shutdown = async () => {
+  await disconnectDB();
+  process.exit(0);
 };
 
-if (import.meta.main) {
-  logger.info(`🚀 GymOS API Server running on http://localhost:${port}`);
-}
+process.on("SIGINT", shutdown);
+process.on("SIGTERM", shutdown);

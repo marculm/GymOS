@@ -1,7 +1,7 @@
 import { Hono } from "hono";
-import { logger } from "../../lib/logger.mts";
+import { getLogger } from "../../logger/logger.mts";
 
-const extractorLogger = logger.child({ module: "extractor" });
+const extractorLogger = getLogger("extractor");
 
 export const extractorModule = new Hono();
 

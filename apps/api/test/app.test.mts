@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { app } from "../src/index.mts";
+import { app } from "../src/app.mts";
 
 describe("GymOS API Server", () => {
   it("responds with ok on /health", async () => {

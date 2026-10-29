@@ -1,7 +1,7 @@
 import { Hono } from "hono";
-import { logger } from "../../lib/logger.mts";
+import { getLogger } from "../../logger/logger.mts";
 
-const nutritionLogger = logger.child({ module: "nutrition" });
+const nutritionLogger = getLogger("nutrition");
 
 export const nutritionModule = new Hono();
 

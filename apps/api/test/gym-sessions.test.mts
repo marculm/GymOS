@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { prisma } from "../src/db/client.mts";
-import { app } from "../src/index.mts";
+import { prisma } from "../src/config/prisma-client.mts";
+import { app } from "../src/app.mts";
 import { createSessionIfNoActive } from "../src/modules/gym/repository.mts";
 import {
   cleanupTestUser,

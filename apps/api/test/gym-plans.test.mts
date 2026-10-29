@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { app } from "../src/index.mts";
+import { app } from "../src/app.mts";
 import {
   cleanupTestUser,
   clearTestUserData,

@@ -1,5 +1,5 @@
 import { HTTPException } from "hono/http-exception";
-import { prisma } from "../db/client.mts";
+import { prisma } from "../config/prisma-client.mts";
 
 const DEFAULT_USER_EMAIL = "demo@gymos.app";
 
