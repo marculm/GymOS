@@ -14,8 +14,8 @@ export default defineConfig({
         name: "GymOS",
         short_name: "GymOS",
         description: "Your all-in-one gym and nutrition operating system",
-        theme_color: "#0f172a",
-        background_color: "#0f172a",
+        theme_color: "#faf7f2",
+        background_color: "#faf7f2",
         display: "standalone",
         icons: [
           {

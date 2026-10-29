@@ -1,13 +1,13 @@
 :root {
-  color-scheme: dark;
-  --bg: #0f172a;
-  --surface: #1e293b;
-  --surface-2: #273449;
-  --text: #f8fafc;
-  --muted: #94a3b8;
-  --accent: #3b82f6;
-  --accent-strong: #2563eb;
-  --danger: #ef4444;
+  color-scheme: light;
+  --bg: #faf7f2;
+  --surface: #f3ede4;
+  --surface-2: #e5ddd1;
+  --text: #1f1b16;
+  --muted: #5f574c;
+  --accent: #1f1b16;
+  --accent-strong: #3b342b;
+  --danger: #9c2f21;
   --radius: 12px;
   --radius-sm: 8px;
   --space: 16px;
@@ -199,7 +199,7 @@ button {
 }
 
 .error {
-  background: rgba(239, 68, 68, 0.15);
+  background: rgba(156, 47, 33, 0.12);
   border: 1px solid var(--danger);
   border-radius: var(--radius-sm);
   padding: 10px 12px;
