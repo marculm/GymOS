@@ -1,0 +1,21 @@
+import { z } from "zod";
+import { MacrosSchema } from "./nutrition.mts";
+
+export const RecipeIngredientSchema = z.object({
+  name: z.string().min(1),
+  amount: z.number().positive(),
+  unit: z.string().min(1),
+});
+
+export const RecipeSchema = z.object({
+  id: z.string().uuid(),
+  title: z.string().min(1),
+  sourceUrl: z.string().url().optional(),
+  servings: z.number().int().positive().default(1),
+  macrosPerServing: MacrosSchema,
+  ingredients: z.array(RecipeIngredientSchema),
+  instructions: z.array(z.string()),
+});
+
+export type RecipeIngredient = z.infer<typeof RecipeIngredientSchema>;
+export type Recipe = z.infer<typeof RecipeSchema>;

@@ -28,6 +28,12 @@ Each module is self-contained and exposes its functionality through a clear entr
 3. Each module owns its own route definitions, service layer, and repository layer.
 4. Database access is only allowed through Prisma — no raw SQL queries.
 
+### Amendments
+
+- Refined by ADR-0013: each module uses `router/`, `service/`, and `repository/`
+  folders, with read/write splits inside the router and service layers. The module
+  entry point is `index.mts`.
+
 ## Consequences
 
 - Features can be developed, tested, and refactored independently.

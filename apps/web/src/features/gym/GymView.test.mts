@@ -1,0 +1,273 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen, waitFor } from "@testing-library/svelte";
+import type { Exercise, WorkoutPlan, WorkoutSessionDetail } from "@gymos/shared";
+import { ApiError } from "../../api/client.mts";
+import GymView from "./GymView.svelte";
+import {
+  addSet,
+  completeSession,
+  createPlan,
+  getActiveSession,
+  listAllExercises,
+  listAllPlans,
+  listExercises,
+  listPlans,
+  listSessions,
+  startSession,
+} from "../../api/gym.mts";
+
+vi.mock("../../api/gym.mts", () => ({
+  listExercises: vi.fn(),
+  listPlans: vi.fn(),
+  listAllExercises: vi.fn(),
+  listAllPlans: vi.fn(),
+  createPlan: vi.fn(),
+  startSession: vi.fn(),
+  getActiveSession: vi.fn(),
+  listSessions: vi.fn(),
+  addSet: vi.fn(),
+  completeSession: vi.fn(),
+}));
+
+function page<T>(content: T[]) {
+  return {
+    content,
+    page: {
+      size: 20,
+      number: 0,
+      totalElements: content.length,
+      totalPages: content.length > 0 ? 1 : 0,
+    },
+  };
+}
+
+const exercise: Exercise = {
+  id: "exercise-1",
+  name: "Bench Press",
+  muscleGroup: "chest",
+  description: null,
+};
+
+const plan: WorkoutPlan = {
+  id: "plan-1",
+  name: "Push Day",
+  description: "Chest and shoulders",
+  createdAt: "2026-10-26T18:00:00.000Z",
+  exercises: [
+    {
+      id: "plan-exercise-1",
+      position: 0,
+      targetSets: 4,
+      targetReps: 8,
+      targetWeightKg: 80,
+      notes: null,
+      exercise,
+    },
+  ],
+};
+
+const session: WorkoutSessionDetail = {
+  id: "session-1",
+  title: "Push Day",
+  planId: plan.id,
+  startedAt: "2026-10-26T18:00:00.000Z",
+  completedAt: null,
+  sets: [],
+};
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  vi.mocked(listExercises).mockResolvedValue(page([exercise]));
+  vi.mocked(listPlans).mockResolvedValue(page([plan]));
+  vi.mocked(listAllExercises).mockResolvedValue([exercise]);
+  vi.mocked(listAllPlans).mockResolvedValue([plan]);
+  vi.mocked(getActiveSession).mockResolvedValue(null);
+  vi.mocked(listSessions).mockResolvedValue(page([]));
+  vi.mocked(startSession).mockResolvedValue(session);
+  vi.mocked(createPlan).mockResolvedValue(plan);
+  vi.mocked(addSet).mockResolvedValue({
+    id: "set-1",
+    exerciseId: "exercise-1",
+    setNumber: 1,
+    reps: 8,
+    weightKg: 80,
+    rpe: null,
+    createdAt: "2026-10-26T18:05:00.000Z",
+  });
+  vi.mocked(completeSession).mockResolvedValue({
+    ...session,
+    completedAt: "2026-10-26T19:00:00.000Z",
+  });
+});
+
+describe("GymView", () => {
+  it("renders plans and recent workouts", async () => {
+    render(GymView);
+
+    expect(await screen.findByText("Push Day")).toBeInTheDocument();
+    expect(screen.getByText(/1\s+exercise/)).toBeInTheDocument();
+    expect(screen.getByText("No completed workouts yet")).toBeInTheDocument();
+  });
+
+  it("starts a plan session", async () => {
+    render(GymView);
+
+    await screen.findByText("Push Day");
+    await fireEvent.click(screen.getByRole("button", { name: /start plan/i }));
+
+    await waitFor(() => {
+      expect(startSession).toHaveBeenCalledWith({ planId: "plan-1" });
+    });
+    expect(
+      await screen.findByRole("heading", { name: "Push Day" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /finish workout/i })
+    ).toBeInTheDocument();
+  });
+
+  it("creates a plan from the form", async () => {
+    vi.mocked(createPlan).mockResolvedValueOnce({
+      ...plan,
+      id: "plan-2",
+      name: "Leg Day",
+    });
+
+    render(GymView);
+
+    await screen.findByText("Push Day");
+    await fireEvent.click(screen.getByRole("button", { name: /create plan/i }));
+    await fireEvent.input(screen.getByLabelText("Name"), {
+      target: { value: "Leg Day" },
+    });
+    await fireEvent.input(screen.getByLabelText("Sets"), {
+      target: { value: "5" },
+    });
+    await fireEvent.input(screen.getByLabelText("Reps"), {
+      target: { value: "5" },
+    });
+    await fireEvent.click(screen.getByRole("button", { name: /save plan/i }));
+
+    await waitFor(() => {
+      expect(createPlan).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: "Leg Day",
+          exercises: [expect.objectContaining({ targetSets: 5, targetReps: 5 })],
+        })
+      );
+    });
+  });
+
+  it("logs a set and finishes the active session", async () => {
+    vi.mocked(getActiveSession).mockResolvedValue(session);
+
+    render(GymView);
+
+    expect(
+      await screen.findByRole("heading", { name: "Push Day" })
+    ).toBeInTheDocument();
+
+    await fireEvent.input(screen.getByLabelText("Weight (kg)"), {
+      target: { value: "80" },
+    });
+    await fireEvent.input(screen.getByLabelText("Reps"), {
+      target: { value: "8" },
+    });
+    await fireEvent.click(screen.getByRole("button", { name: "Log set" }));
+
+    await waitFor(() => {
+      expect(addSet).toHaveBeenCalledWith("session-1", {
+        exerciseId: "exercise-1",
+        weightKg: 80,
+        reps: 8,
+        rpe: undefined,
+      });
+    });
+
+    await fireEvent.click(screen.getByRole("button", { name: "Finish workout" }));
+
+    await waitFor(() => {
+      expect(completeSession).toHaveBeenCalledWith("session-1");
+    });
+    expect(
+      await screen.findByText("No completed workouts yet")
+    ).toBeInTheDocument();
+  });
+
+  it("retries the start once when the conflict leaves no active session", async () => {
+    vi.mocked(startSession).mockRejectedValueOnce(
+      new ApiError(409, "An active session is already in progress")
+    );
+
+    render(GymView);
+
+    await screen.findByText("Push Day");
+    await fireEvent.click(screen.getByRole("button", { name: /start free workout/i }));
+
+    await waitFor(() => {
+      expect(startSession).toHaveBeenCalledTimes(2);
+    });
+    expect(
+      await screen.findByRole("heading", { name: "Push Day" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /finish workout/i })
+    ).toBeInTheDocument();
+  });
+
+  it("stops adding plan exercises at the schema limit", async () => {
+    render(GymView);
+
+    await screen.findByText("Push Day");
+    await fireEvent.click(screen.getByRole("button", { name: /create plan/i }));
+
+    const addButton = screen.getByRole("button", { name: /add exercise/i });
+    for (let index = 0; index < 49; index += 1) {
+      await fireEvent.click(addButton);
+    }
+
+    expect(screen.getByRole("button", { name: /add exercise/i })).toBeDisabled();
+  });
+
+  it("shows an error when the retried start also fails", async () => {
+    vi.mocked(startSession)
+      .mockRejectedValueOnce(new ApiError(409, "conflict"))
+      .mockRejectedValueOnce(new Error("still blocked"));
+
+    render(GymView);
+
+    await screen.findByText("Push Day");
+    await fireEvent.click(screen.getByRole("button", { name: /start free workout/i }));
+
+    expect(await screen.findByText("still blocked")).toBeInTheDocument();
+  });
+
+  it("shows a duplicate plan name error", async () => {
+    vi.mocked(createPlan).mockRejectedValueOnce(
+      new ApiError(409, "A plan with this name already exists")
+    );
+
+    render(GymView);
+
+    await screen.findByText("Push Day");
+    await fireEvent.click(screen.getByRole("button", { name: /create plan/i }));
+    await fireEvent.input(screen.getByLabelText("Name"), {
+      target: { value: "Push Day" },
+    });
+    await fireEvent.click(screen.getByRole("button", { name: /save plan/i }));
+
+    expect(
+      await screen.findByText("A plan with this name already exists")
+    ).toBeInTheDocument();
+  });
+
+  it("shows an error with retry when loading fails", async () => {
+    vi.mocked(listAllPlans).mockRejectedValueOnce(new Error("Backend unavailable"));
+
+    render(GymView);
+
+    expect(await screen.findByText("Backend unavailable")).toBeInTheDocument();
+    await fireEvent.click(screen.getByRole("button", { name: /retry/i }));
+    expect(await screen.findByText("Push Day")).toBeInTheDocument();
+  });
+});
