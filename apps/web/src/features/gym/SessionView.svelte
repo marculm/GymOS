@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { MAX_SET_REPS, MAX_SET_WEIGHT_KG } from "@gymos/shared/limits";
   import type {
     CreateWorkoutSetInput,
     Exercise,
@@ -222,6 +223,7 @@
             class="input"
             type="number"
             min={0}
+            max={MAX_SET_WEIGHT_KG}
             step={0.5}
             required
             bind:value={weightKg}
@@ -229,7 +231,14 @@
         </label>
         <label class="field grow">
           <span class="label">Reps</span>
-          <input class="input" type="number" min={1} required bind:value={reps} />
+          <input
+            class="input"
+            type="number"
+            min={1}
+            max={MAX_SET_REPS}
+            required
+            bind:value={reps}
+          />
         </label>
         <label class="field grow">
           <span class="label">RPE (optional)</span>

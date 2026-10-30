@@ -160,13 +160,34 @@ describe("Gym plan routes", () => {
     expect(data.detail).toContain("already exists");
   });
 
+  it("rejects duplicate exercises", async () => {
+    const res = await postJson({
+      name: "Repeated",
+      exercises: [
+        { exerciseId, targetSets: 3, targetReps: 8 },
+        { exerciseId, targetSets: 4, targetReps: 10 },
+      ],
+    });
+
+    expect(res.status).toBe(422);
+    const data = (await res.json()) as { detail: Array<{ message: string }> };
+    expect(data.detail.map((issue) => issue.message)).toContain(
+      "Each exercise can only be added once"
+    );
+  });
+
   it("rejects plans over the input limits", async () => {
     const tooManyExercises = Array.from({ length: 51 }, () => ({
-      exerciseId,
+      exerciseId: crypto.randomUUID(),
       targetSets: 3,
       targetReps: 10,
     }));
-    expect((await postJson({ name: "Too many", exercises: tooManyExercises })).status).toBe(422);
+    const tooMany = await postJson({ name: "Too many", exercises: tooManyExercises });
+    expect(tooMany.status).toBe(422);
+    const tooManyData = (await tooMany.json()) as {
+      detail: Array<{ message: string }>;
+    };
+    expect(tooManyData.detail.some((issue) => /50/.test(issue.message))).toBe(true);
 
     expect((await postJson(planBody("Too many sets", { targetSets: 21 }))).status).toBe(422);
     expect((await postJson(planBody("Too many reps", { targetReps: 101 }))).status).toBe(422);

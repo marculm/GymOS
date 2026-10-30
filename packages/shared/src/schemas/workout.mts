@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MAX_SET_REPS, MAX_SET_WEIGHT_KG } from "../limits.mts";
 
 export const MUSCLE_GROUPS = [
   "chest",
@@ -32,6 +33,9 @@ export const CreateExerciseSchema = z.object({
 
 export const UpdateExerciseSchema = CreateExerciseSchema;
 
+export const DUPLICATE_EXERCISE_MESSAGE =
+  "Each exercise can only be added once";
+
 export const CreateWorkoutPlanSchema = z.object({
   name: z.string().min(1).max(100),
   description: z.string().max(500).optional(),
@@ -46,7 +50,13 @@ export const CreateWorkoutPlanSchema = z.object({
       })
     )
     .min(1)
-    .max(50),
+    .max(50)
+    .refine(
+      (exercises) =>
+        new Set(exercises.map((exercise) => exercise.exerciseId)).size ===
+        exercises.length,
+      DUPLICATE_EXERCISE_MESSAGE
+    ),
 });
 
 export const WorkoutPlanExerciseSchema = z.object({
@@ -74,8 +84,8 @@ export const CreateWorkoutSessionSchema = z.object({
 
 export const CreateWorkoutSetSchema = z.object({
   exerciseId: z.string().uuid(),
-  reps: z.number().int().positive(),
-  weightKg: z.number().nonnegative(),
+  reps: z.number().int().positive().max(MAX_SET_REPS),
+  weightKg: z.number().nonnegative().max(MAX_SET_WEIGHT_KG),
   rpe: z.number().min(1).max(10).optional(),
 });
 

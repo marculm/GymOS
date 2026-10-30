@@ -73,7 +73,7 @@ describe("CreateWorkoutPlanSchema", () => {
 
   it("accepts at most 50 exercises, 20 target sets, and 100 target reps", () => {
     const exercises = Array.from({ length: 50 }, () => ({
-      exerciseId: "00000000-0000-4000-8000-000000000001",
+      exerciseId: crypto.randomUUID(),
       targetSets: 20,
       targetReps: 100,
     }));
@@ -82,11 +82,25 @@ describe("CreateWorkoutPlanSchema", () => {
 
   it("rejects more than 50 exercises", () => {
     const exercises = Array.from({ length: 51 }, () => ({
-      exerciseId: "00000000-0000-4000-8000-000000000001",
+      exerciseId: crypto.randomUUID(),
       targetSets: 3,
       targetReps: 10,
     }));
     expect(CreateWorkoutPlanSchema.safeParse({ name: "Too many", exercises }).success).toBe(false);
+  });
+
+  it("rejects duplicate exercise IDs", () => {
+    const result = CreateWorkoutPlanSchema.safeParse({
+      name: "Repeated",
+      exercises: [
+        { exerciseId: "00000000-0000-4000-8000-000000000001", targetSets: 3, targetReps: 8 },
+        { exerciseId: "00000000-0000-4000-8000-000000000001", targetSets: 4, targetReps: 10 },
+      ],
+    });
+    expect(result.success).toBe(false);
+    expect(result.error?.issues.map((issue) => issue.message)).toContain(
+      "Each exercise can only be added once"
+    );
   });
 
   it("rejects more than 20 target sets", () => {
@@ -118,6 +132,33 @@ describe("CreateWorkoutSetSchema", () => {
       weightKg: 0,
     });
     expect(result.success).toBe(true);
+  });
+
+  it("accepts reps and weight at their maxima", () => {
+    const result = CreateWorkoutSetSchema.safeParse({
+      exerciseId: "00000000-0000-4000-8000-000000000001",
+      reps: 1000,
+      weightKg: 1000,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects reps above the maximum", () => {
+    const result = CreateWorkoutSetSchema.safeParse({
+      exerciseId: "00000000-0000-4000-8000-000000000001",
+      reps: 1001,
+      weightKg: 20,
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects weight above the maximum", () => {
+    const result = CreateWorkoutSetSchema.safeParse({
+      exerciseId: "00000000-0000-4000-8000-000000000001",
+      reps: 10,
+      weightKg: 1000.5,
+    });
+    expect(result.success).toBe(false);
   });
 
   it("rejects RPE above 10", () => {
