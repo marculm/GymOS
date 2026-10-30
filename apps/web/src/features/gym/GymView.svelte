@@ -8,7 +8,6 @@
     WorkoutPlan,
     WorkoutRotation,
     WorkoutSessionDetail,
-    WorkoutSessionSummary,
   } from "@gymos/shared";
   import { ApiError } from "../../api/client.mts";
   import {
@@ -22,7 +21,6 @@
     getRotation,
     listAllExercises,
     listAllPlans,
-    listSessions,
     setRotation,
     startSession,
     updateExercise,
@@ -36,9 +34,9 @@
   let plans = $state<WorkoutPlan[]>([]);
   let rotation = $state<WorkoutRotation>({ plans: [], nextPlanId: null });
   let activeSession = $state<WorkoutSessionDetail | null>(null);
-  let history = $state<WorkoutSessionSummary[]>([]);
   let loading = $state(true);
   let error = $state<string | null>(null);
+  let showManagement = $state(false);
   let showPlanForm = $state(false);
   let editingPlan = $state<WorkoutPlan | null>(null);
   let pending = $state(false);
@@ -54,19 +52,16 @@
     error = null;
 
     try {
-      const [exerciseList, planList, rotationState, active, sessionPage] =
-        await Promise.all([
-          listAllExercises(),
-          listAllPlans(),
-          getRotation(),
-          getActiveSession(),
-          listSessions({ size: 10 }),
-        ]);
+      const [exerciseList, planList, rotationState, active] = await Promise.all([
+        listAllExercises(),
+        listAllPlans(),
+        getRotation(),
+        getActiveSession(),
+      ]);
       exercises = exerciseList;
       plans = planList;
       rotation = rotationState;
       activeSession = active;
-      history = sessionPage.content;
     } catch (loadError) {
       error = messageOf(loadError);
     } finally {
@@ -213,14 +208,9 @@
     await completeSession(activeSession.id);
     activeSession = null;
     try {
-      const [sessionPage, rotationState] = await Promise.all([
-        listSessions({ size: 10 }),
-        getRotation(),
-      ]);
-      history = sessionPage.content;
-      rotation = rotationState;
+      rotation = await getRotation();
     } catch {
-      // The workout is complete; the rest refreshes on the next load.
+      // The workout is complete; the suggestion refreshes on the next load.
     }
   }
 
@@ -264,209 +254,258 @@
       <p class="error">{error}</p>
     {/if}
 
-    <section class="card stack">
-      <h2 class="card-title">Today&apos;s workout</h2>
-      <p class="muted">Start a session and log sets as you go.</p>
-      <button
-        type="button"
-        class="btn btn-primary"
-        disabled={pending}
-        onclick={() => void start({})}
-      >
-        Start free workout
-      </button>
-    </section>
-
-    <section class="card stack">
-      <h2 class="card-title">Training rotation</h2>
-
-      {#if nextPlan}
+    {#if nextPlan}
+      <section class="card plan-card stack">
         <div>
-          <p class="muted">Next up</p>
-          <h3 class="card-title">{nextPlan.name}</h3>
+          <p class="muted">Next workout</p>
+          <h2 class="card-title">{nextPlan.name}</h2>
+          {#if nextPlan.description}
+            <p class="muted">{nextPlan.description}</p>
+          {/if}
         </div>
+
+        <div class="row">
+          <span class="badge">
+            {nextPlan.exercises.length}
+            {nextPlan.exercises.length === 1 ? "exercise" : "exercises"}
+          </span>
+        </div>
+
+        <div class="stack">
+          {#each nextPlan.exercises as entry (entry.id)}
+            <div class="row">
+              <span class="grow">{entry.exercise.name}</span>
+              <span class="muted">
+                {entry.targetSets} × {entry.targetReps}{entry.targetWeightKg != null
+                  ? ` @ ${entry.targetWeightKg} kg`
+                  : ""}
+              </span>
+            </div>
+          {/each}
+        </div>
+
         <button
           type="button"
           class="btn btn-primary"
           disabled={pending || rotationPending}
           onclick={() => void start({ planId: nextPlan.id })}
         >
-          Start next plan
+          Start workout
         </button>
-      {:else}
-        <p class="empty">Add plans to set up a rotation</p>
-      {/if}
+      </section>
+    {:else}
+      <section class="card stack">
+        <h2 class="card-title">No workout scheduled</h2>
+        <p class="muted">
+          Add plans to your rotation and the next workout shows up here.
+        </p>
+        <button
+          type="button"
+          class="btn btn-primary"
+          onclick={() => (showManagement = true)}
+        >
+          Set up training plan
+        </button>
+      </section>
+    {/if}
 
-      {#each rotation.plans as plan, index (plan.id)}
-        <div class="row">
-          <span class="badge">{index + 1}</span>
-          <span class="grow">{plan.name}</span>
-          <button
-            type="button"
-            class="btn btn-ghost"
-            disabled={rotationPending || index === 0}
-            aria-label={`Move ${plan.name} up`}
-            onclick={() => moveRotationPlan(index, -1)}
-          >
-            Up
-          </button>
-          <button
-            type="button"
-            class="btn btn-ghost"
-            disabled={rotationPending || index === rotation.plans.length - 1}
-            aria-label={`Move ${plan.name} down`}
-            onclick={() => moveRotationPlan(index, 1)}
-          >
-            Down
-          </button>
-          <button
-            type="button"
-            class="btn btn-ghost"
-            disabled={rotationPending}
-            aria-label={`Remove ${plan.name} from rotation`}
-            onclick={() => removeRotationPlan(plan.id)}
-          >
-            Remove
-          </button>
-        </div>
-      {/each}
-
-      {#if availableRotationPlans.length > 0}
-        <div class="row">
-          <label class="field grow">
-            <span class="label">Add plan to rotation</span>
-            <select
-              class="input"
-              value={planToAdd}
-              onchange={(event) => (planToAdd = event.currentTarget.value)}
-            >
-              <option value="">Choose a plan</option>
-              {#each availableRotationPlans as plan (plan.id)}
-                <option value={plan.id}>{plan.name}</option>
-              {/each}
-            </select>
-          </label>
-          <button
-            type="button"
-            class="btn btn-ghost"
-            disabled={rotationPending ||
-              !availableRotationPlans.some((plan) => plan.id === planToAdd)}
-            onclick={addRotationPlan}
-          >
-            Add
-          </button>
-        </div>
-      {/if}
-    </section>
-
-    <section class="stack">
-      <h2 class="card-title">Training plans</h2>
-      {#if plans.length === 0}
-        <p class="empty">No plans yet</p>
-      {:else}
-        {#each plans as plan (plan.id)}
-          <article class="card plan-card stack">
-            <div>
-              <h3 class="card-title">{plan.name}</h3>
-              {#if plan.description}
-                <p class="muted">{plan.description}</p>
-              {/if}
-            </div>
-            <div class="row">
-              <span class="badge">
-                {plan.exercises.length}
-                {plan.exercises.length === 1 ? "exercise" : "exercises"}
-              </span>
-              <button
-                type="button"
-                class="btn btn-primary"
-                disabled={pending}
-                onclick={() => void start({ planId: plan.id })}
-              >
-                Start plan
-              </button>
-            </div>
-            <div class="row">
-              <button
-                type="button"
-                class="btn btn-ghost"
-                aria-label={`Edit ${plan.name}`}
-                onclick={() => {
-                  showPlanForm = false;
-                  editingPlan = plan;
-                }}
-              >
-                Edit
-              </button>
-              <button
-                type="button"
-                class="btn btn-ghost"
-                aria-label={`Delete ${plan.name}`}
-                onclick={() => void handleDeletePlan(plan)}
-              >
-                Delete
-              </button>
-            </div>
-          </article>
-        {/each}
-      {/if}
-
+    <div class="row">
       <button
         type="button"
         class="btn btn-ghost"
-        onclick={() => {
-          if (editingPlan) {
-            editingPlan = null;
-            return;
-          }
-          showPlanForm = !showPlanForm;
-        }}
+        disabled={pending}
+        onclick={() => void start({})}
       >
-        {showPlanForm || editingPlan ? "Cancel" : "Create plan"}
+        Other workout
       </button>
-
-      {#if showPlanForm}
-        <PlanForm exercises={exercises} onSubmit={handleCreatePlan} />
-      {:else if editingPlan}
-        {#key editingPlan?.id}
-          <PlanForm
-            exercises={exercises}
-            plan={editingPlan}
-            onSubmit={handleUpdatePlan}
-          />
-        {/key}
-      {/if}
-    </section>
+    </div>
 
     <section class="stack">
-      <h2 class="card-title">Exercise register</h2>
-      <ExerciseRegister
-        exercises={exercises}
-        onCreate={handleCreateExercise}
-        onUpdate={handleUpdateExercise}
-        onDelete={handleDeleteExercise}
-      />
-    </section>
+      <div class="row">
+        <h2 class="card-title grow">My training plan</h2>
+        <button
+          type="button"
+          class="btn btn-ghost"
+          aria-label={showManagement
+            ? "Hide training plan"
+            : "Manage training plan"}
+          onclick={() => (showManagement = !showManagement)}
+        >
+          {showManagement ? "Hide" : "Manage"}
+        </button>
+      </div>
 
-    <section class="stack">
-      <h2 class="card-title">Recent workouts</h2>
-      {#if history.length === 0}
-        <p class="empty">No completed workouts yet</p>
-      {:else}
-        {#each history as session (session.id)}
-          <article class="card">
-            <h3 class="card-title">{session.title}</h3>
-            <div class="row">
-              <span class="muted">
-                {new Date(session.startedAt).toLocaleDateString()}
-              </span>
-              <span class="badge">
-                {session.totalSets}
-                {session.totalSets === 1 ? "set" : "sets"}
-              </span>
+      {#if showManagement}
+        <section class="card stack">
+          <h2 class="card-title">Training rotation</h2>
+
+          {#if nextPlan}
+            <div>
+              <p class="muted">Next up</p>
+              <h3 class="card-title">{nextPlan.name}</h3>
             </div>
-          </article>
-        {/each}
+            <button
+              type="button"
+              class="btn btn-primary"
+              disabled={pending || rotationPending}
+              onclick={() => void start({ planId: nextPlan.id })}
+            >
+              Start next plan
+            </button>
+          {:else}
+            <p class="empty">Add plans to set up a rotation</p>
+          {/if}
+
+          {#each rotation.plans as plan, index (plan.id)}
+            <div class="row">
+              <span class="badge">{index + 1}</span>
+              <span class="grow">{plan.name}</span>
+              <button
+                type="button"
+                class="btn btn-ghost"
+                disabled={rotationPending || index === 0}
+                aria-label={`Move ${plan.name} up`}
+                onclick={() => moveRotationPlan(index, -1)}
+              >
+                Up
+              </button>
+              <button
+                type="button"
+                class="btn btn-ghost"
+                disabled={rotationPending || index === rotation.plans.length - 1}
+                aria-label={`Move ${plan.name} down`}
+                onclick={() => moveRotationPlan(index, 1)}
+              >
+                Down
+              </button>
+              <button
+                type="button"
+                class="btn btn-ghost"
+                disabled={rotationPending}
+                aria-label={`Remove ${plan.name} from rotation`}
+                onclick={() => removeRotationPlan(plan.id)}
+              >
+                Remove
+              </button>
+            </div>
+          {/each}
+
+          {#if availableRotationPlans.length > 0}
+            <div class="row">
+              <label class="field grow">
+                <span class="label">Add plan to rotation</span>
+                <select
+                  class="input"
+                  value={planToAdd}
+                  onchange={(event) => (planToAdd = event.currentTarget.value)}
+                >
+                  <option value="">Choose a plan</option>
+                  {#each availableRotationPlans as plan (plan.id)}
+                    <option value={plan.id}>{plan.name}</option>
+                  {/each}
+                </select>
+              </label>
+              <button
+                type="button"
+                class="btn btn-ghost"
+                disabled={rotationPending ||
+                  !availableRotationPlans.some((plan) => plan.id === planToAdd)}
+                onclick={addRotationPlan}
+              >
+                Add
+              </button>
+            </div>
+          {/if}
+        </section>
+
+        <section class="stack">
+          <h2 class="card-title">Training plans</h2>
+          {#if plans.length === 0}
+            <p class="empty">No plans yet</p>
+          {:else}
+            {#each plans as plan (plan.id)}
+              <article class="card plan-card stack">
+                <div>
+                  <h3 class="card-title">{plan.name}</h3>
+                  {#if plan.description}
+                    <p class="muted">{plan.description}</p>
+                  {/if}
+                </div>
+                <div class="row">
+                  <span class="badge">
+                    {plan.exercises.length}
+                    {plan.exercises.length === 1 ? "exercise" : "exercises"}
+                  </span>
+                  <button
+                    type="button"
+                    class="btn btn-primary"
+                    disabled={pending}
+                    onclick={() => void start({ planId: plan.id })}
+                  >
+                    Start plan
+                  </button>
+                </div>
+                <div class="row">
+                  <button
+                    type="button"
+                    class="btn btn-ghost"
+                    aria-label={`Edit ${plan.name}`}
+                    onclick={() => {
+                      showPlanForm = false;
+                      editingPlan = plan;
+                    }}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-ghost"
+                    aria-label={`Delete ${plan.name}`}
+                    onclick={() => void handleDeletePlan(plan)}
+                  >
+                    Delete
+                  </button>
+                </div>
+              </article>
+            {/each}
+          {/if}
+
+          <button
+            type="button"
+            class="btn btn-ghost"
+            onclick={() => {
+              if (editingPlan) {
+                editingPlan = null;
+                return;
+              }
+              showPlanForm = !showPlanForm;
+            }}
+          >
+            {showPlanForm || editingPlan ? "Cancel" : "Create plan"}
+          </button>
+
+          {#if showPlanForm}
+            <PlanForm exercises={exercises} onSubmit={handleCreatePlan} />
+          {:else if editingPlan}
+            {#key editingPlan?.id}
+              <PlanForm
+                exercises={exercises}
+                plan={editingPlan}
+                onSubmit={handleUpdatePlan}
+              />
+            {/key}
+          {/if}
+        </section>
+
+        <section class="stack">
+          <h2 class="card-title">Exercise register</h2>
+          <ExerciseRegister
+            exercises={exercises}
+            onCreate={handleCreateExercise}
+            onUpdate={handleUpdateExercise}
+            onDelete={handleDeleteExercise}
+          />
+        </section>
       {/if}
     </section>
   </div>

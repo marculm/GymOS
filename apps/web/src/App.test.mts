@@ -27,13 +27,13 @@ vi.mock("./api/gym.mts", () => {
 describe("GymOS App Component", () => {
   it("renders GymOS header", async () => {
     render(App);
-    await screen.findByText("No plans yet");
+    await screen.findByText("No workout scheduled");
     expect(screen.getByText(/GymOS/i)).toBeInTheDocument();
   });
 
   it("switches to Nutrition tab when clicked", async () => {
     render(App);
-    await screen.findByText("No plans yet");
+    await screen.findByText("No workout scheduled");
     const nutritionButton = screen.getByRole("button", { name: /Nutrition/i });
     await fireEvent.click(nutritionButton);
     expect(await screen.findByText("Nutrition & Mealprep")).toBeInTheDocument();
@@ -41,7 +41,7 @@ describe("GymOS App Component", () => {
 
   it("switches to AI Extractor tab when clicked", async () => {
     render(App);
-    await screen.findByText("No plans yet");
+    await screen.findByText("No workout scheduled");
     const extractorButton = screen.getByRole("button", { name: /AI Extractor/i });
     await fireEvent.click(extractorButton);
     expect(await screen.findByText(/TikTok \/ Reels AI Extractor/i)).toBeInTheDocument();
@@ -49,7 +49,7 @@ describe("GymOS App Component", () => {
 
   it("shows the three main tabs in the navigation", async () => {
     render(App);
-    await screen.findByText("No plans yet");
+    await screen.findByText("No workout scheduled");
     const nav = screen.getByRole("navigation", { name: /main navigation/i });
     expect(nav).toBeInTheDocument();
     expect(within(nav).getAllByRole("button")).toHaveLength(3);
