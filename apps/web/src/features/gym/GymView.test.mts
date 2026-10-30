@@ -9,6 +9,7 @@ import {
   createExercise,
   createPlan,
   deleteExercise,
+  deletePlan,
   getActiveSession,
   listAllExercises,
   listAllPlans,
@@ -17,6 +18,7 @@ import {
   listSessions,
   startSession,
   updateExercise,
+  updatePlan,
 } from "../../api/gym.mts";
 
 vi.mock("../../api/gym.mts", () => ({
@@ -28,6 +30,8 @@ vi.mock("../../api/gym.mts", () => ({
   updateExercise: vi.fn(),
   deleteExercise: vi.fn(),
   createPlan: vi.fn(),
+  updatePlan: vi.fn(),
+  deletePlan: vi.fn(),
   startSession: vi.fn(),
   getActiveSession: vi.fn(),
   listSessions: vi.fn(),
@@ -108,6 +112,8 @@ beforeEach(() => {
   vi.mocked(listSessions).mockResolvedValue(page([]));
   vi.mocked(startSession).mockResolvedValue(session);
   vi.mocked(createPlan).mockResolvedValue(plan);
+  vi.mocked(updatePlan).mockResolvedValue(plan);
+  vi.mocked(deletePlan).mockResolvedValue(undefined);
   vi.mocked(createExercise).mockResolvedValue(exercise);
   vi.mocked(updateExercise).mockResolvedValue(exercise);
   vi.mocked(deleteExercise).mockResolvedValue(exercise);
@@ -182,6 +188,53 @@ describe("GymView", () => {
           exercises: [expect.objectContaining({ targetSets: 5, targetReps: 5 })],
         })
       );
+    });
+  });
+
+  it("edits a plan from the plan list", async () => {
+    vi.mocked(updatePlan).mockResolvedValueOnce({ ...plan, name: "Push Day A" });
+
+    render(GymView);
+
+    await screen.findByText("Push Day");
+    await fireEvent.click(
+      screen.getByRole("button", { name: /edit push day/i })
+    );
+
+    expect(
+      await screen.findByRole("heading", { name: "Edit training plan" })
+    ).toBeInTheDocument();
+    const nameInput = screen.getByLabelText("Name");
+    expect(nameInput).toHaveValue("Push Day");
+
+    await fireEvent.input(nameInput, { target: { value: "Push Day A" } });
+    await fireEvent.click(screen.getByRole("button", { name: /save plan/i }));
+
+    await waitFor(() => {
+      expect(updatePlan).toHaveBeenCalledWith(
+        "plan-1",
+        expect.objectContaining({ name: "Push Day A" })
+      );
+    });
+    expect(await screen.findByText("Push Day A")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Name")).not.toBeInTheDocument();
+  });
+
+  it("deletes a plan from the plan list", async () => {
+    vi.stubGlobal("confirm", vi.fn(() => true));
+
+    render(GymView);
+
+    await screen.findByText("Push Day");
+    await fireEvent.click(
+      screen.getByRole("button", { name: /delete push day/i })
+    );
+
+    await waitFor(() => {
+      expect(deletePlan).toHaveBeenCalledWith("plan-1");
+    });
+    await waitFor(() => {
+      expect(screen.queryByText("Push Day")).not.toBeInTheDocument();
     });
   });
 
