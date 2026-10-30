@@ -21,6 +21,9 @@ const exercise: Exercise = {
   name: "Bench Press",
   muscleGroup: "chest",
   description: null,
+  defaultSets: 4,
+  defaultReps: 10,
+  defaultWeightKg: 60,
 };
 
 const extraExercise: Exercise = {
@@ -28,6 +31,9 @@ const extraExercise: Exercise = {
   name: "Cable Fly",
   muscleGroup: "chest",
   description: null,
+  defaultSets: 3,
+  defaultReps: 12,
+  defaultWeightKg: 15,
 };
 
 const plan: WorkoutPlan = {
@@ -132,6 +138,24 @@ describe("SessionView", () => {
     });
   });
 
+  it("prefills logging from the exercise defaults", async () => {
+    const { onLogSet } = renderSession();
+
+    expect(screen.getByLabelText("Weight (kg)")).toHaveValue(60);
+    expect(screen.getByLabelText("Reps")).toHaveValue(10);
+
+    await fireEvent.click(screen.getByRole("button", { name: "Log set" }));
+
+    await waitFor(() => {
+      expect(onLogSet).toHaveBeenCalledWith({
+        exerciseId: "exercise-1",
+        weightKg: 60,
+        reps: 10,
+        rpe: undefined,
+      });
+    });
+  });
+
   it("finishes the workout", async () => {
     const { onComplete } = renderSession();
 
@@ -155,7 +179,7 @@ describe("SessionView", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("shows a set even when its exercise is not in the loaded list", () => {
+  it("uses the set's exercise name when the exercise is not in the loaded list", () => {
     renderSession({
       session: {
         ...session,
@@ -163,6 +187,7 @@ describe("SessionView", () => {
           {
             id: "set-1",
             exerciseId: "exercise-missing",
+            exerciseName: "Deleted Press",
             setNumber: 1,
             reps: 12,
             weightKg: 15,
@@ -174,7 +199,7 @@ describe("SessionView", () => {
     });
 
     expect(
-      screen.getByRole("heading", { name: "Unknown exercise" })
+      screen.getByRole("heading", { name: "Deleted Press" })
     ).toBeInTheDocument();
     expect(screen.getByText("Set 1")).toBeInTheDocument();
   });
@@ -187,6 +212,7 @@ describe("SessionView", () => {
           {
             id: "set-1",
             exerciseId: "exercise-2",
+            exerciseName: "Cable Fly",
             setNumber: 1,
             reps: 12,
             weightKg: 15,

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/svelte";
 import type { Exercise, WorkoutPlan, WorkoutSessionDetail } from "@gymos/shared";
 import { ApiError } from "../../api/client.mts";
@@ -6,7 +6,9 @@ import GymView from "./GymView.svelte";
 import {
   addSet,
   completeSession,
+  createExercise,
   createPlan,
+  deleteExercise,
   getActiveSession,
   listAllExercises,
   listAllPlans,
@@ -14,6 +16,7 @@ import {
   listPlans,
   listSessions,
   startSession,
+  updateExercise,
 } from "../../api/gym.mts";
 
 vi.mock("../../api/gym.mts", () => ({
@@ -21,6 +24,9 @@ vi.mock("../../api/gym.mts", () => ({
   listPlans: vi.fn(),
   listAllExercises: vi.fn(),
   listAllPlans: vi.fn(),
+  createExercise: vi.fn(),
+  updateExercise: vi.fn(),
+  deleteExercise: vi.fn(),
   createPlan: vi.fn(),
   startSession: vi.fn(),
   getActiveSession: vi.fn(),
@@ -46,6 +52,9 @@ const exercise: Exercise = {
   name: "Bench Press",
   muscleGroup: "chest",
   description: null,
+  defaultSets: 4,
+  defaultReps: 8,
+  defaultWeightKg: 80,
 };
 
 const plan: WorkoutPlan = {
@@ -75,6 +84,10 @@ const session: WorkoutSessionDetail = {
   sets: [],
 };
 
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(listExercises).mockResolvedValue(page([exercise]));
@@ -85,9 +98,13 @@ beforeEach(() => {
   vi.mocked(listSessions).mockResolvedValue(page([]));
   vi.mocked(startSession).mockResolvedValue(session);
   vi.mocked(createPlan).mockResolvedValue(plan);
+  vi.mocked(createExercise).mockResolvedValue(exercise);
+  vi.mocked(updateExercise).mockResolvedValue(exercise);
+  vi.mocked(deleteExercise).mockResolvedValue(exercise);
   vi.mocked(addSet).mockResolvedValue({
     id: "set-1",
     exerciseId: "exercise-1",
+    exerciseName: "Bench Press",
     setNumber: 1,
     reps: 8,
     weightKg: 80,
@@ -269,5 +286,80 @@ describe("GymView", () => {
     expect(await screen.findByText("Backend unavailable")).toBeInTheDocument();
     await fireEvent.click(screen.getByRole("button", { name: /retry/i }));
     expect(await screen.findByText("Push Day")).toBeInTheDocument();
+  });
+
+  it("prefills plan targets from exercise defaults", async () => {
+    vi.mocked(createPlan).mockResolvedValueOnce({
+      ...plan,
+      id: "plan-2",
+      name: "Default Plan",
+    });
+
+    render(GymView);
+
+    await screen.findByText("Push Day");
+    await fireEvent.click(screen.getByRole("button", { name: /create plan/i }));
+
+    expect(screen.getByLabelText("Sets")).toHaveValue(4);
+    expect(screen.getByLabelText("Reps")).toHaveValue(8);
+    expect(screen.getByLabelText("Weight (kg, optional)")).toHaveValue(80);
+
+    await fireEvent.input(screen.getByLabelText("Name"), {
+      target: { value: "Default Plan" },
+    });
+    await fireEvent.click(screen.getByRole("button", { name: /save plan/i }));
+
+    await waitFor(() => {
+      expect(createPlan).toHaveBeenCalledWith(
+        expect.objectContaining({
+          exercises: [
+            expect.objectContaining({
+              targetSets: 4,
+              targetReps: 8,
+              targetWeightKg: 80,
+            }),
+          ],
+        })
+      );
+    });
+  });
+
+  it("creates an exercise in the register", async () => {
+    const created = { ...exercise, id: "exercise-2", name: "Cable Fly" };
+    vi.mocked(createExercise).mockResolvedValueOnce(created);
+
+    render(GymView);
+
+    await screen.findByText("Push Day");
+    await fireEvent.click(screen.getByRole("button", { name: /new exercise/i }));
+    await fireEvent.input(screen.getByLabelText("Name"), {
+      target: { value: "Cable Fly" },
+    });
+    await fireEvent.click(screen.getByRole("button", { name: /save exercise/i }));
+
+    await waitFor(() => {
+      expect(createExercise).toHaveBeenCalledWith(
+        expect.objectContaining({ name: "Cable Fly", muscleGroup: "chest" })
+      );
+    });
+    expect(await screen.findByText("Cable Fly")).toBeInTheDocument();
+  });
+
+  it("deletes an exercise from the register", async () => {
+    vi.stubGlobal("confirm", vi.fn(() => true));
+
+    render(GymView);
+
+    await screen.findByText("Push Day");
+    await fireEvent.click(
+      screen.getByRole("button", { name: /delete bench press/i })
+    );
+
+    await waitFor(() => {
+      expect(deleteExercise).toHaveBeenCalledWith("exercise-1");
+    });
+    await waitFor(() => {
+      expect(screen.queryByText("Bench Press")).not.toBeInTheDocument();
+    });
   });
 });

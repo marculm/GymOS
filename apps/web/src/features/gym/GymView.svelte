@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import type {
+    CreateExerciseInput,
     CreateWorkoutPlanInput,
     CreateWorkoutSetInput,
     Exercise,
@@ -12,13 +13,17 @@
   import {
     addSet,
     completeSession,
+    createExercise,
     createPlan,
+    deleteExercise,
     getActiveSession,
     listAllExercises,
     listAllPlans,
     listSessions,
     startSession,
+    updateExercise,
   } from "../../api/gym.mts";
+  import ExerciseRegister from "./ExerciseRegister.svelte";
   import PlanForm from "./PlanForm.svelte";
   import SessionView from "./SessionView.svelte";
 
@@ -87,6 +92,31 @@
     const created = await createPlan(input);
     plans = [created, ...plans];
     showPlanForm = false;
+  }
+
+  async function handleCreateExercise(input: CreateExerciseInput) {
+    const created = await createExercise(input);
+    exercises = [...exercises, created].sort((a, b) =>
+      a.name.localeCompare(b.name)
+    );
+  }
+
+  async function handleUpdateExercise(id: string, input: CreateExerciseInput) {
+    const updated = await updateExercise(id, input);
+    exercises = exercises
+      .map((exercise) => (exercise.id === id ? updated : exercise))
+      .sort((a, b) => a.name.localeCompare(b.name));
+    plans = plans.map((plan) => ({
+      ...plan,
+      exercises: plan.exercises.map((entry) =>
+        entry.exercise.id === id ? { ...entry, exercise: updated } : entry
+      ),
+    }));
+  }
+
+  async function handleDeleteExercise(id: string) {
+    await deleteExercise(id);
+    exercises = exercises.filter((exercise) => exercise.id !== id);
   }
 
   async function handleLogSet(input: CreateWorkoutSetInput) {
@@ -191,6 +221,16 @@
       {#if showPlanForm}
         <PlanForm exercises={exercises} onSubmit={handleCreatePlan} />
       {/if}
+    </section>
+
+    <section class="stack">
+      <h2 class="card-title">Exercise register</h2>
+      <ExerciseRegister
+        exercises={exercises}
+        onCreate={handleCreateExercise}
+        onUpdate={handleUpdateExercise}
+        onDelete={handleDeleteExercise}
+      />
     </section>
 
     <section class="stack">

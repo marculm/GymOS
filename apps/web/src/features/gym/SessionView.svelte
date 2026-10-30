@@ -25,8 +25,14 @@
   let exerciseId = $state(
     plan?.exercises[0]?.exercise.id ?? exercises[0]?.id ?? ""
   );
-  let weightKg = $state<string | number | null>("");
-  let reps = $state<string | number | null>("");
+  // svelte-ignore state_referenced_locally
+  let weightKg = $state<string | number | null>(
+    plan?.exercises[0]?.exercise.defaultWeightKg ?? exercises[0]?.defaultWeightKg ?? ""
+  );
+  // svelte-ignore state_referenced_locally
+  let reps = $state<string | number | null>(
+    plan?.exercises[0]?.exercise.defaultReps ?? exercises[0]?.defaultReps ?? ""
+  );
   let rpe = $state<string | number | null>("");
   let pending = $state(false);
   let error = $state<string | null>(null);
@@ -34,13 +40,15 @@
   const completed = $derived(session.completedAt !== null);
 
   const selectableExercises = $derived(
-    plan
-      ? plan.exercises.map((entry) => ({
-          id: entry.exercise.id,
-          name: entry.exercise.name,
-        }))
-      : exercises.map((exercise) => ({ id: exercise.id, name: exercise.name }))
+    plan ? plan.exercises.map((entry) => entry.exercise) : exercises
   );
+
+  function selectExercise(id: string) {
+    exerciseId = id;
+    const exercise = selectableExercises.find((entry) => entry.id === id);
+    weightKg = exercise?.defaultWeightKg ?? "";
+    reps = exercise?.defaultReps ?? "";
+  }
 
   const setsByExercise = $derived.by(() => {
     const map = new Map<string, LoggedSet[]>();
@@ -68,9 +76,7 @@
 
     for (const [exerciseId, sets] of setsByExercise) {
       if (planExerciseIds.has(exerciseId)) continue;
-      const name =
-        exercises.find((exercise) => exercise.id === exerciseId)?.name ??
-        "Unknown exercise";
+      const name = sets[0]?.exerciseName ?? "Unknown exercise";
       groups.push({ exerciseId, name, sets });
     }
 
@@ -195,7 +201,11 @@
 
       <label class="field">
         <span class="label">Exercise</span>
-        <select class="input" bind:value={exerciseId}>
+        <select
+          class="input"
+          value={exerciseId}
+          onchange={(event) => selectExercise(event.currentTarget.value)}
+        >
           {#each selectableExercises as exercise (exercise.id)}
             <option value={exercise.id}>{exercise.name}</option>
           {/each}
