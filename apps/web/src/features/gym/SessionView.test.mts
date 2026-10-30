@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/svelte";
-import { MAX_SET_REPS, MAX_SET_WEIGHT_KG } from "@gymos/shared";
 import type {
   CreateWorkoutSetInput,
   Exercise,
@@ -112,14 +111,8 @@ describe("SessionView", () => {
   it("caps weight and reps at the API limits", () => {
     renderSession();
 
-    expect(screen.getByLabelText("Weight (kg)")).toHaveAttribute(
-      "max",
-      String(MAX_SET_WEIGHT_KG)
-    );
-    expect(screen.getByLabelText("Reps")).toHaveAttribute(
-      "max",
-      String(MAX_SET_REPS)
-    );
+    expect(screen.getByLabelText("Weight (kg)")).toHaveAttribute("max", "1000");
+    expect(screen.getByLabelText("Reps")).toHaveAttribute("max", "1000");
   });
 
   it("omits RPE when the optional field is cleared", async () => {

@@ -19,10 +19,10 @@ The shared workout contract bounds logged sets:
 - `reps` is an integer from 1 to 1000.
 - `weightKg` is from 0 to 1000.
 
-`packages/shared` exports `MAX_SET_REPS` and `MAX_SET_WEIGHT_KG`. The session form uses
-them as the `max` attributes on the reps and weight inputs, so the UI blocks values the
-API would reject. Out-of-range input fails Zod validation in the router and is returned
-as `422` problem details before it reaches the repository or the database.
+The session form mirrors the same numbers as `max` attributes on the reps and weight
+inputs, following the plan form's pattern, so the UI blocks values the API would
+reject. Out-of-range input fails Zod validation in the router and is returned as `422`
+problem details before it reaches the repository or the database.
 
 Plan targets keep the ADR-0017 limits (100 target reps) and are unchanged.
 
@@ -30,8 +30,8 @@ Plan targets keep the ADR-0017 limits (100 target reps) and are unchanged.
 
 - Extreme values can no longer reach Prisma, so an oversized set no longer returns
   `500`.
-- The API remains the authority; the form mirrors the same shared constants.
-- Raising a limit is a one-constant change in `packages/shared` that both the API and
-  the UI pick up.
+- The API remains the authority; the form mirrors the same numbers.
+- Raising a limit means updating the shared schema, the form, and the tests. The
+  component test asserts the rendered `max` values, so a one-sided change fails.
 - Sets above 1000 reps or 1000 kg are rejected even though they are not real training
   data.
