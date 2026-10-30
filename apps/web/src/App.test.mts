@@ -14,6 +14,8 @@ vi.mock("./api/gym.mts", () => {
     listAllExercises: vi.fn().mockResolvedValue([]),
     listAllPlans: vi.fn().mockResolvedValue([]),
     createPlan: vi.fn(),
+    getRotation: vi.fn().mockResolvedValue({ plans: [], nextPlanId: null }),
+    setRotation: vi.fn(),
     startSession: vi.fn(),
     getActiveSession: vi.fn().mockResolvedValue(null),
     listSessions: vi.fn().mockResolvedValue(emptyPage),

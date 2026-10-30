@@ -11,11 +11,13 @@ import {
   deleteExercise,
   deletePlan,
   getActiveSession,
+  getRotation,
   listAllExercises,
   listAllPlans,
   listExercises,
   listPlans,
   listSessions,
+  setRotation,
   startSession,
   updateExercise,
   updatePlan,
@@ -32,6 +34,8 @@ vi.mock("../../api/gym.mts", () => ({
   createPlan: vi.fn(),
   updatePlan: vi.fn(),
   deletePlan: vi.fn(),
+  getRotation: vi.fn(),
+  setRotation: vi.fn(),
   startSession: vi.fn(),
   getActiveSession: vi.fn(),
   listSessions: vi.fn(),
@@ -89,6 +93,13 @@ const plan: WorkoutPlan = {
   ],
 };
 
+const extraPlan: WorkoutPlan = {
+  ...plan,
+  id: "plan-2",
+  name: "Pull Day",
+  exercises: [],
+};
+
 const session: WorkoutSessionDetail = {
   id: "session-1",
   title: "Push Day",
@@ -114,6 +125,12 @@ beforeEach(() => {
   vi.mocked(createPlan).mockResolvedValue(plan);
   vi.mocked(updatePlan).mockResolvedValue(plan);
   vi.mocked(deletePlan).mockResolvedValue(undefined);
+  vi.mocked(getRotation).mockResolvedValue({ plans: [], nextPlanId: null });
+  vi.mocked(setRotation).mockImplementation(async ({ planIds }) => {
+    const byId = new Map([plan, extraPlan].map((entry) => [entry.id, entry]));
+    const plans = planIds.flatMap((id) => byId.get(id) ?? []);
+    return { plans, nextPlanId: plans[0]?.id ?? null };
+  });
   vi.mocked(createExercise).mockResolvedValue(exercise);
   vi.mocked(updateExercise).mockResolvedValue(exercise);
   vi.mocked(deleteExercise).mockResolvedValue(exercise);
@@ -137,7 +154,7 @@ describe("GymView", () => {
   it("renders plans and recent workouts", async () => {
     render(GymView);
 
-    expect(await screen.findByText("Push Day")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Push Day" })).toBeInTheDocument();
     expect(screen.getByText(/1\s+exercise/)).toBeInTheDocument();
     expect(screen.getByText("No completed workouts yet")).toBeInTheDocument();
   });
@@ -145,7 +162,7 @@ describe("GymView", () => {
   it("starts a plan session", async () => {
     render(GymView);
 
-    await screen.findByText("Push Day");
+    await screen.findByRole("heading", { name: "Push Day" });
     await fireEvent.click(screen.getByRole("button", { name: /start plan/i }));
 
     await waitFor(() => {
@@ -168,7 +185,7 @@ describe("GymView", () => {
 
     render(GymView);
 
-    await screen.findByText("Push Day");
+    await screen.findByRole("heading", { name: "Push Day" });
     await fireEvent.click(screen.getByRole("button", { name: /create plan/i }));
     await fireEvent.input(screen.getByLabelText("Name"), {
       target: { value: "Leg Day" },
@@ -196,7 +213,7 @@ describe("GymView", () => {
 
     render(GymView);
 
-    await screen.findByText("Push Day");
+    await screen.findByRole("heading", { name: "Push Day" });
     await fireEvent.click(
       screen.getByRole("button", { name: /edit push day/i })
     );
@@ -216,7 +233,9 @@ describe("GymView", () => {
         expect.objectContaining({ name: "Push Day A" })
       );
     });
-    expect(await screen.findByText("Push Day A")).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "Push Day A" })
+    ).toBeInTheDocument();
     expect(screen.queryByLabelText("Name")).not.toBeInTheDocument();
   });
 
@@ -225,7 +244,7 @@ describe("GymView", () => {
 
     render(GymView);
 
-    await screen.findByText("Push Day");
+    await screen.findByRole("heading", { name: "Push Day" });
     await fireEvent.click(
       screen.getByRole("button", { name: /edit push day/i })
     );
@@ -241,7 +260,7 @@ describe("GymView", () => {
   it("cancels a plan edit", async () => {
     render(GymView);
 
-    await screen.findByText("Push Day");
+    await screen.findByRole("heading", { name: "Push Day" });
     await fireEvent.click(
       screen.getByRole("button", { name: /edit push day/i })
     );
@@ -262,7 +281,7 @@ describe("GymView", () => {
 
     render(GymView);
 
-    await screen.findByText("Push Day");
+    await screen.findByRole("heading", { name: "Push Day" });
     await fireEvent.click(
       screen.getByRole("button", { name: /delete push day/i })
     );
@@ -271,14 +290,16 @@ describe("GymView", () => {
       expect(deletePlan).toHaveBeenCalledWith("plan-1");
     });
     await waitFor(() => {
-      expect(screen.queryByText("Push Day")).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("heading", { name: "Push Day" })
+      ).not.toBeInTheDocument();
     });
   });
 
   it("rejects a plan that repeats an exercise", async () => {
     render(GymView);
 
-    await screen.findByText("Push Day");
+    await screen.findByRole("heading", { name: "Push Day" });
     await fireEvent.click(screen.getByRole("button", { name: /create plan/i }));
     await fireEvent.input(screen.getByLabelText("Name"), {
       target: { value: "Repeated" },
@@ -290,6 +311,91 @@ describe("GymView", () => {
       await screen.findByText("Each exercise can only be added once")
     ).toBeInTheDocument();
     expect(createPlan).not.toHaveBeenCalled();
+  });
+
+  it("shows the next rotation plan and starts it", async () => {
+    vi.mocked(getRotation).mockResolvedValueOnce({
+      plans: [plan, extraPlan],
+      nextPlanId: extraPlan.id,
+    });
+
+    render(GymView);
+
+    await fireEvent.click(
+      await screen.findByRole("button", { name: /start next plan/i })
+    );
+
+    await waitFor(() => {
+      expect(startSession).toHaveBeenCalledWith({ planId: extraPlan.id });
+    });
+  });
+
+  it("adds a plan to the rotation", async () => {
+    vi.mocked(getRotation).mockResolvedValueOnce({
+      plans: [plan],
+      nextPlanId: plan.id,
+    });
+    vi.mocked(listAllPlans).mockResolvedValueOnce([plan, extraPlan]);
+
+    render(GymView);
+
+    await fireEvent.change(
+      await screen.findByLabelText("Add plan to rotation"),
+      { target: { value: extraPlan.id } }
+    );
+    const addButton = screen.getByRole("button", { name: /^add$/i });
+    await waitFor(() => expect(addButton).toBeEnabled());
+    await fireEvent.click(addButton);
+
+    await waitFor(() => {
+      expect(setRotation).toHaveBeenCalledWith({
+        planIds: [plan.id, extraPlan.id],
+      });
+    });
+  });
+
+  it("reorders and removes rotation plans", async () => {
+    vi.mocked(getRotation).mockResolvedValueOnce({
+      plans: [plan, extraPlan],
+      nextPlanId: plan.id,
+    });
+
+    render(GymView);
+
+    await fireEvent.click(
+      await screen.findByRole("button", { name: /move pull day up/i })
+    );
+    await waitFor(() => {
+      expect(setRotation).toHaveBeenCalledWith({
+        planIds: [extraPlan.id, plan.id],
+      });
+    });
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: /remove push day/i })
+    );
+    await waitFor(() => {
+      expect(setRotation).toHaveBeenLastCalledWith({
+        planIds: [extraPlan.id],
+      });
+    });
+  });
+
+  it("refreshes the next rotation plan after finishing a workout", async () => {
+    vi.mocked(getActiveSession).mockResolvedValue(session);
+    vi.mocked(getRotation)
+      .mockResolvedValueOnce({ plans: [plan, extraPlan], nextPlanId: plan.id })
+      .mockResolvedValueOnce({ plans: [plan, extraPlan], nextPlanId: extraPlan.id });
+
+    render(GymView);
+
+    await fireEvent.click(
+      await screen.findByRole("button", { name: /finish workout/i })
+    );
+
+    expect(
+      await screen.findByRole("heading", { name: "Pull Day" })
+    ).toBeInTheDocument();
   });
 
   it("logs a set and finishes the active session", async () => {
@@ -335,7 +441,7 @@ describe("GymView", () => {
 
     render(GymView);
 
-    await screen.findByText("Push Day");
+    await screen.findByRole("heading", { name: "Push Day" });
     await fireEvent.click(screen.getByRole("button", { name: /start free workout/i }));
 
     await waitFor(() => {
@@ -352,7 +458,7 @@ describe("GymView", () => {
   it("stops adding plan exercises at the schema limit", async () => {
     render(GymView);
 
-    await screen.findByText("Push Day");
+    await screen.findByRole("heading", { name: "Push Day" });
     await fireEvent.click(screen.getByRole("button", { name: /create plan/i }));
 
     const addButton = screen.getByRole("button", { name: /add exercise/i });
@@ -370,7 +476,7 @@ describe("GymView", () => {
 
     render(GymView);
 
-    await screen.findByText("Push Day");
+    await screen.findByRole("heading", { name: "Push Day" });
     await fireEvent.click(screen.getByRole("button", { name: /start free workout/i }));
 
     expect(await screen.findByText("still blocked")).toBeInTheDocument();
@@ -383,7 +489,7 @@ describe("GymView", () => {
 
     render(GymView);
 
-    await screen.findByText("Push Day");
+    await screen.findByRole("heading", { name: "Push Day" });
     await fireEvent.click(screen.getByRole("button", { name: /create plan/i }));
     await fireEvent.input(screen.getByLabelText("Name"), {
       target: { value: "Push Day" },
@@ -402,7 +508,7 @@ describe("GymView", () => {
 
     expect(await screen.findByText("Backend unavailable")).toBeInTheDocument();
     await fireEvent.click(screen.getByRole("button", { name: /retry/i }));
-    expect(await screen.findByText("Push Day")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Push Day" })).toBeInTheDocument();
   });
 
   it("prefills plan targets from exercise defaults", async () => {
@@ -414,7 +520,7 @@ describe("GymView", () => {
 
     render(GymView);
 
-    await screen.findByText("Push Day");
+    await screen.findByRole("heading", { name: "Push Day" });
     await fireEvent.click(screen.getByRole("button", { name: /create plan/i }));
 
     expect(screen.getByLabelText("Sets")).toHaveValue(4);
@@ -446,7 +552,7 @@ describe("GymView", () => {
 
     render(GymView);
 
-    await screen.findByText("Push Day");
+    await screen.findByRole("heading", { name: "Push Day" });
     await fireEvent.click(screen.getByRole("button", { name: /create plan/i }));
     expect(screen.getByLabelText("Sets")).toHaveValue(4);
 
@@ -465,7 +571,7 @@ describe("GymView", () => {
 
     render(GymView);
 
-    await screen.findByText("Push Day");
+    await screen.findByRole("heading", { name: "Push Day" });
     await fireEvent.click(screen.getByRole("button", { name: /new exercise/i }));
     await fireEvent.input(screen.getByLabelText("Name"), {
       target: { value: "Cable Fly" },
@@ -485,7 +591,7 @@ describe("GymView", () => {
 
     render(GymView);
 
-    await screen.findByText("Push Day");
+    await screen.findByRole("heading", { name: "Push Day" });
     await fireEvent.click(
       screen.getByRole("button", { name: /delete bench press/i })
     );
