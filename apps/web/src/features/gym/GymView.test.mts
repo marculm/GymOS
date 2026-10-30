@@ -57,6 +57,16 @@ const exercise: Exercise = {
   defaultWeightKg: 80,
 };
 
+const extraExercise: Exercise = {
+  id: "exercise-2",
+  name: "Squat",
+  muscleGroup: "legs",
+  description: null,
+  defaultSets: 5,
+  defaultReps: 5,
+  defaultWeightKg: 100,
+};
+
 const plan: WorkoutPlan = {
   id: "plan-1",
   name: "Push Day",
@@ -322,6 +332,24 @@ describe("GymView", () => {
         })
       );
     });
+  });
+
+  it("prefills changed plan rows from the selected exercise defaults", async () => {
+    vi.mocked(listAllExercises).mockResolvedValueOnce([exercise, extraExercise]);
+
+    render(GymView);
+
+    await screen.findByText("Push Day");
+    await fireEvent.click(screen.getByRole("button", { name: /create plan/i }));
+    expect(screen.getByLabelText("Sets")).toHaveValue(4);
+
+    await fireEvent.change(screen.getByLabelText("Exercise"), {
+      target: { value: extraExercise.id },
+    });
+
+    expect(screen.getByLabelText("Sets")).toHaveValue(5);
+    expect(screen.getByLabelText("Reps")).toHaveValue(5);
+    expect(screen.getByLabelText("Weight (kg, optional)")).toHaveValue(100);
   });
 
   it("creates an exercise in the register", async () => {

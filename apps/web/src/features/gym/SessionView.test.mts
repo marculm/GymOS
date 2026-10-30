@@ -36,6 +36,11 @@ const extraExercise: Exercise = {
   defaultWeightKg: 15,
 };
 
+const bodyweightExercise: Exercise = {
+  ...exercise,
+  defaultWeightKg: null,
+};
+
 const plan: WorkoutPlan = {
   id: "plan-1",
   name: "Push Day",
@@ -154,6 +159,34 @@ describe("SessionView", () => {
         rpe: undefined,
       });
     });
+  });
+
+  it("does not borrow another exercise's default weight", () => {
+    renderSession({
+      plan: {
+        ...plan,
+        exercises: [
+          {
+            id: "plan-exercise-1",
+            position: 0,
+            targetSets: 4,
+            targetReps: 8,
+            targetWeightKg: 80,
+            notes: null,
+            exercise: bodyweightExercise,
+          },
+        ],
+      },
+    });
+
+    expect(screen.getByLabelText("Weight (kg)")).toHaveValue(null);
+    expect(screen.getByLabelText("Reps")).toHaveValue(10);
+  });
+
+  it("disables logging when there are no exercises", () => {
+    renderSession({ plan: null, exercises: [] });
+
+    expect(screen.getByRole("button", { name: "Log set" })).toBeDisabled();
   });
 
   it("finishes the workout", async () => {

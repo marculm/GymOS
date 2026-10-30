@@ -94,7 +94,7 @@
 </script>
 
 {#if exercises.length === 0}
-  <p class="empty">No exercises available. Run the seed.</p>
+  <p class="empty">No exercises available. Add one in the exercise register.</p>
 {:else}
   <form class="card stack" onsubmit={handleSubmit}>
     <h3 class="card-title">New training plan</h3>

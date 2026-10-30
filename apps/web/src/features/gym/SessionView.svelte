@@ -22,17 +22,13 @@
   } = $props();
 
   // svelte-ignore state_referenced_locally
-  let exerciseId = $state(
-    plan?.exercises[0]?.exercise.id ?? exercises[0]?.id ?? ""
-  );
-  // svelte-ignore state_referenced_locally
+  const initialExercise = plan?.exercises[0]?.exercise ?? exercises[0];
+
+  let exerciseId = $state(initialExercise?.id ?? "");
   let weightKg = $state<string | number | null>(
-    plan?.exercises[0]?.exercise.defaultWeightKg ?? exercises[0]?.defaultWeightKg ?? ""
+    initialExercise?.defaultWeightKg ?? ""
   );
-  // svelte-ignore state_referenced_locally
-  let reps = $state<string | number | null>(
-    plan?.exercises[0]?.exercise.defaultReps ?? exercises[0]?.defaultReps ?? ""
-  );
+  let reps = $state<string | number | null>(initialExercise?.defaultReps ?? "");
   let rpe = $state<string | number | null>("");
   let pending = $state(false);
   let error = $state<string | null>(null);
@@ -203,6 +199,7 @@
         <span class="label">Exercise</span>
         <select
           class="input"
+          required
           value={exerciseId}
           onchange={(event) => selectExercise(event.currentTarget.value)}
         >
@@ -211,6 +208,12 @@
           {/each}
         </select>
       </label>
+
+      {#if selectableExercises.length === 0}
+        <p class="muted">
+          No exercises available. Add one in the exercise register.
+        </p>
+      {/if}
 
       <div class="row">
         <label class="field grow">
@@ -241,7 +244,11 @@
         </label>
       </div>
 
-      <button type="submit" class="btn btn-primary" disabled={pending}>
+      <button
+        type="submit"
+        class="btn btn-primary"
+        disabled={pending || selectableExercises.length === 0}
+      >
         Log set
       </button>
     </form>
