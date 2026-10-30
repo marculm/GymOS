@@ -69,13 +69,14 @@
   }
 
   function selectExercise(index: number, exerciseId: string) {
-    const exercise = exercises.find((entry) => entry.id === exerciseId);
+    const exercise = available.find((entry) => entry.id === exerciseId);
+    const notes = rows[index]?.exerciseId === exerciseId ? rows[index]?.notes : undefined;
     updateRow(index, {
       exerciseId,
       targetSets: exercise?.defaultSets ?? 3,
       targetReps: exercise?.defaultReps ?? 8,
       targetWeightKg: exercise?.defaultWeightKg ?? "",
-      notes: undefined,
+      notes,
     });
   }
 
