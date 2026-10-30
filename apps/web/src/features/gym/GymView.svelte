@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onMount, tick } from "svelte";
   import type {
     CreateExerciseInput,
     CreateWorkoutPlanInput,
@@ -167,6 +167,12 @@
     );
   }
 
+  async function revealManagement() {
+    showManagement = true;
+    await tick();
+    document.getElementById("training-plan-heading")?.focus();
+  }
+
   function addRotationPlan() {
     if (!planToAdd) return;
     void saveRotation([...rotation.plans.map((plan) => plan.id), planToAdd]);
@@ -214,9 +220,15 @@
     }
   }
 
-  const nextPlan = $derived(
-    rotation.plans.find((plan) => plan.id === rotation.nextPlanId) ?? null
-  );
+  const nextPlan = $derived.by(() => {
+    const planId = rotation.nextPlanId;
+    if (planId === null) return null;
+    return (
+      plans.find((plan) => plan.id === planId) ??
+      rotation.plans.find((plan) => plan.id === planId) ??
+      null
+    );
+  });
 
   const availableRotationPlans = $derived(
     plans.filter(
@@ -250,8 +262,8 @@
   />
 {:else}
   <div class="stack">
-    {#if error}
-      <p class="error">{error}</p>
+    {#if error && !showManagement}
+      <p class="error" role="alert">{error}</p>
     {/if}
 
     {#if nextPlan}
@@ -299,13 +311,15 @@
         <p class="muted">
           Add plans to your rotation and the next workout shows up here.
         </p>
-        <button
-          type="button"
-          class="btn btn-primary"
-          onclick={() => (showManagement = true)}
-        >
-          Set up training plan
-        </button>
+        {#if !showManagement}
+          <button
+            type="button"
+            class="btn btn-primary"
+            onclick={() => void revealManagement()}
+          >
+            Set up training plan
+          </button>
+        {/if}
       </section>
     {/if}
 
@@ -322,10 +336,18 @@
 
     <section class="stack">
       <div class="row">
-        <h2 class="card-title grow">My training plan</h2>
+        <h2
+          class="card-title grow"
+          id="training-plan-heading"
+          tabindex="-1"
+        >
+          My training plan
+        </h2>
         <button
           type="button"
           class="btn btn-ghost"
+          aria-expanded={showManagement}
+          aria-controls="training-plan-management"
           aria-label={showManagement
             ? "Hide training plan"
             : "Manage training plan"}
@@ -336,13 +358,18 @@
       </div>
 
       {#if showManagement}
+        <div class="stack" id="training-plan-management">
+          {#if error}
+            <p class="error" role="alert">{error}</p>
+          {/if}
+
         <section class="card stack">
-          <h2 class="card-title">Training rotation</h2>
+          <h3 class="card-title">Training rotation</h3>
 
           {#if nextPlan}
             <div>
               <p class="muted">Next up</p>
-              <h3 class="card-title">{nextPlan.name}</h3>
+              <h4 class="card-title">{nextPlan.name}</h4>
             </div>
             <button
               type="button"
@@ -419,14 +446,14 @@
         </section>
 
         <section class="stack">
-          <h2 class="card-title">Training plans</h2>
+          <h3 class="card-title">Training plans</h3>
           {#if plans.length === 0}
             <p class="empty">No plans yet</p>
           {:else}
             {#each plans as plan (plan.id)}
               <article class="card plan-card stack">
                 <div>
-                  <h3 class="card-title">{plan.name}</h3>
+                  <h4 class="card-title">{plan.name}</h4>
                   {#if plan.description}
                     <p class="muted">{plan.description}</p>
                   {/if}
@@ -498,7 +525,7 @@
         </section>
 
         <section class="stack">
-          <h2 class="card-title">Exercise register</h2>
+          <h3 class="card-title">Exercise register</h3>
           <ExerciseRegister
             exercises={exercises}
             onCreate={handleCreateExercise}
@@ -506,6 +533,7 @@
             onDelete={handleDeleteExercise}
           />
         </section>
+        </div>
       {/if}
     </section>
   </div>

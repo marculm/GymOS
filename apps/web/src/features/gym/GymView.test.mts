@@ -19,9 +19,6 @@ import {
   getRotation,
   listAllExercises,
   listAllPlans,
-  listExercises,
-  listPlans,
-  listSessions,
   setRotation,
   startSession,
   updateExercise,
@@ -29,8 +26,6 @@ import {
 } from "../../api/gym.mts";
 
 vi.mock("../../api/gym.mts", () => ({
-  listExercises: vi.fn(),
-  listPlans: vi.fn(),
   listAllExercises: vi.fn(),
   listAllPlans: vi.fn(),
   createExercise: vi.fn(),
@@ -43,7 +38,6 @@ vi.mock("../../api/gym.mts", () => ({
   setRotation: vi.fn(),
   startSession: vi.fn(),
   getActiveSession: vi.fn(),
-  listSessions: vi.fn(),
   addSet: vi.fn(),
   completeSession: vi.fn(),
 }));
@@ -130,12 +124,9 @@ afterEach(() => {
 
 beforeEach(() => {
   vi.resetAllMocks();
-  vi.mocked(listExercises).mockResolvedValue(page([exercise]));
-  vi.mocked(listPlans).mockResolvedValue(page([plan]));
   vi.mocked(listAllExercises).mockResolvedValue([exercise]);
   vi.mocked(listAllPlans).mockResolvedValue([plan]);
   vi.mocked(getActiveSession).mockResolvedValue(null);
-  vi.mocked(listSessions).mockResolvedValue(page([]));
   vi.mocked(startSession).mockResolvedValue(session);
   vi.mocked(createPlan).mockResolvedValue(plan);
   vi.mocked(updatePlan).mockResolvedValue(plan);
@@ -212,6 +203,23 @@ describe("GymView", () => {
     ).toBeInTheDocument();
   });
 
+  it("starts a suggestion that is not the first rotation plan", async () => {
+    vi.mocked(getRotation).mockResolvedValueOnce({
+      plans: [plan, extraPlan],
+      nextPlanId: extraPlan.id,
+    });
+
+    render(GymView);
+
+    await fireEvent.click(
+      await screen.findByRole("button", { name: "Start workout" })
+    );
+
+    await waitFor(() => {
+      expect(startSession).toHaveBeenCalledWith({ planId: extraPlan.id });
+    });
+  });
+
   it("starts a free workout from the secondary action", async () => {
     render(GymView);
 
@@ -238,6 +246,9 @@ describe("GymView", () => {
     expect(
       screen.getByRole("heading", { name: "Push Day" })
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "My training plan" })
+    ).toHaveFocus();
   });
 
   it("keeps management hidden until requested", async () => {
@@ -247,11 +258,17 @@ describe("GymView", () => {
     expect(
       screen.queryByRole("heading", { name: "Push Day" })
     ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /manage training plan/i })
+    ).toHaveAttribute("aria-expanded", "false");
 
     await openManagement();
     expect(
       await screen.findByRole("heading", { name: "Push Day" })
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /hide training plan/i })
+    ).toHaveAttribute("aria-expanded", "true");
 
     await fireEvent.click(
       screen.getByRole("button", { name: /hide training plan/i })
@@ -508,9 +525,9 @@ describe("GymView", () => {
       await screen.findByRole("button", { name: /remove push day/i })
     );
 
-    expect(
-      await screen.findByText("Unknown plan IDs: missing")
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Unknown plan IDs: missing"
+    );
   });
 
   it("refreshes the rotation after deleting a plan", async () => {
@@ -762,6 +779,33 @@ describe("GymView", () => {
       );
     });
     expect(await screen.findByText("Cable Fly")).toBeInTheDocument();
+  });
+
+  it("updates exercise names in the next workout after a rename", async () => {
+    vi.mocked(getRotation).mockResolvedValueOnce({
+      plans: [plan],
+      nextPlanId: plan.id,
+    });
+    vi.mocked(updateExercise).mockResolvedValueOnce({
+      ...exercise,
+      name: "Bench Press Pro",
+    });
+
+    render(GymView);
+
+    await startScreenReady();
+    await openManagement();
+    await fireEvent.click(
+      screen.getByRole("button", { name: /edit bench press/i })
+    );
+    await fireEvent.input(screen.getByLabelText("Name"), {
+      target: { value: "Bench Press Pro" },
+    });
+    await fireEvent.click(screen.getByRole("button", { name: /save exercise/i }));
+
+    expect(
+      await screen.findAllByText("Bench Press Pro")
+    ).toHaveLength(2);
   });
 
   it("deletes an exercise from the register", async () => {

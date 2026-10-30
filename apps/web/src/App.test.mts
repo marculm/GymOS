@@ -3,14 +3,7 @@ import { fireEvent, render, screen, within } from "@testing-library/svelte";
 import App from "./App.svelte";
 
 vi.mock("./api/gym.mts", () => {
-  const emptyPage = {
-    content: [],
-    page: { size: 20, number: 0, totalElements: 0, totalPages: 0 },
-  };
-
   return {
-    listExercises: vi.fn().mockResolvedValue(emptyPage),
-    listPlans: vi.fn().mockResolvedValue(emptyPage),
     listAllExercises: vi.fn().mockResolvedValue([]),
     listAllPlans: vi.fn().mockResolvedValue([]),
     createPlan: vi.fn(),
@@ -18,7 +11,6 @@ vi.mock("./api/gym.mts", () => {
     setRotation: vi.fn(),
     startSession: vi.fn(),
     getActiveSession: vi.fn().mockResolvedValue(null),
-    listSessions: vi.fn().mockResolvedValue(emptyPage),
     addSet: vi.fn(),
     completeSession: vi.fn(),
   };
