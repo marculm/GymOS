@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { app } from "../../../src/app.mts";
+import { prisma } from "../../../src/config/prisma-client.mts";
 import { container } from "../../../src/container.mts";
 import { NotFoundError } from "../../../src/modules/gym/service/errors.mts";
 import {
@@ -266,38 +267,45 @@ describe("Gym plan routes", () => {
       })
     ).json()) as { id: string };
 
-    const created = (await (
-      await sendJson("POST", "/api/gym/plans", {
-        name: "Deleted Exercise Plan",
+    try {
+      const created = (await (
+        await sendJson("POST", "/api/gym/plans", {
+          name: "Deleted Exercise Plan",
+          exercises: [
+            { exerciseId: createdExercise.id, targetSets: 3, targetReps: 10 },
+          ],
+        })
+      ).json()) as { id: string };
+
+      const deleted = await app.request(
+        `/api/gym/exercises/${createdExercise.id}`,
+        { method: "DELETE" }
+      );
+      expect(deleted.status).toBe(200);
+
+      const res = await sendJson("PUT", `/api/gym/plans/${created.id}`, {
+        name: "Renamed Deleted Exercise Plan",
         exercises: [
-          { exerciseId: createdExercise.id, targetSets: 3, targetReps: 10 },
+          { exerciseId: createdExercise.id, targetSets: 4, targetReps: 8 },
         ],
-      })
-    ).json()) as { id: string };
+      });
 
-    const deleted = await app.request(
-      `/api/gym/exercises/${createdExercise.id}`,
-      { method: "DELETE" }
-    );
-    expect(deleted.status).toBe(200);
-
-    const res = await sendJson("PUT", `/api/gym/plans/${created.id}`, {
-      name: "Renamed Deleted Exercise Plan",
-      exercises: [
-        { exerciseId: createdExercise.id, targetSets: 4, targetReps: 8 },
-      ],
-    });
-
-    expect(res.status).toBe(200);
-    const plan = (await res.json()) as {
-      name: string;
-      exercises: Array<{ targetSets: number; exercise: { id: string } }>;
-    };
-    expect(plan.name).toBe("Renamed Deleted Exercise Plan");
-    expect(plan.exercises[0]).toMatchObject({
-      targetSets: 4,
-      exercise: { id: createdExercise.id },
-    });
+      expect(res.status).toBe(200);
+      const plan = (await res.json()) as {
+        name: string;
+        exercises: Array<{ targetSets: number; exercise: { id: string } }>;
+      };
+      expect(plan.name).toBe("Renamed Deleted Exercise Plan");
+      expect(plan.exercises[0]).toMatchObject({
+        targetSets: 4,
+        exercise: { id: createdExercise.id },
+      });
+    } finally {
+      await prisma.workoutPlan.deleteMany({
+        where: { name: "Renamed Deleted Exercise Plan" },
+      });
+      await prisma.exercise.deleteMany({ where: { id: createdExercise.id } });
+    }
   });
 
   it("rejects renaming a plan to an existing name", async () => {
@@ -323,6 +331,47 @@ describe("Gym plan routes", () => {
       ).status
     ).toBe(404);
     expect((await app.request(`/api/gym/plans/${missing}`, { method: "DELETE" })).status).toBe(404);
+  });
+
+  it("edits a plan without rewriting past sessions", async () => {
+    const plan = await createPlan("Edited Plan");
+
+    const start = await sendJson("POST", "/api/gym/sessions", { planId: plan.id });
+    expect(start.status).toBe(201);
+    const session = (await start.json()) as { id: string };
+
+    expect(
+      (
+        await sendJson("POST", `/api/gym/sessions/${session.id}/sets`, {
+          exerciseId,
+          reps: 8,
+          weightKg: 60,
+        })
+      ).status
+    ).toBe(201);
+    expect(
+      (await sendJson("POST", `/api/gym/sessions/${session.id}/complete`, {}))
+        .status
+    ).toBe(200);
+
+    const res = await sendJson("PUT", `/api/gym/plans/${plan.id}`, {
+      name: "Edited Plan v2",
+      exercises: [
+        { exerciseId, targetSets: 5, targetReps: 5, targetWeightKg: 70 },
+      ],
+    });
+    expect(res.status).toBe(200);
+
+    const detail = await app.request(`/api/gym/sessions/${session.id}`);
+    const kept = (await detail.json()) as {
+      title: string;
+      planId: string | null;
+      sets: Array<{ setNumber: number; reps: number; weightKg: number }>;
+    };
+    expect(kept.title).toBe("Edited Plan");
+    expect(kept.planId).toBe(plan.id);
+    expect(kept.sets).toHaveLength(1);
+    expect(kept.sets[0]).toMatchObject({ setNumber: 1, reps: 8, weightKg: 60 });
   });
 
   it("deletes a plan without rewriting past sessions", async () => {
