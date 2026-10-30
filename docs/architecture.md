@@ -233,10 +233,12 @@ Repositories own all Prisma access (ADR-0007):
 - One repository per aggregate: exercises, plans, rotation, sessions.
 - They map Prisma rows to `packages/shared` contract types.
 - They translate Prisma errors into domain errors:
-  - `P2002` → duplicate plan name, duplicate exercise name, or duplicate set.
+  - `P2002` → duplicate plan name, duplicate exercise name, or duplicate set; a
+    rotation unique conflict is retried and, if it persists, becomes a concurrent
+    update.
   - `P2034` after retries → concurrent update.
 - `transaction.mts` owns `withSerializableRetry`, which retries `P2034` up to three
-  times.
+  times. Rotation replacement also retries `P2002` conflicts up to three times.
 - Repositories never throw `HTTPException`.
 - Exercise reads exclude rows with `deletedAt` set. Hard deletion is never exposed;
   `WorkoutSet` and `WorkoutPlanExercise` keep `onDelete: Restrict`.

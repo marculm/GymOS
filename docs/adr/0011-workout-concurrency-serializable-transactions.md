@@ -25,6 +25,8 @@ The gym repository wraps the state-changing operations in Prisma interactive tra
 
 Transactions retry up to three times on Prisma error `P2034` (serialization failure). If the conflict persists, the service returns `409 Concurrent update, retry`. The existing unique constraint on `(workoutSessionId, exerciseId, setNumber)` remains a second guard and its `P2002` is mapped to `409`.
 
+Replacing a rotation uses the same serializable transaction. Concurrent replaces can collide on the `(userId, position)` unique constraint before a serialization failure is raised, so it also retries `P2002` up to three times and maps an exhausted retry to the same `409`.
+
 ## Consequences
 
 - Concurrent starts produce exactly one active session; the loser returns 409 and the UI resumes the winner.
