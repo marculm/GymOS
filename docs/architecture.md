@@ -129,6 +129,8 @@ apps/api/
         │   ├── service/
         │   │   ├── errors.mts
         │   │   ├── read-service.mts
+        │   │   ├── rotation.mts
+        │   │   ├── rotation.test.mts
         │   │   ├── write-service.mts
         │   │   ├── pageable.mts
         │   │   ├── slice.mts
@@ -265,6 +267,7 @@ All client errors use RFC 9457 Problem Details with
 | `DuplicateExerciseNameError` | `409` |
 | `ConcurrentUpdateError` | `409` |
 | `UnknownExerciseError` | `422` |
+| `UnknownPlanError` | `422` |
 | `ZodError` | `422` |
 | `CurrentUserNotFoundError` | `500` |
 | anything else | `500`, logged with the error object |
