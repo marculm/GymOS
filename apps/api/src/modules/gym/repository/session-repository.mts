@@ -75,7 +75,7 @@ export class SessionRepository {
   async findLastCompletedPlanId(userId: string): Promise<string | null> {
     const session = await prisma.workoutSession.findFirst({
       where: { userId, completedAt: { not: null }, planId: { not: null } },
-      orderBy: { completedAt: "desc" },
+      orderBy: [{ completedAt: "desc" }, { startedAt: "desc" }],
       select: { planId: true },
     });
     return session?.planId ?? null;
