@@ -18,9 +18,10 @@ GymOS uses two test tiers:
 1. **Unit tests** live next to services (`*.test.mts`) and use hand-rolled typed fakes
    with `vi.fn`. They cover business rules, pagination slicing, filters, error mapping,
    and orchestration without HTTP or a database.
-2. **Integration tests** live under `apps/api/test/integration/rest/` and call the
-   exported Hono app against a seeded PostgreSQL database. They cover routing,
-   validation, status codes, problem details, and Prisma behavior.
+2. **Integration tests** live under `apps/api/test/integration/` against a seeded
+   PostgreSQL database. HTTP tests in `rest/` call the exported Hono app; the seed test
+   spawns `prisma/seed.mts`. They cover routing, validation, status codes, problem
+   details, Prisma behavior, and first-run provisioning.
 
 Required regression coverage:
 

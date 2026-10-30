@@ -480,8 +480,9 @@ API and UI cannot drift.
 Two test tiers:
 
 1. **Unit tests** live next to services (`*.test.mts`) and use mocked repositories.
-2. **Integration tests** live under `test/integration/rest/` and call the exported Hono
-   app with a seeded PostgreSQL test user.
+2. **Integration tests** live under `test/integration/`: HTTP tests in `rest/` call the
+   exported Hono app with a seeded PostgreSQL test user, and `seed.test.mts` spawns the
+   seed script and checks the database.
 
 Required regression coverage (ADR-0018):
 

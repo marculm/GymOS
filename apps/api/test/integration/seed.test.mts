@@ -11,6 +11,7 @@ function runSeed() {
     cwd: apiRoot,
     env: { ...process.env, GYMOS_USER_EMAIL: email },
     stdio: "pipe",
+    timeout: 30_000,
   });
 }
 
@@ -28,5 +29,10 @@ describe("seed", () => {
     expect(
       await prisma.workoutPlan.count({ where: { user: { email }, name: "Push Day" } })
     ).toBe(1);
+    expect(
+      await prisma.workoutPlanExercise.count({
+        where: { plan: { user: { email }, name: "Push Day" } },
+      })
+    ).toBe(3);
   });
 });
