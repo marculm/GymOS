@@ -29,6 +29,7 @@
   import ExerciseRegister from "./ExerciseRegister.svelte";
   import PlanForm from "./PlanForm.svelte";
   import SessionView from "./SessionView.svelte";
+  import WorkoutPicker from "./WorkoutPicker.svelte";
 
   let exercises = $state<Exercise[]>([]);
   let plans = $state<WorkoutPlan[]>([]);
@@ -37,6 +38,7 @@
   let loading = $state(true);
   let error = $state<string | null>(null);
   let showManagement = $state(false);
+  let showPicker = $state(false);
   let showPlanForm = $state(false);
   let editingPlan = $state<WorkoutPlan | null>(null);
   let pending = $state(false);
@@ -92,6 +94,7 @@
       }
     } finally {
       pending = false;
+      if (activeSession) showPicker = false;
     }
   }
 
@@ -262,7 +265,7 @@
   />
 {:else}
   <div class="stack">
-    {#if error && !showManagement}
+    {#if error && !showManagement && !showPicker}
       <p class="error" role="alert">{error}</p>
     {/if}
 
@@ -327,8 +330,10 @@
       <button
         type="button"
         class="btn btn-ghost"
-        disabled={pending}
-        onclick={() => void start({})}
+        onclick={() => {
+          error = null;
+          showPicker = true;
+        }}
       >
         Other workout
       </button>
@@ -359,7 +364,7 @@
 
       {#if showManagement}
         <div class="stack" id="training-plan-management">
-          {#if error}
+          {#if error && !showPicker}
             <p class="error" role="alert">{error}</p>
           {/if}
 
@@ -536,5 +541,15 @@
         </div>
       {/if}
     </section>
+
+    {#if showPicker}
+      <WorkoutPicker
+        plans={plans}
+        pending={pending}
+        error={error}
+        onStart={start}
+        onClose={() => (showPicker = false)}
+      />
+    {/if}
   </div>
 {/if}
