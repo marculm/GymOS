@@ -138,6 +138,7 @@ apps/api/
         │   └── repository/
         │       ├── exercise-repository.mts
         │       ├── plan-repository.mts
+        │       ├── rotation-repository.mts
         │       ├── session-repository.mts
         │       ├── transaction.mts
         │       ├── where-builder.mts
@@ -208,11 +209,11 @@ Router responsibilities:
 
 Services are classes with constructor injection:
 
-- `GymReadService` handles queries: exercises, plans, active session, session list,
-  session detail.
+- `GymReadService` handles queries: exercises, plans, rotation with its next-plan
+  suggestion, active session, session list, session detail.
 - `GymWriteService` handles commands: create, edit, and soft-delete exercises; create,
-  edit, and delete plans; start session; log set; complete session. It may receive the
-  read service for read-side checks.
+  edit, and delete plans; set rotation; start session; log set; complete session. It may
+  receive the read service for read-side checks.
 - Dependencies, includes, and the logger are `readonly #private` fields.
 - Each class uses `getLogger(ClassName.name)`.
 - Services are stateless. The container creates one instance each.
@@ -226,7 +227,7 @@ inside a serializable transaction.
 
 Repositories own all Prisma access (ADR-0007):
 
-- One repository per aggregate: exercises, plans, sessions.
+- One repository per aggregate: exercises, plans, rotation, sessions.
 - They map Prisma rows to `packages/shared` contract types.
 - They translate Prisma errors into domain errors:
   - `P2002` → duplicate plan name, duplicate exercise name, or duplicate set.
@@ -424,6 +425,8 @@ apps/web/
   prefill new plan rows and the set-logging form (ADR-0024).
 - Plans can be edited and deleted from the plan list. Editing replaces the plan's
   exercises and targets; past sessions and logged sets are unaffected (ADR-0025).
+- The training rotation section shows the next suggested plan and lets the user add,
+  remove, and reorder plans. Free workouts never advance it (ADR-0026).
 - The session screen displays every logged set, including exercises that are not part of
   the session's plan (ADR-0019). Logged sets carry `exerciseName`, so deleted exercises
   stay readable in history.
@@ -502,6 +505,8 @@ Required regression coverage (ADR-0018):
 - Two-user isolation: user B gets `404` for user A's session and plans.
 - Pagination metadata for empty and non-empty pages.
 - Problem-details shape for `404`, `409`, and `422`.
+- Rotation suggestions: wrap-around, deviations, ignored free workouts, missing plans,
+  and empty history (ADR-0026).
 
 Verification commands:
 
@@ -565,3 +570,4 @@ The target architecture deliberately excludes:
 | [0023](adr/0023-seed-configured-current-user.md) | Seed the configured current user |
 | [0024](adr/0024-exercise-register-soft-delete.md) | Exercise register with soft delete |
 | [0025](adr/0025-plan-editing-and-deletion.md) | Plan editing and deletion |
+| [0026](adr/0026-workout-rotation.md) | Workout rotation and next-workout suggestion |
