@@ -9,6 +9,7 @@ import { DuplicatePlanNameError } from "../service/errors.mts";
 import type { PlanSearchParams } from "../service/search-params.mts";
 import { buildPlanWhere } from "./where-builder.mts";
 import { planInclude, toPlan } from "./mapping.mts";
+import { withSerializableRetry } from "./transaction.mts";
 
 function isPrismaError(error: unknown, code: string): boolean {
   return (
@@ -84,30 +85,35 @@ export class PlanRepository {
     input: UpdateWorkoutPlanInput
   ): Promise<WorkoutPlan | null> {
     try {
-      const plan = await prisma.workoutPlan.update({
-        where: { id: planId, userId },
-        data: {
-          name: input.name,
-          description: input.description ?? null,
-          exercises: {
-            deleteMany: {},
-            create: input.exercises.map((exercise, index) => ({
-              exerciseId: exercise.exerciseId,
-              position: index,
-              targetSets: exercise.targetSets,
-              targetReps: exercise.targetReps,
-              targetWeightKg: exercise.targetWeightKg ?? null,
-              notes: exercise.notes ?? null,
-            })),
+      return await withSerializableRetry(async (tx) => {
+        const owned = await tx.workoutPlan.findFirst({
+          where: { id: planId, userId },
+          select: { id: true },
+        });
+        if (!owned) return null;
+
+        await tx.workoutPlanExercise.deleteMany({ where: { planId } });
+        const plan = await tx.workoutPlan.update({
+          where: { id: planId },
+          data: {
+            name: input.name,
+            description: input.description ?? null,
+            exercises: {
+              create: input.exercises.map((exercise, index) => ({
+                exerciseId: exercise.exerciseId,
+                position: index,
+                targetSets: exercise.targetSets,
+                targetReps: exercise.targetReps,
+                targetWeightKg: exercise.targetWeightKg ?? null,
+                notes: exercise.notes ?? null,
+              })),
+            },
           },
-        },
-        include: planInclude,
+          include: planInclude,
+        });
+        return toPlan(plan);
       });
-      return toPlan(plan);
     } catch (error) {
-      if (isPrismaError(error, "P2025")) {
-        return null;
-      }
       rethrowDuplicateName(error);
     }
   }
