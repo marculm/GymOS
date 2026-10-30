@@ -8,6 +8,8 @@ export class DuplicateSetError extends Error {}
 
 export class DuplicatePlanNameError extends Error {}
 
+export class DuplicateExerciseNameError extends Error {}
+
 export class ConcurrentUpdateError extends Error {}
 
 export class UnknownExerciseError extends Error {}

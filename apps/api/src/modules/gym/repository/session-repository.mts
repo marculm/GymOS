@@ -107,7 +107,7 @@ export class SessionRepository {
 
         const exercise = await tx.exercise.findUnique({
           where: { id: input.exerciseId },
-          select: { id: true },
+          select: { id: true, name: true },
         });
         if (!exercise) return { kind: "unknown_exercise" } as const;
 
@@ -125,7 +125,10 @@ export class SessionRepository {
             rpe: input.rpe ?? null,
           },
         });
-        return { kind: "created", set: toSet(set) } as const;
+        return {
+          kind: "created",
+          set: toSet({ ...set, exercise: { name: exercise.name } }),
+        } as const;
       });
     } catch (error) {
       if (

@@ -7,6 +7,9 @@ const exercise = {
   name: "Squat",
   muscleGroup: "legs",
   description: null,
+  defaultSets: 3,
+  defaultReps: 8,
+  defaultWeightKg: null,
 };
 
 describe("toExercise", () => {

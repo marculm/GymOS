@@ -4,14 +4,37 @@ import type { AppEnv } from "../../../security/current-user.mts";
 import { createBaseUrl } from "./create-base-url.mts";
 import { statuscode } from "./statuscode.mts";
 import {
+  CreateExerciseSchema,
   CreateWorkoutPlanSchema,
   CreateWorkoutSessionSchema,
   CreateWorkoutSetSchema,
+  UpdateExerciseSchema,
 } from "./validation.mts";
 
 export const writeRouter = new Hono<AppEnv>();
 
 const { writeService } = container;
+
+writeRouter.post("/exercises", async (c) => {
+  const input = CreateExerciseSchema.parse(await c.req.json());
+  const exercise = await writeService.createExercise(input);
+  c.header("Location", `${createBaseUrl(c)}/${exercise.id}`);
+  return c.json(exercise, statuscode.CREATED);
+});
+
+writeRouter.put("/exercises/:id", async (c) => {
+  const input = UpdateExerciseSchema.parse(await c.req.json());
+  const exercise = await writeService.updateExercise(
+    c.req.param("id"),
+    input
+  );
+  return c.json(exercise, statuscode.OK);
+});
+
+writeRouter.delete("/exercises/:id", async (c) => {
+  const exercise = await writeService.deleteExercise(c.req.param("id"));
+  return c.json(exercise, statuscode.OK);
+});
 
 writeRouter.post("/plans", async (c) => {
   const input = CreateWorkoutPlanSchema.parse(await c.req.json());

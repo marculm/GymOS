@@ -13,7 +13,7 @@ These are known, non-blocking issues. They do not affect the core flow: create a
 - Regression tests cover set/completion races and two-user isolation.
 - API errors use RFC 9457 problem details; list endpoints are paginated.
 - Missing or malformed JSON bodies return `400` instead of becoming `{}`.
-- The seed provisions the configured `GYMOS_USER_EMAIL`, so a custom owner has a usable first run (ADR-0021).
+- The seed provisions the configured `GYMOS_USER_EMAIL`, so a custom owner has a usable first run (ADR-0023).
 
 ## Deferred from the final review
 
@@ -21,6 +21,7 @@ These are known, non-blocking issues. They do not affect the core flow: create a
 2. **JSON-only request bodies** — handlers parse JSON with `c.req.json()`; missing or malformed bodies return `400`. The PWA always sends a JSON body (`{}` for bodyless session starts). Impact: non-browser callers must send `Content-Type` and a valid body. Fix: document the contract in the API docs.
 3. **No request timeout in the web client** — a hung API leaves the Gym tab in the loading state. Impact: no retry path until reload. Fix: `AbortController`/timeout and an error state.
 4. **Accessibility polish** — repeated "Start plan" buttons lack plan-specific accessible names, and error messages are not announced (`role="alert"`/`aria-live`). Impact: screen-reader ambiguity and silent errors. Fix: add plan names to button labels and live regions.
+5. **No exercise restore** — soft-deleted exercises are hidden from the register and cannot be restored in the UI; their names stay reserved by the unique constraint. Impact: an accidental delete needs database access to undo, and the name cannot be reused. Fix: restore action or allow name reuse after deletion (ADR-0024).
 
 ## Deferred features
 

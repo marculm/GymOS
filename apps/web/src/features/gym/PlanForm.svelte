@@ -21,11 +21,12 @@
   };
 
   function createRow(list: Exercise[]): ExerciseRow {
+    const exercise = list[0];
     return {
-      exerciseId: list[0]?.id ?? "",
-      targetSets: 3,
-      targetReps: 8,
-      targetWeightKg: "",
+      exerciseId: exercise?.id ?? "",
+      targetSets: exercise?.defaultSets ?? 3,
+      targetReps: exercise?.defaultReps ?? 8,
+      targetWeightKg: exercise?.defaultWeightKg ?? "",
     };
   }
 
@@ -40,6 +41,16 @@
     rows = rows.map((row, rowIndex) =>
       rowIndex === index ? { ...row, ...patch } : row
     );
+  }
+
+  function selectExercise(index: number, exerciseId: string) {
+    const exercise = exercises.find((entry) => entry.id === exerciseId);
+    updateRow(index, {
+      exerciseId,
+      targetSets: exercise?.defaultSets ?? 3,
+      targetReps: exercise?.defaultReps ?? 8,
+      targetWeightKg: exercise?.defaultWeightKg ?? "",
+    });
   }
 
   const MAX_PLAN_EXERCISES = 50;
@@ -93,7 +104,7 @@
 </script>
 
 {#if exercises.length === 0}
-  <p class="empty">No exercises available. Run the seed.</p>
+  <p class="empty">No exercises available. Add one in the exercise register.</p>
 {:else}
   <form class="card stack" onsubmit={handleSubmit}>
     <h3 class="card-title">New training plan</h3>
@@ -114,7 +125,13 @@
           <div class="row">
             <label class="field grow">
               <span class="label">Exercise</span>
-              <select class="input" required bind:value={row.exerciseId}>
+              <select
+                class="input"
+                required
+                value={row.exerciseId}
+                onchange={(event) =>
+                  selectExercise(index, event.currentTarget.value)}
+              >
                 {#each exercises as exercise (exercise.id)}
                   <option value={exercise.id}>{exercise.name}</option>
                 {/each}

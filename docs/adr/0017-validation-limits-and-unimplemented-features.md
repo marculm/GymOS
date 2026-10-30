@@ -26,7 +26,7 @@ The shared workout schemas enforce:
 The plan form enforces the same limits so the UI and API agree. The API remains the
 authority: invalid input is rejected with `422` problem details.
 
-Numeric limits for logged sets (reps and weight) are defined in ADR-0021.
+Numeric limits for logged sets (reps and weight) are defined in ADR-0022.
 
 ### Unimplemented features
 

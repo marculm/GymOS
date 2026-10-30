@@ -1,11 +1,14 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { api } from "./client.mts";
 import {
+  createExercise,
   createPlan,
+  deleteExercise,
   getActiveSession,
   listAllExercises,
   listExercises,
   listSessions,
+  updateExercise,
 } from "./gym.mts";
 
 afterEach(() => {
@@ -46,6 +49,58 @@ describe("gym api client", () => {
       expect.objectContaining({
         headers: expect.objectContaining({ "Content-Type": "application/json" }),
       })
+    );
+  });
+
+  it("creates, updates, and deletes an exercise", async () => {
+    const exercise = {
+      id: "exercise-1",
+      name: "Cable Fly",
+      muscleGroup: "chest",
+      description: null,
+      defaultSets: 3,
+      defaultReps: 8,
+      defaultWeightKg: null,
+    };
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(exercise), {
+          status: 201,
+          headers: { "Content-Type": "application/json" },
+        })
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ ...exercise, name: "Cable Crossover" }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        })
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(exercise), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        })
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await createExercise({ name: "Cable Fly", muscleGroup: "chest" });
+    await updateExercise("exercise-1", {
+      name: "Cable Crossover",
+      muscleGroup: "chest",
+    });
+    await deleteExercise("exercise-1");
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/gym/exercises");
+    expect(fetchMock.mock.calls[0]?.[1]).toEqual(
+      expect.objectContaining({ method: "POST" })
+    );
+    expect(fetchMock.mock.calls[1]?.[0]).toBe("/api/gym/exercises/exercise-1");
+    expect(fetchMock.mock.calls[1]?.[1]).toEqual(
+      expect.objectContaining({ method: "PUT" })
+    );
+    expect(fetchMock.mock.calls[2]?.[1]).toEqual(
+      expect.objectContaining({ method: "DELETE" })
     );
   });
 

@@ -1,10 +1,12 @@
 import type {
+  CreateExerciseInput,
   CreateWorkoutPlanInput,
   CreateWorkoutSessionInput,
   CreateWorkoutSetInput,
   Exercise,
   LoggedSet,
   Page,
+  UpdateExerciseInput,
   WorkoutPlan,
   WorkoutSessionDetail,
   WorkoutSessionSummary,
@@ -29,6 +31,21 @@ function toQuery(params: Record<string, unknown>): string {
 
 export function listExercises(params: PageParams = {}): Promise<Page<Exercise>> {
   return api.get<Page<Exercise>>(`/gym/exercises${toQuery(params)}`);
+}
+
+export function createExercise(input: CreateExerciseInput): Promise<Exercise> {
+  return api.post<Exercise>("/gym/exercises", input);
+}
+
+export function updateExercise(
+  id: string,
+  input: UpdateExerciseInput
+): Promise<Exercise> {
+  return api.put<Exercise>(`/gym/exercises/${id}`, input);
+}
+
+export function deleteExercise(id: string): Promise<Exercise> {
+  return api.delete<Exercise>(`/gym/exercises/${id}`);
 }
 
 export function listPlans(

@@ -10,8 +10,11 @@ Built as a TypeScript Monorepo powered by **Bun**, **Hono**, **Svelte 5 (Vite PW
 
 The **Gym Tracker** slice is implemented:
 
+- Manage the exercise register: create, edit, and soft-delete exercises with default
+  sets, reps, and weight
 - Browse exercises and training plans
-- Create plans with target sets, reps, and optional weight
+- Create plans with target sets, reps, and optional weight (prefilled from exercise
+  defaults)
 - Start free or plan-based workouts
 - Log sets with weight, reps, and RPE
 - Finish workouts and review recent history
@@ -47,7 +50,7 @@ Nutrition, the AI recipe extractor, authentication, and offline logging are not 
    bun run db:seed       # Populates exercises, the configured owner & Push Day plan
    ```
 
-   The seed provisions the user configured by `GYMOS_USER_EMAIL` (default `demo@gymos.app`), including the starter Push Day plan. To provision a custom owner, set `GYMOS_USER_EMAIL` in `.env` before running the seed (ADR-0021).
+   The seed provisions the user configured by `GYMOS_USER_EMAIL` (default `demo@gymos.app`), including the starter Push Day plan. To provision a custom owner, set `GYMOS_USER_EMAIL` in `.env` before running the seed (ADR-0023).
 
 4. **Start development servers:**
    ```bash
@@ -105,7 +108,10 @@ full contract.
 
 | Method | Route | Description |
 | :--- | :--- | :--- |
-| `GET` | `/api/gym/exercises?page=&size=` | List exercises as a page |
+| `GET` | `/api/gym/exercises?page=&size=` | List active exercises as a page |
+| `POST` | `/api/gym/exercises` | Create an exercise (`{ name, muscleGroup, description?, defaultSets?, defaultReps?, defaultWeightKg? }`); `201` + `Location` |
+| `PUT` | `/api/gym/exercises/:id` | Edit an exercise; omitted optional fields are preserved |
+| `DELETE` | `/api/gym/exercises/:id` | Soft-delete an exercise |
 | `GET` | `/api/gym/plans?page=&size=&name=` | List the current user's plans |
 | `POST` | `/api/gym/plans` | Create a plan (`{ name, description?, exercises[] }`); `201` + `Location` |
 | `POST` | `/api/gym/sessions` | Start a session (`{ title?, planId? }`); `201` + `Location` |

@@ -1,12 +1,37 @@
 import { z } from "zod";
 import { MAX_SET_REPS, MAX_SET_WEIGHT_KG } from "../limits.mts";
 
+export const MUSCLE_GROUPS = [
+  "chest",
+  "back",
+  "legs",
+  "shoulders",
+  "arms",
+  "core",
+] as const;
+
+export const MuscleGroupSchema = z.enum(MUSCLE_GROUPS);
+
 export const ExerciseSchema = z.object({
   id: z.string().uuid(),
   name: z.string().min(1, "Name is required"),
-  muscleGroup: z.enum(["chest", "back", "legs", "shoulders", "arms", "core"]),
+  muscleGroup: MuscleGroupSchema,
   description: z.string().nullable(),
+  defaultSets: z.number().int().positive(),
+  defaultReps: z.number().int().positive(),
+  defaultWeightKg: z.number().nonnegative().nullable(),
 });
+
+export const CreateExerciseSchema = z.object({
+  name: z.string().trim().min(1).max(100),
+  muscleGroup: MuscleGroupSchema,
+  description: z.string().max(500).nullable().optional(),
+  defaultSets: z.number().int().min(1).max(20).optional(),
+  defaultReps: z.number().int().min(1).max(100).optional(),
+  defaultWeightKg: z.number().nonnegative().nullable().optional(),
+});
+
+export const UpdateExerciseSchema = CreateExerciseSchema;
 
 export const DUPLICATE_EXERCISE_MESSAGE =
   "Each exercise can only be added once";
@@ -67,6 +92,7 @@ export const CreateWorkoutSetSchema = z.object({
 export const LoggedSetSchema = z.object({
   id: z.string().uuid(),
   exerciseId: z.string().uuid(),
+  exerciseName: z.string().min(1),
   setNumber: z.number().int().positive(),
   reps: z.number().int().positive(),
   weightKg: z.number().nonnegative(),
@@ -93,6 +119,8 @@ export const WorkoutSessionSummarySchema = z.object({
 });
 
 export type Exercise = z.infer<typeof ExerciseSchema>;
+export type CreateExerciseInput = z.infer<typeof CreateExerciseSchema>;
+export type UpdateExerciseInput = z.infer<typeof UpdateExerciseSchema>;
 export type CreateWorkoutPlanInput = z.infer<typeof CreateWorkoutPlanSchema>;
 export type WorkoutPlan = z.infer<typeof WorkoutPlanSchema>;
 export type WorkoutPlanExercise = z.infer<typeof WorkoutPlanExerciseSchema>;

@@ -1,8 +1,11 @@
 import type {
+  CreateExerciseInput,
   CreateWorkoutPlanInput,
   CreateWorkoutSessionInput,
   CreateWorkoutSetInput,
+  Exercise,
   LoggedSet,
+  UpdateExerciseInput,
   WorkoutPlan,
   WorkoutSessionDetail,
 } from "@gymos/shared";
@@ -17,7 +20,10 @@ import {
   UnknownExerciseError,
 } from "./errors.mts";
 
-type ExerciseReader = Pick<ExerciseRepository, "findIds">;
+type ExerciseWriter = Pick<
+  ExerciseRepository,
+  "findIds" | "create" | "update" | "softDelete"
+>;
 type PlanReader = Pick<PlanRepository, "findById" | "create">;
 type SessionWriter = Pick<
   SessionRepository,
@@ -26,10 +32,33 @@ type SessionWriter = Pick<
 
 export class GymWriteService {
   constructor(
-    private readonly exerciseRepository: ExerciseReader,
+    private readonly exerciseRepository: ExerciseWriter,
     private readonly planRepository: PlanReader,
     private readonly sessionRepository: SessionWriter
   ) {}
+
+  async createExercise(input: CreateExerciseInput): Promise<Exercise> {
+    return this.exerciseRepository.create(input);
+  }
+
+  async updateExercise(
+    exerciseId: string,
+    input: UpdateExerciseInput
+  ): Promise<Exercise> {
+    const exercise = await this.exerciseRepository.update(exerciseId, input);
+    if (!exercise) {
+      throw new NotFoundError("Exercise not found");
+    }
+    return exercise;
+  }
+
+  async deleteExercise(exerciseId: string): Promise<Exercise> {
+    const exercise = await this.exerciseRepository.softDelete(exerciseId);
+    if (!exercise) {
+      throw new NotFoundError("Exercise not found");
+    }
+    return exercise;
+  }
 
   async createPlan(
     userId: string,
