@@ -7,6 +7,7 @@ import type {
   LoggedSet,
   Page,
   UpdateExerciseInput,
+  UpdateWorkoutPlanInput,
   WorkoutPlan,
   WorkoutSessionDetail,
   WorkoutSessionSummary,
@@ -80,6 +81,17 @@ export function listAllPlans(): Promise<WorkoutPlan[]> {
 
 export function createPlan(input: CreateWorkoutPlanInput): Promise<WorkoutPlan> {
   return api.post<WorkoutPlan>("/gym/plans", input);
+}
+
+export function updatePlan(
+  id: string,
+  input: UpdateWorkoutPlanInput
+): Promise<WorkoutPlan> {
+  return api.put<WorkoutPlan>(`/gym/plans/${id}`, input);
+}
+
+export function deletePlan(id: string): Promise<void> {
+  return api.delete<void>(`/gym/plans/${id}`);
 }
 
 export function startSession(
