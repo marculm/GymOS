@@ -32,5 +32,16 @@ export async function cleanupTestUser() {
 }
 
 export async function firstExercise() {
-  return prisma.exercise.findFirstOrThrow({ orderBy: { name: "asc" } });
+  const active = await prisma.exercise.findFirst({
+    where: { deletedAt: null },
+    orderBy: { name: "asc" },
+  });
+  if (active) return active;
+
+  return prisma.exercise.create({
+    data: {
+      name: `Test Exercise ${crypto.randomUUID()}`,
+      muscleGroup: "chest",
+    },
+  });
 }
