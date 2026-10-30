@@ -45,6 +45,14 @@ export class PlanRepository {
     return prisma.workoutPlan.count({ where: buildPlanWhere(userId, filters) });
   }
 
+  async findOwnedIds(userId: string, planIds: string[]): Promise<string[]> {
+    const plans = await prisma.workoutPlan.findMany({
+      where: { id: { in: planIds }, userId },
+      select: { id: true },
+    });
+    return plans.map((plan) => plan.id);
+  }
+
   async findById(userId: string, planId: string): Promise<WorkoutPlan | null> {
     const plan = await prisma.workoutPlan.findFirst({
       where: { id: planId, userId },
