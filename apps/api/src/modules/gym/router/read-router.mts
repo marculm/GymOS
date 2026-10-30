@@ -29,6 +29,11 @@ readRouter.get("/plans", async (c) => {
   return c.json(createPage(slice, pageable));
 });
 
+readRouter.get("/rotation", async (c) => {
+  const rotation = await readService.getRotation(c.get("user").id);
+  return c.json(rotation);
+});
+
 readRouter.get("/sessions", async (c) => {
   const query = SessionListQuerySchema.parse(c.req.query());
   const pageable = createPageable(query);
