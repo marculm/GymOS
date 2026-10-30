@@ -22,14 +22,19 @@ model User {
 }
 
 model Exercise {
-  id          String       @id @default(uuid())
-  name        String       @unique
-  muscleGroup String
-  description String?
-  createdAt   DateTime     @default(now())
-  sets        WorkoutSet[]
-  planExercises WorkoutPlanExercise[]
+  id             String       @id @default(uuid())
+  name           String       @unique
+  muscleGroup    String
+  description    String?
+  defaultSets    Int          @default(3)
+  defaultReps    Int          @default(8)
+  defaultWeightKg Float?
+  deletedAt      DateTime?
+  createdAt      DateTime     @default(now())
+  sets           WorkoutSet[]
+  planExercises  WorkoutPlanExercise[]
 
+  @@index([deletedAt])
   @@map("exercises")
 }
 
