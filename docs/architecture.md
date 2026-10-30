@@ -344,8 +344,10 @@ at the reverse proxy before public exposure. See ADR-0016.
 ### 3.12 Current User
 
 `security/current-user.mts` resolves the single user from `GYMOS_USER_EMAIL` and throws
-`CurrentUserNotFoundError` when the seeded user is missing. A router middleware resolves
-the user once per request and stores it on the Hono context; routers pass `user.id` to
+`CurrentUserNotFoundError` when the seeded user is missing. `prisma/seed.mts` provisions
+that same email with `currentUserEmail()` and upserts the starter plan for it, so a
+configured address is usable after seeding (ADR-0021). A router middleware resolves the
+user once per request and stores it on the Hono context; routers pass `user.id` to
 services. Services never resolve identity themselves.
 
 This is the only authentication seam. When authentication is added, it replaces this
@@ -478,8 +480,9 @@ API and UI cannot drift.
 Two test tiers:
 
 1. **Unit tests** live next to services (`*.test.mts`) and use mocked repositories.
-2. **Integration tests** live under `test/integration/rest/` and call the exported Hono
-   app with a seeded PostgreSQL test user.
+2. **Integration tests** live under `test/integration/`: HTTP tests in `rest/` call the
+   exported Hono app with a seeded PostgreSQL test user, and `seed.test.mts` spawns the
+   seed script and checks the database.
 
 Required regression coverage (ADR-0018):
 
@@ -546,4 +549,6 @@ The target architecture deliberately excludes:
 | [0018](adr/0018-testing-strategy.md) | Testing strategy and required coverage |
 | [0019](adr/0019-session-ui-behavior.md) | Session screen behavior |
 | [0020](adr/0020-warm-light-ui-theme.md) | Warm light UI theme |
-| [0021](adr/0021-workout-set-reps-and-weight-limits.md) | Workout set reps and weight limits |
+| [0021](adr/0021-reject-invalid-muscle-groups.md) | Reject invalid muscle groups on read |
+| [0022](adr/0022-workout-set-reps-and-weight-limits.md) | Workout set reps and weight limits |
+

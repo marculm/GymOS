@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { currentUserEmail } from "../src/config/env.mts";
 
 const prisma = new PrismaClient();
 
@@ -48,16 +49,17 @@ const DEFAULT_EXERCISES = [
 async function main() {
   console.log("🌱 Seeding database...");
 
-  // 1. Create default demo user
-  const demoUser = await prisma.user.upsert({
-    where: { email: "demo@gymos.app" },
+  // 1. Create the user the API resolves from GYMOS_USER_EMAIL
+  const ownerEmail = currentUserEmail();
+  const owner = await prisma.user.upsert({
+    where: { email: ownerEmail },
     update: {},
     create: {
-      email: "demo@gymos.app",
-      name: "Demo Athlete",
+      email: ownerEmail,
+      name: ownerEmail === "demo@gymos.app" ? "Demo Athlete" : "GymOS Owner",
     },
   });
-  console.log(`👤 Demo User: ${demoUser.email} (${demoUser.id})`);
+  console.log(`👤 Owner: ${owner.email} (${owner.id})`);
 
   // 2. Seed exercises
   const exercisesByName = new Map<string, { id: string }>();
@@ -79,12 +81,12 @@ async function main() {
     return exercise;
   };
 
-  // 3. Seed demo training plan
+  // 3. Seed starter training plan
   const pushDay = await prisma.workoutPlan.upsert({
-    where: { userId_name: { userId: demoUser.id, name: "Push Day" } },
+    where: { userId_name: { userId: owner.id, name: "Push Day" } },
     update: {},
     create: {
-      userId: demoUser.id,
+      userId: owner.id,
       name: "Push Day",
       description: "Chest, shoulders, and triceps",
       exercises: {
@@ -96,7 +98,7 @@ async function main() {
       },
     },
   });
-  console.log(`🏋️ Demo plan: ${pushDay.name}`);
+  console.log(`🏋️ Starter plan: ${pushDay.name}`);
 
   console.log("✅ Database seeding complete!");
 }

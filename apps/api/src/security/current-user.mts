@@ -18,7 +18,7 @@ export class CurrentUserService {
     const user = await this.db.user.findUnique({ where: { email } });
     if (!user) {
       throw new CurrentUserNotFoundError(
-        `User ${email} not found. Run bun run db:seed.`
+        `User ${email} not found. Set GYMOS_USER_EMAIL=${email} and run bun run db:seed.`
       );
     }
     return user;
