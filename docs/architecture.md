@@ -435,6 +435,8 @@ apps/web/
   Rotation, plan management, and the exercise register sit in a collapsible "My training
   plan" section; free workouts are a secondary action and history is not shown
   (ADR-0027).
+- The secondary action opens a modal picker with every plan and a free workout. Choosing
+  a plan counts as a deviation; choosing free never advances the rotation (ADR-0028).
 - The session screen displays every logged set, including exercises that are not part of
   the session's plan (ADR-0019). Logged sets carry `exerciseName`, so deleted exercises
   stay readable in history.
@@ -580,3 +582,4 @@ The target architecture deliberately excludes:
 | [0025](adr/0025-plan-editing-and-deletion.md) | Plan editing and deletion |
 | [0026](adr/0026-workout-rotation.md) | Workout rotation and next-workout suggestion |
 | [0027](adr/0027-gym-start-screen-hierarchy.md) | Gym start screen hierarchy |
+| [0028](adr/0028-alternate-workout-picker.md) | Alternate workout picker |
