@@ -8,7 +8,9 @@ import type {
   Page,
   UpdateExerciseInput,
   UpdateWorkoutPlanInput,
+  UpdateWorkoutRotationInput,
   WorkoutPlan,
+  WorkoutRotation,
   WorkoutSessionDetail,
   WorkoutSessionSummary,
 } from "@gymos/shared";
@@ -92,6 +94,16 @@ export function updatePlan(
 
 export function deletePlan(id: string): Promise<void> {
   return api.delete<void>(`/gym/plans/${id}`);
+}
+
+export function getRotation(): Promise<WorkoutRotation> {
+  return api.get<WorkoutRotation>("/gym/rotation");
+}
+
+export function setRotation(
+  input: UpdateWorkoutRotationInput
+): Promise<WorkoutRotation> {
+  return api.put<WorkoutRotation>("/gym/rotation", input);
 }
 
 export function startSession(

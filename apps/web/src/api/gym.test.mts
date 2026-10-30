@@ -6,9 +6,11 @@ import {
   deleteExercise,
   deletePlan,
   getActiveSession,
+  getRotation,
   listAllExercises,
   listExercises,
   listSessions,
+  setRotation,
   updateExercise,
   updatePlan,
 } from "./gym.mts";
@@ -177,6 +179,34 @@ describe("gym api client", () => {
     expect(fetchMock.mock.calls[1]?.[0]).toBe("/api/gym/plans/plan-1");
     expect(fetchMock.mock.calls[1]?.[1]).toEqual(
       expect.objectContaining({ method: "DELETE" })
+    );
+  });
+
+  it("loads and saves the rotation", async () => {
+    const rotation = { plans: [], nextPlanId: null };
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(rotation), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        })
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(rotation), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        })
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(getRotation()).resolves.toEqual(rotation);
+    await setRotation({ planIds: [] });
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/gym/rotation");
+    expect(fetchMock.mock.calls[1]?.[0]).toBe("/api/gym/rotation");
+    expect(fetchMock.mock.calls[1]?.[1]).toEqual(
+      expect.objectContaining({ method: "PUT" })
     );
   });
 
