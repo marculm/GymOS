@@ -23,7 +23,9 @@ export const SessionListQuerySchema = PageQuerySchema.extend({
   });
 
 export {
+  CreateExerciseSchema,
   CreateWorkoutPlanSchema,
   CreateWorkoutSessionSchema,
   CreateWorkoutSetSchema,
+  UpdateExerciseSchema,
 } from "@gymos/shared";

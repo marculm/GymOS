@@ -15,6 +15,9 @@ const exercise: Exercise = {
   name: "Squat",
   muscleGroup: "legs",
   description: null,
+  defaultSets: 3,
+  defaultReps: 8,
+  defaultWeightKg: null,
 };
 
 const plan: WorkoutPlan = {

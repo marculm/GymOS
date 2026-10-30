@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type {
+  Exercise,
   LoggedSet,
   WorkoutPlan,
   WorkoutSessionDetail,
@@ -40,6 +41,7 @@ const session: WorkoutSessionDetail = {
 const loggedSet: LoggedSet = {
   id: "set-1",
   exerciseId,
+  exerciseName: "Bench Press",
   setNumber: 1,
   reps: 10,
   weightKg: 20,
@@ -47,9 +49,27 @@ const loggedSet: LoggedSet = {
   createdAt: "2026-10-26T18:00:00.000Z",
 };
 
+const exercise: Exercise = {
+  id: exerciseId,
+  name: "Bench Press",
+  muscleGroup: "chest",
+  description: null,
+  defaultSets: 3,
+  defaultReps: 8,
+  defaultWeightKg: 80,
+};
+
+const exerciseInput = {
+  name: "Bench Press",
+  muscleGroup: "chest" as const,
+};
+
 function createService() {
   const exerciseRepository = {
     findIds: vi.fn(async (ids: string[]) => ids),
+    create: vi.fn(async (_input: unknown) => exercise),
+    update: vi.fn(async (_id: string, _input: unknown) => exercise as Exercise | null),
+    softDelete: vi.fn(async (_id: string) => exercise as Exercise | null),
   };
   const planRepository = {
     findById: vi.fn(async (_userId: string, _planId: string) => null as WorkoutPlan | null),
@@ -91,6 +111,50 @@ const planInput = {
 };
 
 describe("GymWriteService", () => {
+  it("creates an exercise", async () => {
+    const { service, exerciseRepository } = createService();
+
+    await expect(service.createExercise(exerciseInput)).resolves.toEqual(exercise);
+    expect(exerciseRepository.create).toHaveBeenCalledWith(exerciseInput);
+  });
+
+  it("updates an exercise", async () => {
+    const { service, exerciseRepository } = createService();
+
+    await expect(
+      service.updateExercise(exerciseId, exerciseInput)
+    ).resolves.toEqual(exercise);
+    expect(exerciseRepository.update).toHaveBeenCalledWith(
+      exerciseId,
+      exerciseInput
+    );
+  });
+
+  it("rejects updating a missing exercise", async () => {
+    const { service, exerciseRepository } = createService();
+    exerciseRepository.update.mockResolvedValueOnce(null);
+
+    await expect(
+      service.updateExercise(exerciseId, exerciseInput)
+    ).rejects.toBeInstanceOf(NotFoundError);
+  });
+
+  it("soft deletes an exercise", async () => {
+    const { service, exerciseRepository } = createService();
+
+    await expect(service.deleteExercise(exerciseId)).resolves.toEqual(exercise);
+    expect(exerciseRepository.softDelete).toHaveBeenCalledWith(exerciseId);
+  });
+
+  it("rejects deleting a missing exercise", async () => {
+    const { service, exerciseRepository } = createService();
+    exerciseRepository.softDelete.mockResolvedValueOnce(null);
+
+    await expect(service.deleteExercise(exerciseId)).rejects.toBeInstanceOf(
+      NotFoundError
+    );
+  });
+
   it("creates a plan when all exercises exist", async () => {
     const { service, planRepository } = createService();
 

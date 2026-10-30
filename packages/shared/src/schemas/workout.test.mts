@@ -1,9 +1,62 @@
 import { describe, expect, it } from "vitest";
 import {
+  CreateExerciseSchema,
   CreateWorkoutPlanSchema,
   CreateWorkoutSetSchema,
+  LoggedSetSchema,
+  UpdateExerciseSchema,
   WorkoutSessionDetailSchema,
 } from "./workout.mts";
+
+describe("CreateExerciseSchema", () => {
+  it("accepts an exercise with only a name and muscle group", () => {
+    expect(
+      CreateExerciseSchema.safeParse({ name: "Cable Fly", muscleGroup: "chest" })
+        .success
+    ).toBe(true);
+  });
+
+  it("accepts defaults and an optional description", () => {
+    const result = CreateExerciseSchema.safeParse({
+      name: "Cable Fly",
+      muscleGroup: "chest",
+      description: "Pec isolation",
+      defaultSets: 4,
+      defaultReps: 12,
+      defaultWeightKg: 15,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects an unknown muscle group", () => {
+    expect(
+      CreateExerciseSchema.safeParse({ name: "Fly", muscleGroup: "neck" }).success
+    ).toBe(false);
+  });
+
+  it("rejects invalid limits", () => {
+    const base = { name: "Fly", muscleGroup: "chest" };
+    expect(CreateExerciseSchema.safeParse({ ...base, name: "" }).success).toBe(false);
+    expect(CreateExerciseSchema.safeParse({ ...base, defaultSets: 21 }).success).toBe(false);
+    expect(CreateExerciseSchema.safeParse({ ...base, defaultReps: 101 }).success).toBe(false);
+    expect(
+      CreateExerciseSchema.safeParse({ ...base, defaultWeightKg: -1 }).success
+    ).toBe(false);
+  });
+
+  it("accepts a full update", () => {
+    expect(
+      UpdateExerciseSchema.safeParse({
+        name: "Cable Fly",
+        muscleGroup: "chest",
+        description: null,
+        defaultSets: 3,
+        defaultReps: 10,
+        defaultWeightKg: null,
+      }).success
+    ).toBe(true);
+  });
+});
 
 describe("CreateWorkoutPlanSchema", () => {
   it("accepts a plan with one exercise", () => {
@@ -75,6 +128,28 @@ describe("CreateWorkoutSetSchema", () => {
       rpe: 11,
     });
     expect(result.success).toBe(false);
+  });
+});
+
+describe("LoggedSetSchema", () => {
+  const set = {
+    id: "00000000-0000-4000-8000-000000000003",
+    exerciseId: "00000000-0000-4000-8000-000000000001",
+    exerciseName: "Bench Press",
+    setNumber: 1,
+    reps: 8,
+    weightKg: 80,
+    rpe: null,
+    createdAt: "2026-10-26T18:05:00.000Z",
+  };
+
+  it("accepts a set with its exercise name", () => {
+    expect(LoggedSetSchema.safeParse(set).success).toBe(true);
+  });
+
+  it("rejects a set without an exercise name", () => {
+    const { exerciseName: _omitted, ...withoutName } = set;
+    expect(LoggedSetSchema.safeParse(withoutName).success).toBe(false);
   });
 });
 

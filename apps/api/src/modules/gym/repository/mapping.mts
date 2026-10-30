@@ -24,6 +24,7 @@ export const sessionInclude = {
       { exerciseId: "asc" as const },
       { setNumber: "asc" as const },
     ],
+    include: { exercise: { select: { name: true } } },
   },
 } satisfies Prisma.WorkoutSessionInclude;
 
@@ -40,12 +41,18 @@ export function toExercise(exercise: {
   name: string;
   muscleGroup: string;
   description: string | null;
+  defaultSets: number;
+  defaultReps: number;
+  defaultWeightKg: number | null;
 }): Exercise {
   return {
     id: exercise.id,
     name: exercise.name,
     muscleGroup: exercise.muscleGroup as Exercise["muscleGroup"],
     description: exercise.description,
+    defaultSets: exercise.defaultSets,
+    defaultReps: exercise.defaultReps,
+    defaultWeightKg: exercise.defaultWeightKg,
   };
 }
 
@@ -70,6 +77,7 @@ export function toPlan(plan: PlanWithExercises): WorkoutPlan {
 export function toSet(set: {
   id: string;
   exerciseId: string;
+  exercise: { name: string };
   setNumber: number;
   reps: number;
   weightKg: number;
@@ -79,6 +87,7 @@ export function toSet(set: {
   return {
     id: set.id,
     exerciseId: set.exerciseId,
+    exerciseName: set.exercise.name,
     setNumber: set.setNumber,
     reps: set.reps,
     weightKg: set.weightKg,

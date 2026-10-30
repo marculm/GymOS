@@ -17,6 +17,7 @@ import { extractorModule } from "./modules/extractor/index.mts";
 import {
   ActiveSessionExistsError,
   ConcurrentUpdateError,
+  DuplicateExerciseNameError,
   DuplicatePlanNameError,
   DuplicateSetError,
   NotFoundError,
@@ -76,6 +77,9 @@ app.onError((err, c) => {
     return createProblemDetails(c, 409, err.message);
   }
   if (err instanceof DuplicatePlanNameError) {
+    return createProblemDetails(c, 409, err.message);
+  }
+  if (err instanceof DuplicateExerciseNameError) {
     return createProblemDetails(c, 409, err.message);
   }
   if (err instanceof ConcurrentUpdateError) {
