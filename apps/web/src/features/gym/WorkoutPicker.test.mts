@@ -101,17 +101,19 @@ describe("WorkoutPicker", () => {
     );
   });
 
-  it("cancels with the button and with Escape", async () => {
-    const { onClose, ...rest } = renderPicker();
-    void rest;
+  it("cancels with the button", async () => {
+    const { onClose } = renderPicker();
 
     await fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
-    expect(onClose).toHaveBeenCalledTimes(1);
 
-    await fireEvent(
-      screen.getByRole("dialog"),
-      new Event("cancel", { cancelable: true })
-    );
-    expect(onClose).toHaveBeenCalledTimes(2);
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("closes when the dialog closes natively", async () => {
+    const { onClose } = renderPicker();
+
+    await fireEvent(screen.getByRole("dialog"), new Event("close"));
+
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 });

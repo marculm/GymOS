@@ -17,14 +17,43 @@
   } = $props();
 
   let dialog = $state<HTMLDialogElement | null>(null);
+  let cancelButton = $state<HTMLButtonElement | null>(null);
+  let closed = false;
 
   onMount(() => {
     dialog?.showModal();
   });
 
+  $effect(() => {
+    if (pending) cancelButton?.focus();
+  });
+
   function start(input: { planId?: string }) {
     if (pending) return;
     onStart(input);
+  }
+
+  function notifyClose() {
+    if (closed) return;
+    closed = true;
+    onClose();
+  }
+
+  function close() {
+    if (dialog?.open) dialog.close();
+    notifyClose();
+  }
+
+  function handleBackdropClick(event: MouseEvent) {
+    const rect = dialog?.getBoundingClientRect();
+    if (!rect) return;
+
+    const outside =
+      event.clientX < rect.left ||
+      event.clientX > rect.right ||
+      event.clientY < rect.top ||
+      event.clientY > rect.bottom;
+    if (outside) close();
   }
 </script>
 
@@ -32,13 +61,8 @@
   bind:this={dialog}
   class="card picker"
   aria-labelledby="workout-picker-title"
-  onclick={(event) => {
-    if (event.target === dialog) onClose();
-  }}
-  oncancel={(event) => {
-    event.preventDefault();
-    onClose();
-  }}
+  onclick={handleBackdropClick}
+  onclose={notifyClose}
 >
   <div class="stack">
     <div class="row">
@@ -46,10 +70,10 @@
         Choose a workout
       </h2>
       <button
+        bind:this={cancelButton}
         type="button"
         class="btn btn-ghost"
-        disabled={pending}
-        onclick={onClose}
+        onclick={close}
       >
         Cancel
       </button>
