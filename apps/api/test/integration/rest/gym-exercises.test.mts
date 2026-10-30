@@ -160,6 +160,23 @@ describe("Gym exercise register", () => {
     ).toBe(404);
   });
 
+  it("treats an already deleted exercise as missing", async () => {
+    const { exercise } = await createExercise();
+    await jsonRequest(`/api/gym/exercises/${exercise.id}`, "DELETE");
+
+    expect(
+      (await jsonRequest(`/api/gym/exercises/${exercise.id}`, "DELETE")).status
+    ).toBe(404);
+    expect(
+      (
+        await jsonRequest(`/api/gym/exercises/${exercise.id}`, "PUT", {
+          name: uniqueName("again"),
+          muscleGroup: "core",
+        })
+      ).status
+    ).toBe(404);
+  });
+
   it("rejects a deleted exercise in a new plan", async () => {
     const { exercise } = await createExercise();
     await jsonRequest(`/api/gym/exercises/${exercise.id}`, "DELETE");
@@ -193,6 +210,29 @@ describe("Gym exercise register", () => {
     const planExercise = plans.content[0]?.exercises[0];
     expect(planExercise?.exercise.id).toBe(exercise.id);
     expect(planExercise?.exercise.name).toBe(exercise.name);
+  });
+
+  it("relabels history when an exercise is renamed", async () => {
+    const { exercise } = await createExercise();
+    const session = (await (
+      await jsonRequest("/api/gym/sessions", "POST", {})
+    ).json()) as { id: string };
+    await jsonRequest(`/api/gym/sessions/${session.id}/sets`, "POST", {
+      exerciseId: exercise.id,
+      reps: 10,
+      weightKg: 20,
+    });
+
+    const name = uniqueName("renamed");
+    await jsonRequest(`/api/gym/exercises/${exercise.id}`, "PUT", {
+      name,
+      muscleGroup: "chest",
+    });
+
+    const detail = (await (
+      await app.request(`/api/gym/sessions/${session.id}`)
+    ).json()) as { sets: Array<{ exerciseName: string }> };
+    expect(detail.sets[0]?.exerciseName).toBe(name);
   });
 
   it("keeps deleted exercise names in session history", async () => {
