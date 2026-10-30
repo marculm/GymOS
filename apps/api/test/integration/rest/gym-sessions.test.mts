@@ -150,6 +150,26 @@ describe("Gym session routes", () => {
     expect(data.detail).toContain("completed");
   });
 
+  it("rejects out-of-range reps and weight with a 422 problem", async () => {
+    const session = await startSession();
+
+    const repsRes = await logSet(session.id, { reps: 2_147_483_648 });
+    expect(repsRes.status).toBe(422);
+    expect(repsRes.headers.get("content-type")).toContain("application/problem+json");
+    const repsData = (await repsRes.json()) as {
+      detail: Array<{ path: string[] }>;
+    };
+    expect(repsData.detail[0]?.path).toContain("reps");
+
+    const weightRes = await logSet(session.id, { weightKg: 1000.5 });
+    expect(weightRes.status).toBe(422);
+    expect(weightRes.headers.get("content-type")).toContain("application/problem+json");
+
+    const detail = await app.request(`/api/gym/sessions/${session.id}`);
+    const data = (await detail.json()) as { sets: unknown[] };
+    expect(data.sets).toHaveLength(0);
+  });
+
   it("rejects unknown exercise IDs", async () => {
     const session = await startSession();
 

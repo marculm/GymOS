@@ -20,9 +20,8 @@ These are known, non-blocking issues. They do not affect the core flow: create a
 1. **Duplicate exercises in a plan** — `CreateWorkoutPlanSchema` accepts the same `exerciseId` twice, and `SessionView` groups logged sets by exercise, so a duplicated plan row shows the same sets twice. Impact: misleading display, no data corruption. Fix: reject duplicates in the schema or model sets against a plan-exercise row.
 2. **Inputs editable while a request is pending** — `SessionView` disables the buttons but not the exercise/weight/reps/RPE inputs. Impact: typed values can be cleared when a slow request succeeds. Fix: wrap the controls in a disabled fieldset.
 3. **JSON-only request bodies** — handlers parse JSON with `c.req.json()`; missing or malformed bodies return `400`. The PWA always sends a JSON body (`{}` for bodyless session starts). Impact: non-browser callers must send `Content-Type` and a valid body. Fix: document the contract in the API docs.
-4. **No upper bounds on reps/weight** — the API accepts arbitrary positive integers; values above Prisma's 32-bit `Int` range produce a 500. Impact: extreme input errors. Fix: add sane maxima to the shared schemas.
-5. **No request timeout in the web client** — a hung API leaves the Gym tab in the loading state. Impact: no retry path until reload. Fix: `AbortController`/timeout and an error state.
-6. **Accessibility polish** — repeated "Start plan" buttons lack plan-specific accessible names, and error messages are not announced (`role="alert"`/`aria-live`). Impact: screen-reader ambiguity and silent errors. Fix: add plan names to button labels and live regions.
+4. **No request timeout in the web client** — a hung API leaves the Gym tab in the loading state. Impact: no retry path until reload. Fix: `AbortController`/timeout and an error state.
+5. **Accessibility polish** — repeated "Start plan" buttons lack plan-specific accessible names, and error messages are not announced (`role="alert"`/`aria-live`). Impact: screen-reader ambiguity and silent errors. Fix: add plan names to button labels and live regions.
 
 ## Deferred features
 
