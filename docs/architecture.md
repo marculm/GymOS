@@ -10,7 +10,8 @@ is complete.
 ## 1. System Context
 
 GymOS is a single-user gym and nutrition application. The first slice is a gym tracker:
-create a plan, start a workout, log sets, finish, and review history.
+create a plan, start a workout, log sets, and finish. The history view is being moved
+to the bottom of the Gym page in a follow-up (ADR-0027).
 
 ```text
 ┌──────────────────────────────┐
