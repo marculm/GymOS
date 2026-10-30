@@ -367,6 +367,8 @@ those slices are built. See ADR-0017.
 - Svelte 5 with Vite.
 - `vite-plugin-pwa` for the manifest and service worker.
 - Plain CSS with custom properties and named component classes (ADR-0012).
+- Warm light theme only: warm white background, warm grey surfaces, near-black text
+  and actions, no colored accent (ADR-0020).
 - No server-side rendering, no SvelteKit. The app is a client-side SPA.
 - `lucide-svelte` for icons.
 - `@testing-library/svelte`, Vitest, and happy-dom for tests.
@@ -543,3 +545,4 @@ The target architecture deliberately excludes:
 | [0017](adr/0017-validation-limits-and-unimplemented-features.md) | Input limits and 501 stubs |
 | [0018](adr/0018-testing-strategy.md) | Testing strategy and required coverage |
 | [0019](adr/0019-session-ui-behavior.md) | Session screen behavior |
+| [0020](adr/0020-warm-light-ui-theme.md) | Warm light UI theme |
