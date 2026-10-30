@@ -1,10 +1,11 @@
 import { Prisma } from "@prisma/client";
-import type {
-  Exercise,
-  LoggedSet,
-  WorkoutPlan,
-  WorkoutSessionDetail,
-  WorkoutSessionSummary,
+import {
+  ExerciseSchema,
+  type Exercise,
+  type LoggedSet,
+  type WorkoutPlan,
+  type WorkoutSessionDetail,
+  type WorkoutSessionSummary,
 } from "@gymos/shared";
 
 export const planInclude = {
@@ -35,16 +36,28 @@ type SessionWithSetCount = Prisma.WorkoutSessionGetPayload<{
   include: { _count: { select: { sets: true } } };
 }>;
 
+const muscleGroupSchema = ExerciseSchema.shape.muscleGroup;
+
+export class InvalidMuscleGroupError extends Error {
+  constructor(exerciseId: string, muscleGroup: string) {
+    super(`Exercise ${exerciseId} has invalid muscle group "${muscleGroup}"`);
+  }
+}
+
 export function toExercise(exercise: {
   id: string;
   name: string;
   muscleGroup: string;
   description: string | null;
 }): Exercise {
+  const muscleGroup = muscleGroupSchema.safeParse(exercise.muscleGroup);
+  if (!muscleGroup.success) {
+    throw new InvalidMuscleGroupError(exercise.id, exercise.muscleGroup);
+  }
   return {
     id: exercise.id,
     name: exercise.name,
-    muscleGroup: exercise.muscleGroup as Exercise["muscleGroup"],
+    muscleGroup: muscleGroup.data,
     description: exercise.description,
   };
 }
