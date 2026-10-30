@@ -546,3 +546,4 @@ The target architecture deliberately excludes:
 | [0018](adr/0018-testing-strategy.md) | Testing strategy and required coverage |
 | [0019](adr/0019-session-ui-behavior.md) | Session screen behavior |
 | [0020](adr/0020-warm-light-ui-theme.md) | Warm light UI theme |
+| [0021](adr/0021-workout-set-reps-and-weight-limits.md) | Workout set reps and weight limits |

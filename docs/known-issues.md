@@ -1,6 +1,6 @@
 # Known Issues and Deferred Work
 
-Last updated: 2026-10-29
+Last updated: 2026-10-30
 Scope: Gym Tracker MVP on `refactor/ponytail`.
 
 These are known, non-blocking issues. They do not affect the core flow: create a plan, start a workout, log sets, finish, and review history.
@@ -20,10 +20,9 @@ These are known, non-blocking issues. They do not affect the core flow: create a
 2. **Inputs editable while a request is pending** — `SessionView` disables the buttons but not the exercise/weight/reps/RPE inputs. Impact: typed values can be cleared when a slow request succeeds. Fix: wrap the controls in a disabled fieldset.
 3. **JSON-only request bodies** — handlers parse JSON with `c.req.json()`; missing or malformed bodies return `400`. The PWA always sends a JSON body (`{}` for bodyless session starts). Impact: non-browser callers must send `Content-Type` and a valid body. Fix: document the contract in the API docs.
 4. **Custom `GYMOS_USER_EMAIL` is not seeded** — the seed only creates `demo@gymos.app`. Setting a different email makes `CurrentUserService` return 500 with a seed hint that does not create that user. Impact: first-run dead end for a custom owner. Fix: seed the configured email or document manual provisioning.
-5. **No upper bounds on reps/weight** — the API accepts arbitrary positive integers; values above Prisma's 32-bit `Int` range produce a 500. Impact: extreme input errors. Fix: add sane maxima to the shared schemas.
-6. **No request timeout in the web client** — a hung API leaves the Gym tab in the loading state. Impact: no retry path until reload. Fix: `AbortController`/timeout and an error state.
-7. **Accessibility polish** — repeated "Start plan" buttons lack plan-specific accessible names, and error messages are not announced (`role="alert"`/`aria-live`). Impact: screen-reader ambiguity and silent errors. Fix: add plan names to button labels and live regions.
-8. **`muscleGroup` cast** — `apps/api/src/modules/gym/repository/mapping.mts` casts the Prisma string to the shared enum without runtime validation. Impact: invalid seeded or externally written data could break the contract. Fix: validate at the boundary or handle unknown groups.
+5. **No request timeout in the web client** — a hung API leaves the Gym tab in the loading state. Impact: no retry path until reload. Fix: `AbortController`/timeout and an error state.
+6. **Accessibility polish** — repeated "Start plan" buttons lack plan-specific accessible names, and error messages are not announced (`role="alert"`/`aria-live`). Impact: screen-reader ambiguity and silent errors. Fix: add plan names to button labels and live regions.
+7. **`muscleGroup` cast** — `apps/api/src/modules/gym/repository/mapping.mts` casts the Prisma string to the shared enum without runtime validation. Impact: invalid seeded or externally written data could break the contract. Fix: validate at the boundary or handle unknown groups.
 
 ## Deferred features
 
