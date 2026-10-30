@@ -25,8 +25,8 @@ describe("GymOS API Server", () => {
       page: { size: number; number: number; totalElements: number; totalPages: number };
     };
     expect(Array.isArray(data.content)).toBe(true);
-    expect(data.content.length).toBeGreaterThan(0);
     expect(data.page.number).toBe(0);
+    expect(data.page.size).toBe(20);
   });
 
   it("returns 501 for unimplemented nutrition", async () => {

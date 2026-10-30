@@ -2,6 +2,7 @@ import { prisma } from "../../src/config/prisma-client.mts";
 
 export const TEST_EMAIL = `test-${crypto.randomUUID()}@gymos.app`;
 let testUserId: string | null = null;
+let fallbackExerciseId: string | null = null;
 
 export async function createTestUser() {
   process.env.GYMOS_USER_EMAIL = TEST_EMAIL;
@@ -27,6 +28,10 @@ export async function cleanupTestUser() {
   if (testUserId) {
     await prisma.user.deleteMany({ where: { id: testUserId } });
   }
+  if (fallbackExerciseId) {
+    await prisma.exercise.deleteMany({ where: { id: fallbackExerciseId } });
+    fallbackExerciseId = null;
+  }
   delete process.env.GYMOS_USER_EMAIL;
   await prisma.$disconnect();
 }
@@ -38,10 +43,12 @@ export async function firstExercise() {
   });
   if (active) return active;
 
-  return prisma.exercise.create({
+  const created = await prisma.exercise.create({
     data: {
       name: `Test Exercise ${crypto.randomUUID()}`,
       muscleGroup: "chest",
     },
   });
+  fallbackExerciseId = created.id;
+  return created;
 }
