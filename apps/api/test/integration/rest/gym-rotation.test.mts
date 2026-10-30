@@ -127,6 +127,59 @@ describe("Gym rotation routes", () => {
     expect((await getRotation()).nextPlanId).toBe(pull.id);
   });
 
+  it("ignores a planned workout that is not completed", async () => {
+    const push = await createPlan("Push");
+    const pull = await createPlan("Pull");
+    await putRotation([push.id, pull.id]);
+
+    await startSession(push.id);
+
+    expect((await getRotation()).nextPlanId).toBe(push.id);
+  });
+
+  it("returns the fresh suggestion when saving the rotation after a workout", async () => {
+    const push = await createPlan("Push");
+    const pull = await createPlan("Pull");
+    await putRotation([push.id, pull.id]);
+    await completeSession((await startSession(push.id)).id);
+
+    const res = await putRotation([push.id, pull.id]);
+
+    expect(res.status).toBe(200);
+    expect(((await res.json()) as { nextPlanId: string | null }).nextPlanId).toBe(
+      pull.id
+    );
+  });
+
+  it("keeps one complete rotation under concurrent updates", async () => {
+    const plans = [
+      await createPlan("Push"),
+      await createPlan("Pull"),
+      await createPlan("Legs"),
+    ];
+    const orders = [
+      [0, 1, 2],
+      [1, 2, 0],
+      [2, 0, 1],
+      [0, 2, 1],
+      [1, 0, 2],
+    ].map((indexes) => indexes.map((index) => plans[index]?.id ?? ""));
+
+    const responses = await Promise.all(
+      orders.map((planIds) => putRotation(planIds))
+    );
+
+    const statuses = responses.map((response) => response.status);
+    expect(statuses.every((status) => status === 200 || status === 409)).toBe(
+      true
+    );
+    expect(statuses).toContain(200);
+
+    const stored = await getRotation();
+    expect(stored.plans.map((plan) => plan.id)).toHaveLength(3);
+    expect(orders).toContainEqual(stored.plans.map((plan) => plan.id));
+  });
+
   it("wraps to the first plan after the last rotation item", async () => {
     const push = await createPlan("Push");
     const pull = await createPlan("Pull");
