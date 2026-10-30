@@ -260,11 +260,14 @@
         type="button"
         class="btn btn-ghost"
         onclick={() => {
+          if (editingPlan) {
+            editingPlan = null;
+            return;
+          }
           showPlanForm = !showPlanForm;
-          editingPlan = null;
         }}
       >
-        {showPlanForm ? "Cancel" : "Create plan"}
+        {showPlanForm || editingPlan ? "Cancel" : "Create plan"}
       </button>
 
       {#if showPlanForm}

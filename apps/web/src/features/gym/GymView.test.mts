@@ -238,6 +238,25 @@ describe("GymView", () => {
     ).toBeInTheDocument();
   });
 
+  it("cancels a plan edit", async () => {
+    render(GymView);
+
+    await screen.findByText("Push Day");
+    await fireEvent.click(
+      screen.getByRole("button", { name: /edit push day/i })
+    );
+    expect(
+      await screen.findByRole("heading", { name: "Edit training plan" })
+    ).toBeInTheDocument();
+
+    await fireEvent.click(screen.getByRole("button", { name: /^cancel$/i }));
+
+    expect(
+      screen.queryByRole("heading", { name: "Edit training plan" })
+    ).not.toBeInTheDocument();
+    expect(updatePlan).not.toHaveBeenCalled();
+  });
+
   it("deletes a plan from the plan list", async () => {
     vi.stubGlobal("confirm", vi.fn(() => true));
 
