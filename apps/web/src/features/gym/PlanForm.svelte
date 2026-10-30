@@ -53,6 +53,12 @@
     event.preventDefault();
     if (pending) return;
 
+    const exerciseIds = rows.map((row) => row.exerciseId);
+    if (new Set(exerciseIds).size !== exerciseIds.length) {
+      error = "Each exercise can only be added once";
+      return;
+    }
+
     pending = true;
     error = null;
 

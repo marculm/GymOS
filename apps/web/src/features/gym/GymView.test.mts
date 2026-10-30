@@ -158,6 +158,23 @@ describe("GymView", () => {
     });
   });
 
+  it("rejects a plan that repeats an exercise", async () => {
+    render(GymView);
+
+    await screen.findByText("Push Day");
+    await fireEvent.click(screen.getByRole("button", { name: /create plan/i }));
+    await fireEvent.input(screen.getByLabelText("Name"), {
+      target: { value: "Repeated" },
+    });
+    await fireEvent.click(screen.getByRole("button", { name: /add exercise/i }));
+    await fireEvent.click(screen.getByRole("button", { name: /save plan/i }));
+
+    expect(
+      await screen.findByText("Each exercise can only be added once")
+    ).toBeInTheDocument();
+    expect(createPlan).not.toHaveBeenCalled();
+  });
+
   it("logs a set and finishes the active session", async () => {
     vi.mocked(getActiveSession).mockResolvedValue(session);
 

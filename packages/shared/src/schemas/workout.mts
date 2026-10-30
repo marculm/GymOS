@@ -21,7 +21,13 @@ export const CreateWorkoutPlanSchema = z.object({
       })
     )
     .min(1)
-    .max(50),
+    .max(50)
+    .refine(
+      (exercises) =>
+        new Set(exercises.map((exercise) => exercise.exerciseId)).size ===
+        exercises.length,
+      "Each exercise can only be added once"
+    ),
 });
 
 export const WorkoutPlanExerciseSchema = z.object({
