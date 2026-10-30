@@ -1,5 +1,9 @@
 <script lang="ts">
-  import type { CreateWorkoutPlanInput, Exercise } from "@gymos/shared";
+  import {
+    DUPLICATE_EXERCISE_MESSAGE,
+    type CreateWorkoutPlanInput,
+    type Exercise,
+  } from "@gymos/shared";
 
   let {
     exercises,
@@ -55,7 +59,7 @@
 
     const exerciseIds = rows.map((row) => row.exerciseId);
     if (new Set(exerciseIds).size !== exerciseIds.length) {
-      error = "Each exercise can only be added once";
+      error = DUPLICATE_EXERCISE_MESSAGE;
       return;
     }
 

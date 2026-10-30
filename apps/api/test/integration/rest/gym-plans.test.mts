@@ -182,7 +182,12 @@ describe("Gym plan routes", () => {
       targetSets: 3,
       targetReps: 10,
     }));
-    expect((await postJson({ name: "Too many", exercises: tooManyExercises })).status).toBe(422);
+    const tooMany = await postJson({ name: "Too many", exercises: tooManyExercises });
+    expect(tooMany.status).toBe(422);
+    const tooManyData = (await tooMany.json()) as {
+      detail: Array<{ message: string }>;
+    };
+    expect(tooManyData.detail.some((issue) => /50/.test(issue.message))).toBe(true);
 
     expect((await postJson(planBody("Too many sets", { targetSets: 21 }))).status).toBe(422);
     expect((await postJson(planBody("Too many reps", { targetReps: 101 }))).status).toBe(422);

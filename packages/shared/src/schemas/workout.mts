@@ -7,6 +7,9 @@ export const ExerciseSchema = z.object({
   description: z.string().nullable(),
 });
 
+export const DUPLICATE_EXERCISE_MESSAGE =
+  "Each exercise can only be added once";
+
 export const CreateWorkoutPlanSchema = z.object({
   name: z.string().min(1).max(100),
   description: z.string().max(500).optional(),
@@ -26,7 +29,7 @@ export const CreateWorkoutPlanSchema = z.object({
       (exercises) =>
         new Set(exercises.map((exercise) => exercise.exerciseId)).size ===
         exercises.length,
-      "Each exercise can only be added once"
+      DUPLICATE_EXERCISE_MESSAGE
     ),
 });
 
