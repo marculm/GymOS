@@ -32,7 +32,7 @@ type ExerciseWriter = Pick<
 >;
 type PlanWriter = Pick<
   PlanRepository,
-  "findById" | "findOwnedIds" | "create" | "update" | "delete"
+  "findById" | "create" | "update" | "delete"
 >;
 type RotationWriter = Pick<RotationRepository, "replace">;
 type SessionWriter = Pick<
@@ -114,13 +114,13 @@ export class GymWriteService {
     userId: string,
     input: UpdateWorkoutRotationInput
   ): Promise<WorkoutRotation> {
-    const ownedIds = await this.planRepository.findOwnedIds(userId, input.planIds);
-    const missing = input.planIds.filter((id) => !ownedIds.includes(id));
-    if (missing.length > 0) {
-      throw new UnknownPlanError(`Unknown plan IDs: ${missing.join(", ")}`);
+    const result = await this.rotationRepository.replace(userId, input.planIds);
+    if (result.kind === "unknown_plans") {
+      throw new UnknownPlanError(
+        `Unknown plan IDs: ${result.planIds.join(", ")}`
+      );
     }
 
-    await this.rotationRepository.replace(userId, input.planIds);
     return this.readService.getRotation(userId);
   }
 

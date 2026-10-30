@@ -6,6 +6,7 @@ import type {
   WorkoutPlan,
   WorkoutSessionDetail,
 } from "@gymos/shared";
+import type { ReplaceRotationResult } from "../repository/rotation-repository.mts";
 import type {
   CompleteSessionResult,
   LogSetResult,
@@ -83,7 +84,6 @@ function createService() {
         plan as WorkoutPlan | null
     ),
     delete: vi.fn(async (_userId: string, _planId: string) => true),
-    findOwnedIds: vi.fn(async (_userId: string, ids: string[]) => ids),
   };
   const sessionRepository = {
     createIfNoActive: vi.fn(
@@ -104,7 +104,12 @@ function createService() {
   };
 
   const rotationRepository = {
-    replace: vi.fn(async (_userId: string, _planIds: string[]) => undefined),
+    replace: vi.fn(
+      async (
+        _userId: string,
+        _planIds: string[]
+      ): Promise<ReplaceRotationResult> => ({ kind: "ok" })
+    ),
     findByUser: vi.fn(async (_userId: string) => [plan]),
   };
   const readService = {
@@ -288,9 +293,7 @@ describe("GymWriteService", () => {
   });
 
   it("replaces the rotation and returns the suggestion", async () => {
-    const { service, planRepository, rotationRepository, readService } =
-      createService();
-    planRepository.findOwnedIds.mockResolvedValueOnce([plan.id]);
+    const { service, rotationRepository, readService } = createService();
 
     await expect(
       service.setRotation("user-1", { planIds: [plan.id] })
@@ -299,14 +302,17 @@ describe("GymWriteService", () => {
     expect(readService.getRotation).toHaveBeenCalledWith("user-1");
   });
 
-  it("rejects unknown plans before writing the rotation", async () => {
-    const { service, planRepository, rotationRepository } = createService();
-    planRepository.findOwnedIds.mockResolvedValueOnce([]);
+  it("rejects unknown plans", async () => {
+    const { service, rotationRepository, readService } = createService();
+    rotationRepository.replace.mockResolvedValueOnce({
+      kind: "unknown_plans",
+      planIds: ["missing"],
+    });
 
     await expect(
       service.setRotation("user-1", { planIds: ["missing"] })
     ).rejects.toBeInstanceOf(UnknownPlanError);
-    expect(rotationRepository.replace).not.toHaveBeenCalled();
+    expect(readService.getRotation).not.toHaveBeenCalled();
   });
 
   it("starts a free session when no session is active", async () => {
