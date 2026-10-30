@@ -10,6 +10,7 @@ import {
   CreateWorkoutSetSchema,
   UpdateExerciseSchema,
   UpdateWorkoutPlanSchema,
+  UpdateWorkoutRotationSchema,
 } from "./validation.mts";
 
 export const writeRouter = new Hono<AppEnv>();
@@ -57,6 +58,12 @@ writeRouter.put("/plans/:id", async (c) => {
 writeRouter.delete("/plans/:id", async (c) => {
   await writeService.deletePlan(c.get("user").id, c.req.param("id"));
   return c.body(null, statuscode.NO_CONTENT);
+});
+
+writeRouter.put("/rotation", async (c) => {
+  const input = UpdateWorkoutRotationSchema.parse(await c.req.json());
+  const rotation = await writeService.setRotation(c.get("user").id, input);
+  return c.json(rotation, statuscode.OK);
 });
 
 writeRouter.post("/sessions", async (c) => {

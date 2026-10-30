@@ -36,6 +36,9 @@ export const UpdateExerciseSchema = CreateExerciseSchema;
 export const DUPLICATE_EXERCISE_MESSAGE =
   "Each exercise can only be added once";
 
+export const DUPLICATE_ROTATION_PLAN_MESSAGE =
+  "Each plan can only appear once in the rotation";
+
 export const CreateWorkoutPlanSchema = z.object({
   name: z.string().min(1).max(100),
   description: z.string().max(500).optional(),
@@ -77,6 +80,21 @@ export const WorkoutPlanSchema = z.object({
   description: z.string().nullable(),
   createdAt: z.iso.datetime(),
   exercises: z.array(WorkoutPlanExerciseSchema),
+});
+
+export const UpdateWorkoutRotationSchema = z.object({
+  planIds: z
+    .array(z.string().uuid())
+    .max(50)
+    .refine(
+      (planIds) => new Set(planIds).size === planIds.length,
+      DUPLICATE_ROTATION_PLAN_MESSAGE
+    ),
+});
+
+export const WorkoutRotationSchema = z.object({
+  plans: z.array(WorkoutPlanSchema),
+  nextPlanId: z.string().uuid().nullable(),
 });
 
 export const CreateWorkoutSessionSchema = z.object({
@@ -127,6 +145,8 @@ export type CreateWorkoutPlanInput = z.infer<typeof CreateWorkoutPlanSchema>;
 export type UpdateWorkoutPlanInput = z.infer<typeof UpdateWorkoutPlanSchema>;
 export type WorkoutPlan = z.infer<typeof WorkoutPlanSchema>;
 export type WorkoutPlanExercise = z.infer<typeof WorkoutPlanExerciseSchema>;
+export type UpdateWorkoutRotationInput = z.infer<typeof UpdateWorkoutRotationSchema>;
+export type WorkoutRotation = z.infer<typeof WorkoutRotationSchema>;
 export type CreateWorkoutSessionInput = z.infer<typeof CreateWorkoutSessionSchema>;
 export type CreateWorkoutSetInput = z.infer<typeof CreateWorkoutSetSchema>;
 export type LoggedSet = z.infer<typeof LoggedSetSchema>;

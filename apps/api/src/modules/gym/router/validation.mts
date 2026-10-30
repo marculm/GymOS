@@ -29,4 +29,5 @@ export {
   CreateWorkoutSetSchema,
   UpdateExerciseSchema,
   UpdateWorkoutPlanSchema,
+  UpdateWorkoutRotationSchema,
 } from "@gymos/shared";

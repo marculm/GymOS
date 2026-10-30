@@ -17,6 +17,7 @@ model User {
   nutritionLogs   NutritionLog[]
   recipes         Recipe[]
   plans           WorkoutPlan[]
+  rotationItems   WorkoutRotationItem[]
 
   @@map("users")
 }
@@ -112,8 +113,9 @@ model WorkoutPlan {
   description String?
   createdAt   DateTime              @default(now())
   updatedAt   DateTime              @updatedAt
-  exercises   WorkoutPlanExercise[]
-  sessions    WorkoutSession[]
+  exercises     WorkoutPlanExercise[]
+  sessions      WorkoutSession[]
+  rotationItems WorkoutRotationItem[]
 
   @@unique([userId, name])
   @@map("workout_plans")
@@ -133,4 +135,18 @@ model WorkoutPlanExercise {
 
   @@unique([planId, position])
   @@map("workout_plan_exercises")
+}
+
+model WorkoutRotationItem {
+  id       String      @id @default(uuid())
+  userId   String
+  user     User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planId   String
+  plan     WorkoutPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  position Int
+
+  @@unique([userId, position])
+  @@unique([userId, planId])
+  @@index([planId])
+  @@map("workout_rotation_items")
 }

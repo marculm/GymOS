@@ -3,8 +3,10 @@ import {
   CreateExerciseSchema,
   CreateWorkoutPlanSchema,
   CreateWorkoutSetSchema,
+  DUPLICATE_ROTATION_PLAN_MESSAGE,
   LoggedSetSchema,
   UpdateExerciseSchema,
+  UpdateWorkoutRotationSchema,
   WorkoutSessionDetailSchema,
 } from "./workout.mts";
 
@@ -121,6 +123,41 @@ describe("CreateWorkoutPlanSchema", () => {
       ],
     });
     expect(result.success).toBe(false);
+  });
+});
+
+describe("UpdateWorkoutRotationSchema", () => {
+  it("accepts an ordered list of plans", () => {
+    const result = UpdateWorkoutRotationSchema.safeParse({
+      planIds: [crypto.randomUUID(), crypto.randomUUID()],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts an empty list to clear the rotation", () => {
+    expect(UpdateWorkoutRotationSchema.safeParse({ planIds: [] }).success).toBe(true);
+  });
+
+  it("rejects duplicate plans", () => {
+    const planId = crypto.randomUUID();
+    const result = UpdateWorkoutRotationSchema.safeParse({
+      planIds: [planId, planId],
+    });
+    expect(result.success).toBe(false);
+    expect(result.error?.issues.map((issue) => issue.message)).toContain(
+      DUPLICATE_ROTATION_PLAN_MESSAGE
+    );
+  });
+
+  it("rejects more than 50 plans", () => {
+    const planIds = Array.from({ length: 51 }, () => crypto.randomUUID());
+    expect(UpdateWorkoutRotationSchema.safeParse({ planIds }).success).toBe(false);
+  });
+
+  it("rejects non-UUID plan IDs", () => {
+    expect(
+      UpdateWorkoutRotationSchema.safeParse({ planIds: ["push-day"] }).success
+    ).toBe(false);
   });
 });
 

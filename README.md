@@ -114,6 +114,10 @@ full contract.
 | `DELETE` | `/api/gym/exercises/:id` | Soft-delete an exercise |
 | `GET` | `/api/gym/plans?page=&size=&name=` | List the current user's plans |
 | `POST` | `/api/gym/plans` | Create a plan (`{ name, description?, exercises[] }`); `201` + `Location` |
+| `PUT` | `/api/gym/plans/:id` | Replace a plan's name, description, and exercises |
+| `DELETE` | `/api/gym/plans/:id` | Delete a plan; past sessions keep their records |
+| `GET` | `/api/gym/rotation` | Rotation with `plans` and `nextPlanId` |
+| `PUT` | `/api/gym/rotation` | Replace the ordered rotation (`{ planIds[] }`); empty clears it |
 | `POST` | `/api/gym/sessions` | Start a session (`{ title?, planId? }`); `201` + `Location` |
 | `GET` | `/api/gym/sessions/active` | Active session, or `404` when none exists |
 | `GET` | `/api/gym/sessions?page=&size=&planId=&from=&to=` | List completed sessions |
