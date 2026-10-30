@@ -23,6 +23,7 @@ import {
   NotFoundError,
   SessionCompletedError,
   UnknownExerciseError,
+  UnknownPlanError,
 } from "./modules/gym/service/errors.mts";
 import { gymModule } from "./modules/gym/index.mts";
 import { nutritionModule } from "./modules/nutrition/index.mts";
@@ -86,6 +87,9 @@ app.onError((err, c) => {
     return createProblemDetails(c, 409, err.message);
   }
   if (err instanceof UnknownExerciseError) {
+    return createProblemDetails(c, 422, err.message);
+  }
+  if (err instanceof UnknownPlanError) {
     return createProblemDetails(c, 422, err.message);
   }
   if (err instanceof CurrentUserNotFoundError) {

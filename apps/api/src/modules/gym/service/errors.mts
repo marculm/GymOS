@@ -14,6 +14,8 @@ export class ConcurrentUpdateError extends Error {}
 
 export class UnknownExerciseError extends Error {}
 
+export class UnknownPlanError extends Error {}
+
 export class InvalidMuscleGroupError extends Error {
   constructor(exerciseId: string, muscleGroup: string) {
     super(`Exercise ${exerciseId} has invalid muscle group "${muscleGroup}"`);

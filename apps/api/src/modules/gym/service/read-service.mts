@@ -1,29 +1,34 @@
 import type {
   Exercise,
   WorkoutPlan,
+  WorkoutRotation,
   WorkoutSessionDetail,
   WorkoutSessionSummary,
 } from "@gymos/shared";
 import type { ExerciseRepository } from "../repository/exercise-repository.mts";
 import type { PlanRepository } from "../repository/plan-repository.mts";
+import type { RotationRepository } from "../repository/rotation-repository.mts";
 import type { SessionRepository } from "../repository/session-repository.mts";
 import { NotFoundError } from "./errors.mts";
 import { skipTake, type Pageable } from "./pageable.mts";
+import { nextRotationPlanId } from "./rotation.mts";
 import type { PlanSearchParams, SessionSearchParams } from "./search-params.mts";
 import type { Slice } from "./slice.mts";
 
 type ExerciseReader = Pick<ExerciseRepository, "findAll" | "count">;
 type PlanReader = Pick<PlanRepository, "findByUser" | "countByUser">;
+type RotationReader = Pick<RotationRepository, "findByUser">;
 type SessionReader = Pick<
   SessionRepository,
-  "findActive" | "findById" | "findRecent" | "countRecent"
+  "findActive" | "findById" | "findRecent" | "countRecent" | "findLastCompletedPlanId"
 >;
 
 export class GymReadService {
   constructor(
     private readonly exerciseRepository: ExerciseReader,
     private readonly planRepository: PlanReader,
-    private readonly sessionRepository: SessionReader
+    private readonly sessionRepository: SessionReader,
+    private readonly rotationRepository: RotationReader
   ) {}
 
   async listExercises(pageable: Pageable): Promise<Slice<Exercise>> {
@@ -44,6 +49,20 @@ export class GymReadService {
       this.planRepository.countByUser(userId, filters),
     ]);
     return { content, totalElements };
+  }
+
+  async getRotation(userId: string): Promise<WorkoutRotation> {
+    const [plans, lastPlanId] = await Promise.all([
+      this.rotationRepository.findByUser(userId),
+      this.sessionRepository.findLastCompletedPlanId(userId),
+    ]);
+    return {
+      plans,
+      nextPlanId: nextRotationPlanId(
+        plans.map((plan) => plan.id),
+        lastPlanId
+      ),
+    };
   }
 
   async getActiveSession(userId: string): Promise<WorkoutSessionDetail> {

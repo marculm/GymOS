@@ -28,6 +28,12 @@ const plan: WorkoutPlan = {
   exercises: [],
 };
 
+const secondPlan: WorkoutPlan = {
+  ...plan,
+  id: "plan-2",
+  name: "Pull",
+};
+
 const detail: WorkoutSessionDetail = {
   id: "session-1",
   title: "Free Workout",
@@ -74,17 +80,25 @@ function createService() {
       ) => [summary]
     ),
     countRecent: vi.fn(async (_userId: string, _filters: unknown) => 1),
+    findLastCompletedPlanId: vi.fn(
+      async (_userId: string) => null as string | null
+    ),
+  };
+  const rotationRepository = {
+    findByUser: vi.fn(async (_userId: string) => [plan, secondPlan]),
   };
 
   return {
     service: new GymReadService(
       exerciseRepository,
       planRepository,
-      sessionRepository
+      sessionRepository,
+      rotationRepository
     ),
     exerciseRepository,
     planRepository,
     sessionRepository,
+    rotationRepository,
   };
 }
 
@@ -139,6 +153,25 @@ describe("GymReadService", () => {
       { skip: 0, take: 20 },
       filters
     );
+  });
+
+  it("suggests the first rotation plan without history", async () => {
+    const { service } = createService();
+
+    await expect(service.getRotation("user-1")).resolves.toEqual({
+      plans: [plan, secondPlan],
+      nextPlanId: "plan-1",
+    });
+  });
+
+  it("suggests the plan after the last completed plan", async () => {
+    const { service, sessionRepository } = createService();
+    sessionRepository.findLastCompletedPlanId.mockResolvedValueOnce("plan-1");
+
+    await expect(service.getRotation("user-1")).resolves.toEqual({
+      plans: [plan, secondPlan],
+      nextPlanId: "plan-2",
+    });
   });
 
   it("throws NotFoundError for an unknown session", async () => {

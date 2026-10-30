@@ -7,11 +7,14 @@ import type {
   LoggedSet,
   UpdateExerciseInput,
   UpdateWorkoutPlanInput,
+  UpdateWorkoutRotationInput,
   WorkoutPlan,
+  WorkoutRotation,
   WorkoutSessionDetail,
 } from "@gymos/shared";
 import type { ExerciseRepository } from "../repository/exercise-repository.mts";
 import type { PlanRepository } from "../repository/plan-repository.mts";
+import type { RotationRepository } from "../repository/rotation-repository.mts";
 import type { SessionRepository } from "../repository/session-repository.mts";
 import {
   ActiveSessionExistsError,
@@ -19,7 +22,9 @@ import {
   NotFoundError,
   SessionCompletedError,
   UnknownExerciseError,
+  UnknownPlanError,
 } from "./errors.mts";
+import type { GymReadService } from "./read-service.mts";
 
 type ExerciseWriter = Pick<
   ExerciseRepository,
@@ -27,18 +32,22 @@ type ExerciseWriter = Pick<
 >;
 type PlanWriter = Pick<
   PlanRepository,
-  "findById" | "create" | "update" | "delete"
+  "findById" | "findOwnedIds" | "create" | "update" | "delete"
 >;
+type RotationWriter = Pick<RotationRepository, "replace">;
 type SessionWriter = Pick<
   SessionRepository,
   "createIfNoActive" | "logSet" | "completeIfOpen"
 >;
+type RotationReader = Pick<GymReadService, "getRotation">;
 
 export class GymWriteService {
   constructor(
     private readonly exerciseRepository: ExerciseWriter,
     private readonly planRepository: PlanWriter,
-    private readonly sessionRepository: SessionWriter
+    private readonly sessionRepository: SessionWriter,
+    private readonly rotationRepository: RotationWriter,
+    private readonly readService: RotationReader
   ) {}
 
   async createExercise(input: CreateExerciseInput): Promise<Exercise> {
@@ -99,6 +108,20 @@ export class GymWriteService {
     if (!deleted) {
       throw new NotFoundError("Plan not found");
     }
+  }
+
+  async setRotation(
+    userId: string,
+    input: UpdateWorkoutRotationInput
+  ): Promise<WorkoutRotation> {
+    const ownedIds = await this.planRepository.findOwnedIds(userId, input.planIds);
+    const missing = input.planIds.filter((id) => !ownedIds.includes(id));
+    if (missing.length > 0) {
+      throw new UnknownPlanError(`Unknown plan IDs: ${missing.join(", ")}`);
+    }
+
+    await this.rotationRepository.replace(userId, input.planIds);
+    return this.readService.getRotation(userId);
   }
 
   private async assertExercisesExist(
