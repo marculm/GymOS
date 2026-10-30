@@ -42,18 +42,6 @@ vi.mock("../../api/gym.mts", () => ({
   completeSession: vi.fn(),
 }));
 
-function page<T>(content: T[]) {
-  return {
-    content,
-    page: {
-      size: 20,
-      number: 0,
-      totalElements: content.length,
-      totalPages: content.length > 0 ? 1 : 0,
-    },
-  };
-}
-
 const exercise: Exercise = {
   id: "exercise-1",
   name: "Bench Press",
@@ -242,6 +230,9 @@ describe("GymView", () => {
 
     await waitFor(() => {
       expect(startSession).toHaveBeenCalledWith({});
+    });
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });
   });
 

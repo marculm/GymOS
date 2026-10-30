@@ -330,6 +330,7 @@
       <button
         type="button"
         class="btn btn-ghost"
+        disabled={pending}
         onclick={() => {
           error = null;
           showPicker = true;
