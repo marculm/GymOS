@@ -19,6 +19,7 @@ not implemented.
 The shared workout schemas enforce:
 
 - at most 50 exercises per plan;
+- each exercise at most once per plan;
 - `targetSets` at most 20;
 - `targetReps` at most 100.
 
@@ -42,6 +43,8 @@ Numeric limits for logged sets (reps and weight) are defined in ADR-0021.
 - A client can distinguish an unimplemented feature from a working one.
 - A single request cannot create a plan with thousands of exercises or render an
   unbounded plan.
+- A plan cannot repeat an exercise, so the session screen does not show the same
+  logged sets twice.
 - The UI and API enforce the same limits.
 - The nutrition contracts remain untested until the slice is built; they must be
   revisited when its requirements are defined.

@@ -1,5 +1,9 @@
 <script lang="ts">
-  import type { CreateWorkoutPlanInput, Exercise } from "@gymos/shared";
+  import {
+    DUPLICATE_EXERCISE_MESSAGE,
+    type CreateWorkoutPlanInput,
+    type Exercise,
+  } from "@gymos/shared";
 
   let {
     exercises,
@@ -52,6 +56,12 @@
   async function handleSubmit(event: SubmitEvent) {
     event.preventDefault();
     if (pending) return;
+
+    const exerciseIds = rows.map((row) => row.exerciseId);
+    if (new Set(exerciseIds).size !== exerciseIds.length) {
+      error = DUPLICATE_EXERCISE_MESSAGE;
+      return;
+    }
 
     pending = true;
     error = null;
