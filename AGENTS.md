@@ -23,21 +23,23 @@ This document specifies mandatory rules and operational conventions for all AI a
 
 ## 2. Git & Version Control Rules
 
-### 🚫 Never Push
-- **Do NOT execute `git push` under any circumstances.**
-- Remote synchronization and pushing is strictly reserved for the human user.
+### Push Only Through the `issue-to-pr` Workflow
+- **Do NOT execute `git push`** unless the user invoked the `issue-to-pr` workflow for a named issue.
+- That workflow explicitly authorizes pushing the issue branch and opening its pull request.
+- All other remote synchronization remains reserved for the human user.
 
-### 🔒 Strictly No `.env` Access
+### Strictly No `.env` Access
 - **Do NOT touch `.env` files.**
 - Agents must **NEVER read, write, create, edit, or inspect** any `.env` file (including `.env.local`, `.env.*`, etc.).
 - Agents may only reference or update template files like `.env.example`.
 - All secret configuration and `.env` files are exclusively managed by the human user.
 
-### 📦 Commit Conventions
+### Commit Conventions
 - Keep commits **small, lean, and logically cohesive** (atomic commits).
 - Never bundle unrelated changes (e.g. documentation, fixes, features, configuration) into a single commit.
 - **Commit messages must be as short and concise as possible** (only essential words, no filler, e.g. `Add AGENTS.md`, `Fix lint error`).
-- **Commit messages must start with one of the following imperative verbs:**
+- **Commit messages must start with the issue ID or one of the following imperative verbs:**
+  - `#12: Add <target>` (issue ID followed by an imperative verb)
   - `Add <target>` (for new features, files, packages, tests)
   - `Update <target>` (for modifications to existing code, dependencies, configs)
   - `Remove <target>` (for deleting dead code, deprecated files)
