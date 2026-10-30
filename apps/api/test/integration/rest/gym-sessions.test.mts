@@ -153,9 +153,13 @@ describe("Gym session routes", () => {
   it("rejects out-of-range reps and weight with a 422 problem", async () => {
     const session = await startSession();
 
-    const repsRes = await logSet(session.id, { reps: 1001 });
+    const repsRes = await logSet(session.id, { reps: 2_147_483_648 });
     expect(repsRes.status).toBe(422);
     expect(repsRes.headers.get("content-type")).toContain("application/problem+json");
+    const repsData = (await repsRes.json()) as {
+      detail: Array<{ path: string[] }>;
+    };
+    expect(repsData.detail[0]?.path).toContain("reps");
 
     const weightRes = await logSet(session.id, { weightKg: 1000.5 });
     expect(weightRes.status).toBe(422);

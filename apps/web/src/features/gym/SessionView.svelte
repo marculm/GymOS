@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { MAX_SET_REPS, MAX_SET_WEIGHT_KG } from "@gymos/shared/limits";
   import type {
     CreateWorkoutSetInput,
     Exercise,
@@ -209,7 +210,7 @@
             class="input"
             type="number"
             min={0}
-            max={1000}
+            max={MAX_SET_WEIGHT_KG}
             step={0.5}
             required
             bind:value={weightKg}
@@ -221,7 +222,7 @@
             class="input"
             type="number"
             min={1}
-            max={1000}
+            max={MAX_SET_REPS}
             required
             bind:value={reps}
           />

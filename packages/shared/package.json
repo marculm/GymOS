@@ -8,6 +8,10 @@
     ".": {
       "import": "./src/index.mts",
       "types": "./src/index.mts"
+    },
+    "./limits": {
+      "import": "./src/limits.mts",
+      "types": "./src/limits.mts"
     }
   },
   "scripts": {
