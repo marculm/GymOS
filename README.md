@@ -110,7 +110,7 @@ full contract.
 | :--- | :--- | :--- |
 | `GET` | `/api/gym/exercises?page=&size=` | List active exercises as a page |
 | `POST` | `/api/gym/exercises` | Create an exercise (`{ name, muscleGroup, description?, defaultSets?, defaultReps?, defaultWeightKg? }`); `201` + `Location` |
-| `PUT` | `/api/gym/exercises/:id` | Edit an exercise |
+| `PUT` | `/api/gym/exercises/:id` | Edit an exercise; omitted optional fields are preserved |
 | `DELETE` | `/api/gym/exercises/:id` | Soft-delete an exercise |
 | `GET` | `/api/gym/plans?page=&size=&name=` | List the current user's plans |
 | `POST` | `/api/gym/plans` | Create a plan (`{ name, description?, exercises[] }`); `201` + `Location` |

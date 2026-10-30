@@ -10,7 +10,7 @@ import { toExercise } from "./mapping.mts";
 
 const active = { deletedAt: null };
 
-function toData(input: CreateExerciseInput | UpdateExerciseInput) {
+function toCreateData(input: CreateExerciseInput) {
   return {
     name: input.name,
     muscleGroup: input.muscleGroup,
@@ -19,6 +19,32 @@ function toData(input: CreateExerciseInput | UpdateExerciseInput) {
     defaultReps: input.defaultReps ?? 8,
     defaultWeightKg: input.defaultWeightKg ?? null,
   };
+}
+
+function toUpdateData(input: UpdateExerciseInput) {
+  return {
+    name: input.name,
+    muscleGroup: input.muscleGroup,
+    ...(input.description !== undefined
+      ? { description: input.description }
+      : {}),
+    ...(input.defaultSets !== undefined
+      ? { defaultSets: input.defaultSets }
+      : {}),
+    ...(input.defaultReps !== undefined
+      ? { defaultReps: input.defaultReps }
+      : {}),
+    ...(input.defaultWeightKg !== undefined
+      ? { defaultWeightKg: input.defaultWeightKg }
+      : {}),
+  };
+}
+
+function isRecordNotFound(error: unknown): boolean {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === "P2025"
+  );
 }
 
 function rethrowDuplicateName(error: unknown): never {
@@ -56,7 +82,9 @@ export class ExerciseRepository {
 
   async create(input: CreateExerciseInput): Promise<Exercise> {
     try {
-      const exercise = await prisma.exercise.create({ data: toData(input) });
+      const exercise = await prisma.exercise.create({
+        data: toCreateData(input),
+      });
       return toExercise(exercise);
     } catch (error) {
       rethrowDuplicateName(error);
@@ -67,14 +95,11 @@ export class ExerciseRepository {
     try {
       const exercise = await prisma.exercise.update({
         where: { id, ...active },
-        data: toData(input),
+        data: toUpdateData(input),
       });
       return toExercise(exercise);
     } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === "P2025"
-      ) {
+      if (isRecordNotFound(error)) {
         return null;
       }
       rethrowDuplicateName(error);
@@ -89,10 +114,7 @@ export class ExerciseRepository {
       });
       return toExercise(exercise);
     } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === "P2025"
-      ) {
+      if (isRecordNotFound(error)) {
         return null;
       }
       throw error;

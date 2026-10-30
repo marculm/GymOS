@@ -85,7 +85,10 @@ describe("Gym exercise register", () => {
 
     const listed = (await (
       await app.request("/api/gym/exercises?size=100")
-    ).json()) as { content: ExerciseBody[] };
+    ).json()) as {
+      content: ExerciseBody[];
+      page: { totalElements: number };
+    };
     expect(listed.content.map((entry) => entry.id)).toContain(exercise.id);
 
     expect(
@@ -94,10 +97,14 @@ describe("Gym exercise register", () => {
 
     const afterDelete = (await (
       await app.request("/api/gym/exercises?size=100")
-    ).json()) as { content: ExerciseBody[] };
+    ).json()) as {
+      content: ExerciseBody[];
+      page: { totalElements: number };
+    };
     expect(afterDelete.content.map((entry) => entry.id)).not.toContain(
       exercise.id
     );
+    expect(afterDelete.page.totalElements).toBe(listed.page.totalElements - 1);
   });
 
   it("updates an exercise", async () => {
@@ -127,6 +134,45 @@ describe("Gym exercise register", () => {
       defaultReps: 6,
       defaultWeightKg: 40.5,
     });
+  });
+
+  it("preserves omitted fields when updating", async () => {
+    const { exercise } = await createExercise({
+      description: "Keep me",
+      defaultSets: 5,
+      defaultReps: 12,
+      defaultWeightKg: 15,
+    });
+    const name = uniqueName("partial");
+
+    const res = await jsonRequest(
+      `/api/gym/exercises/${exercise.id}`,
+      "PUT",
+      { name, muscleGroup: "back" }
+    );
+    expect(res.status).toBe(200);
+
+    expect(await res.json()).toMatchObject({
+      name,
+      muscleGroup: "back",
+      description: "Keep me",
+      defaultSets: 5,
+      defaultReps: 12,
+      defaultWeightKg: 15,
+    });
+  });
+
+  it("rejects a duplicate name on update", async () => {
+    const first = await createExercise();
+    const second = await createExercise();
+
+    const res = await jsonRequest(
+      `/api/gym/exercises/${second.exercise.id}`,
+      "PUT",
+      { name: first.exercise.name, muscleGroup: "legs" }
+    );
+
+    expect(res.status).toBe(409);
   });
 
   it("rejects duplicate exercise names", async () => {
