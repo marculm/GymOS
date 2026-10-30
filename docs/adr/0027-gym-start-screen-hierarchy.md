@@ -19,7 +19,8 @@ section in a separate issue, and the alternate-workout picker is not built yet.
 - When the rotation has no suggestion, the card states that no workout is scheduled and
   offers one primary action that opens management.
 - Free workouts stay reachable through a small secondary "Other workout" action. It
-  starts an ad-hoc session until the alternate-workout picker is built.
+  opens the alternate-workout picker (ADR-0028), which offers every plan and a free
+  session.
 - Rotation management, plan management, and the exercise register live in a collapsible
   "My training plan" section below the primary card. It is collapsed by default and
   stays on the Gym page; no new bottom tab.

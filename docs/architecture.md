@@ -233,10 +233,12 @@ Repositories own all Prisma access (ADR-0007):
 - One repository per aggregate: exercises, plans, rotation, sessions.
 - They map Prisma rows to `packages/shared` contract types.
 - They translate Prisma errors into domain errors:
-  - `P2002` → duplicate plan name, duplicate exercise name, or duplicate set.
+  - `P2002` → duplicate plan name, duplicate exercise name, or duplicate set; a
+    rotation unique conflict is retried and, if it persists, becomes a concurrent
+    update.
   - `P2034` after retries → concurrent update.
 - `transaction.mts` owns `withSerializableRetry`, which retries `P2034` up to three
-  times.
+  times. Rotation replacement also retries `P2002` conflicts up to three times.
 - Repositories never throw `HTTPException`.
 - Exercise reads exclude rows with `deletedAt` set. Hard deletion is never exposed;
   `WorkoutSet` and `WorkoutPlanExercise` keep `onDelete: Restrict`.
@@ -435,6 +437,8 @@ apps/web/
   Rotation, plan management, and the exercise register sit in a collapsible "My training
   plan" section; free workouts are a secondary action and history is not shown
   (ADR-0027).
+- The secondary action opens a modal picker with every plan and a free workout. Choosing
+  a plan counts as a deviation; choosing free never advances the rotation (ADR-0028).
 - The session screen displays every logged set, including exercises that are not part of
   the session's plan (ADR-0019). Logged sets carry `exerciseName`, so deleted exercises
   stay readable in history.
@@ -580,3 +584,4 @@ The target architecture deliberately excludes:
 | [0025](adr/0025-plan-editing-and-deletion.md) | Plan editing and deletion |
 | [0026](adr/0026-workout-rotation.md) | Workout rotation and next-workout suggestion |
 | [0027](adr/0027-gym-start-screen-hierarchy.md) | Gym start screen hierarchy |
+| [0028](adr/0028-alternate-workout-picker.md) | Alternate workout picker |

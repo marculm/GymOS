@@ -42,18 +42,6 @@ vi.mock("../../api/gym.mts", () => ({
   completeSession: vi.fn(),
 }));
 
-function page<T>(content: T[]) {
-  return {
-    content,
-    page: {
-      size: 20,
-      number: 0,
-      totalElements: content.length,
-      totalPages: content.length > 0 ? 1 : 0,
-    },
-  };
-}
-
 const exercise: Exercise = {
   id: "exercise-1",
   name: "Bench Press",
@@ -220,14 +208,64 @@ describe("GymView", () => {
     });
   });
 
-  it("starts a free workout from the secondary action", async () => {
+  it("opens the alternate workout picker and starts a free workout", async () => {
+    vi.mocked(getRotation).mockResolvedValueOnce({
+      plans: [plan],
+      nextPlanId: plan.id,
+    });
+
     render(GymView);
 
     await fireEvent.click(await startScreenReady());
+    expect(
+      await screen.findByRole("heading", { name: "Choose a workout" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Start workout" })
+    ).toBeInTheDocument();
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: /free workout/i })
+    );
 
     await waitFor(() => {
       expect(startSession).toHaveBeenCalledWith({});
     });
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+  });
+
+  it("starts a non-rotation plan from the picker", async () => {
+    vi.mocked(getRotation).mockResolvedValueOnce({
+      plans: [plan],
+      nextPlanId: plan.id,
+    });
+    vi.mocked(listAllPlans).mockResolvedValueOnce([plan, extraPlan]);
+
+    render(GymView);
+
+    await fireEvent.click(await startScreenReady());
+    await fireEvent.click(
+      await screen.findByRole("button", { name: /pull day/i })
+    );
+
+    await waitFor(() => {
+      expect(startSession).toHaveBeenCalledWith({ planId: extraPlan.id });
+    });
+  });
+
+  it("shows a start error inside the picker", async () => {
+    vi.mocked(startSession).mockRejectedValueOnce(new Error("still blocked"));
+
+    render(GymView);
+
+    await fireEvent.click(await startScreenReady());
+    await fireEvent.click(
+      await screen.findByRole("button", { name: /free workout/i })
+    );
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("still blocked");
   });
 
   it("opens management from the empty state", async () => {
@@ -634,6 +672,9 @@ describe("GymView", () => {
     render(GymView);
 
     await fireEvent.click(await startScreenReady());
+    await fireEvent.click(
+      await screen.findByRole("button", { name: /free workout/i })
+    );
 
     await waitFor(() => {
       expect(startSession).toHaveBeenCalledTimes(2);
@@ -669,6 +710,9 @@ describe("GymView", () => {
     render(GymView);
 
     await fireEvent.click(await startScreenReady());
+    await fireEvent.click(
+      await screen.findByRole("button", { name: /free workout/i })
+    );
 
     expect(await screen.findByText("still blocked")).toBeInTheDocument();
   });
