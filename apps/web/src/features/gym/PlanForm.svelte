@@ -132,7 +132,7 @@
   }
 </script>
 
-{#if exercises.length === 0}
+{#if available.length === 0}
   <p class="empty">No exercises available. Add one in the exercise register.</p>
 {:else}
   <form class="card stack" onsubmit={handleSubmit}>

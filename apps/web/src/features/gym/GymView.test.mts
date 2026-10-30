@@ -220,6 +220,24 @@ describe("GymView", () => {
     expect(screen.queryByLabelText("Name")).not.toBeInTheDocument();
   });
 
+  it("edits a plan whose exercises are no longer in the register", async () => {
+    vi.mocked(listAllExercises).mockResolvedValueOnce([]);
+
+    render(GymView);
+
+    await screen.findByText("Push Day");
+    await fireEvent.click(
+      screen.getByRole("button", { name: /edit push day/i })
+    );
+
+    expect(
+      await screen.findByRole("heading", { name: "Edit training plan" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("option", { name: "Bench Press" })
+    ).toBeInTheDocument();
+  });
+
   it("deletes a plan from the plan list", async () => {
     vi.stubGlobal("confirm", vi.fn(() => true));
 
