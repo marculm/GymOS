@@ -59,6 +59,8 @@ export const CreateWorkoutPlanSchema = z.object({
     ),
 });
 
+export const UpdateWorkoutPlanSchema = CreateWorkoutPlanSchema;
+
 export const WorkoutPlanExerciseSchema = z.object({
   id: z.string().uuid(),
   position: z.number().int().nonnegative(),
@@ -122,6 +124,7 @@ export type Exercise = z.infer<typeof ExerciseSchema>;
 export type CreateExerciseInput = z.infer<typeof CreateExerciseSchema>;
 export type UpdateExerciseInput = z.infer<typeof UpdateExerciseSchema>;
 export type CreateWorkoutPlanInput = z.infer<typeof CreateWorkoutPlanSchema>;
+export type UpdateWorkoutPlanInput = z.infer<typeof UpdateWorkoutPlanSchema>;
 export type WorkoutPlan = z.infer<typeof WorkoutPlanSchema>;
 export type WorkoutPlanExercise = z.infer<typeof WorkoutPlanExerciseSchema>;
 export type CreateWorkoutSessionInput = z.infer<typeof CreateWorkoutSessionSchema>;

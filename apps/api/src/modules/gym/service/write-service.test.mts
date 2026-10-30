@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import type {
   Exercise,
   LoggedSet,
+  UpdateWorkoutPlanInput,
   WorkoutPlan,
   WorkoutSessionDetail,
 } from "@gymos/shared";
@@ -74,6 +75,11 @@ function createService() {
   const planRepository = {
     findById: vi.fn(async (_userId: string, _planId: string) => null as WorkoutPlan | null),
     create: vi.fn(async (_userId: string, _input: unknown) => plan),
+    update: vi.fn(
+      async (_userId: string, _planId: string, _input: unknown) =>
+        plan as WorkoutPlan | null
+    ),
+    delete: vi.fn(async (_userId: string, _planId: string) => true),
   };
   const sessionRepository = {
     createIfNoActive: vi.fn(
@@ -108,6 +114,12 @@ function createService() {
 const planInput = {
   name: "Push",
   exercises: [{ exerciseId, targetSets: 3, targetReps: 10 }],
+};
+
+const planUpdate: UpdateWorkoutPlanInput = {
+  name: "Push A",
+  description: "Heavy",
+  exercises: [{ exerciseId, targetSets: 5, targetReps: 5 }],
 };
 
 describe("GymWriteService", () => {
@@ -179,6 +191,54 @@ describe("GymWriteService", () => {
     await expect(service.createPlan("user-1", planInput)).rejects.toBeInstanceOf(
       DuplicatePlanNameError
     );
+  });
+
+  it("updates a plan when all exercises exist", async () => {
+    const { service, planRepository } = createService();
+
+    await expect(
+      service.updatePlan("user-1", "plan-1", planUpdate)
+    ).resolves.toEqual(plan);
+    expect(planRepository.update).toHaveBeenCalledWith(
+      "user-1",
+      "plan-1",
+      planUpdate
+    );
+  });
+
+  it("rejects updating a missing plan", async () => {
+    const { service, planRepository } = createService();
+    planRepository.update.mockResolvedValueOnce(null);
+
+    await expect(
+      service.updatePlan("user-1", "plan-1", planUpdate)
+    ).rejects.toBeInstanceOf(NotFoundError);
+  });
+
+  it("rejects unknown exercise IDs before updating", async () => {
+    const { service, exerciseRepository, planRepository } = createService();
+    exerciseRepository.findIds.mockResolvedValueOnce([]);
+
+    await expect(
+      service.updatePlan("user-1", "plan-1", planUpdate)
+    ).rejects.toBeInstanceOf(UnknownExerciseError);
+    expect(planRepository.update).not.toHaveBeenCalled();
+  });
+
+  it("deletes a plan", async () => {
+    const { service, planRepository } = createService();
+
+    await expect(service.deletePlan("user-1", "plan-1")).resolves.toBeUndefined();
+    expect(planRepository.delete).toHaveBeenCalledWith("user-1", "plan-1");
+  });
+
+  it("rejects deleting a missing plan", async () => {
+    const { service, planRepository } = createService();
+    planRepository.delete.mockResolvedValueOnce(false);
+
+    await expect(
+      service.deletePlan("user-1", "plan-1")
+    ).rejects.toBeInstanceOf(NotFoundError);
   });
 
   it("starts a free session when no session is active", async () => {

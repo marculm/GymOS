@@ -1,10 +1,28 @@
 import { Prisma } from "@prisma/client";
-import type { CreateWorkoutPlanInput, WorkoutPlan } from "@gymos/shared";
+import type {
+  CreateWorkoutPlanInput,
+  UpdateWorkoutPlanInput,
+  WorkoutPlan,
+} from "@gymos/shared";
 import { prisma } from "../../../config/prisma-client.mts";
 import { DuplicatePlanNameError } from "../service/errors.mts";
 import type { PlanSearchParams } from "../service/search-params.mts";
 import { buildPlanWhere } from "./where-builder.mts";
 import { planInclude, toPlan } from "./mapping.mts";
+
+function isPrismaError(error: unknown, code: string): boolean {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === code
+  );
+}
+
+function rethrowDuplicateName(error: unknown): never {
+  if (isPrismaError(error, "P2002")) {
+    throw new DuplicatePlanNameError("A plan with this name already exists");
+  }
+  throw error;
+}
 
 export class PlanRepository {
   async findByUser(
@@ -56,13 +74,48 @@ export class PlanRepository {
       });
       return toPlan(plan);
     } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === "P2002"
-      ) {
-        throw new DuplicatePlanNameError("A plan with this name already exists");
-      }
-      throw error;
+      rethrowDuplicateName(error);
     }
+  }
+
+  async update(
+    userId: string,
+    planId: string,
+    input: UpdateWorkoutPlanInput
+  ): Promise<WorkoutPlan | null> {
+    try {
+      const plan = await prisma.workoutPlan.update({
+        where: { id: planId, userId },
+        data: {
+          name: input.name,
+          description: input.description ?? null,
+          exercises: {
+            deleteMany: {},
+            create: input.exercises.map((exercise, index) => ({
+              exerciseId: exercise.exerciseId,
+              position: index,
+              targetSets: exercise.targetSets,
+              targetReps: exercise.targetReps,
+              targetWeightKg: exercise.targetWeightKg ?? null,
+              notes: exercise.notes ?? null,
+            })),
+          },
+        },
+        include: planInclude,
+      });
+      return toPlan(plan);
+    } catch (error) {
+      if (isPrismaError(error, "P2025")) {
+        return null;
+      }
+      rethrowDuplicateName(error);
+    }
+  }
+
+  async delete(userId: string, planId: string): Promise<boolean> {
+    const { count } = await prisma.workoutPlan.deleteMany({
+      where: { id: planId, userId },
+    });
+    return count > 0;
   }
 }
