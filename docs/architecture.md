@@ -210,9 +210,9 @@ Services are classes with constructor injection:
 
 - `GymReadService` handles queries: exercises, plans, active session, session list,
   session detail.
-- `GymWriteService` handles commands: create, edit, and soft-delete exercises; create
-  plan; start session; log set; complete session. It may receive the read service for
-  read-side checks.
+- `GymWriteService` handles commands: create, edit, and soft-delete exercises; create,
+  edit, and delete plans; start session; log set; complete session. It may receive the
+  read service for read-side checks.
 - Dependencies, includes, and the logger are `readonly #private` fields.
 - Each class uses `getLogger(ClassName.name)`.
 - Services are stateless. The container creates one instance each.
@@ -422,6 +422,8 @@ apps/web/
   call `fetch` directly.
 - The exercise register creates, edits, and soft-deletes exercises. Exercise defaults
   prefill new plan rows and the set-logging form (ADR-0024).
+- Plans can be edited and deleted from the plan list. Editing replaces the plan's
+  exercises and targets; past sessions and logged sets are unaffected (ADR-0025).
 - The session screen displays every logged set, including exercises that are not part of
   the session's plan (ADR-0019). Logged sets carry `exerciseName`, so deleted exercises
   stay readable in history.
@@ -562,3 +564,4 @@ The target architecture deliberately excludes:
 | [0022](adr/0022-workout-set-reps-and-weight-limits.md) | Workout set reps and weight limits |
 | [0023](adr/0023-seed-configured-current-user.md) | Seed the configured current user |
 | [0024](adr/0024-exercise-register-soft-delete.md) | Exercise register with soft delete |
+| [0025](adr/0025-plan-editing-and-deletion.md) | Plan editing and deletion |
