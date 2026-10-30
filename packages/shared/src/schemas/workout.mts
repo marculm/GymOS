@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MAX_SET_REPS, MAX_SET_WEIGHT_KG } from "../limits.mts";
 
 export const ExerciseSchema = z.object({
   id: z.string().uuid(),
@@ -58,8 +59,8 @@ export const CreateWorkoutSessionSchema = z.object({
 
 export const CreateWorkoutSetSchema = z.object({
   exerciseId: z.string().uuid(),
-  reps: z.number().int().positive(),
-  weightKg: z.number().nonnegative(),
+  reps: z.number().int().positive().max(MAX_SET_REPS),
+  weightKg: z.number().nonnegative().max(MAX_SET_WEIGHT_KG),
   rpe: z.number().min(1).max(10).optional(),
 });
 

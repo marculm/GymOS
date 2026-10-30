@@ -81,6 +81,33 @@ describe("CreateWorkoutSetSchema", () => {
     expect(result.success).toBe(true);
   });
 
+  it("accepts reps and weight at their maxima", () => {
+    const result = CreateWorkoutSetSchema.safeParse({
+      exerciseId: "00000000-0000-4000-8000-000000000001",
+      reps: 1000,
+      weightKg: 1000,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects reps above the maximum", () => {
+    const result = CreateWorkoutSetSchema.safeParse({
+      exerciseId: "00000000-0000-4000-8000-000000000001",
+      reps: 1001,
+      weightKg: 20,
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects weight above the maximum", () => {
+    const result = CreateWorkoutSetSchema.safeParse({
+      exerciseId: "00000000-0000-4000-8000-000000000001",
+      reps: 10,
+      weightKg: 1000.5,
+    });
+    expect(result.success).toBe(false);
+  });
+
   it("rejects RPE above 10", () => {
     const result = CreateWorkoutSetSchema.safeParse({
       exerciseId: "00000000-0000-4000-8000-000000000001",
