@@ -3,13 +3,16 @@
     DUPLICATE_EXERCISE_MESSAGE,
     type CreateWorkoutPlanInput,
     type Exercise,
+    type WorkoutPlan,
   } from "@gymos/shared";
 
   let {
     exercises,
+    plan = null,
     onSubmit,
   }: {
     exercises: Exercise[];
+    plan?: WorkoutPlan | null;
     onSubmit: (input: CreateWorkoutPlanInput) => Promise<void>;
   } = $props();
 
@@ -18,7 +21,18 @@
     targetSets: number;
     targetReps: number;
     targetWeightKg: number | "";
+    notes?: string;
   };
+
+  function planRows(source: WorkoutPlan): ExerciseRow[] {
+    return source.exercises.map((entry) => ({
+      exerciseId: entry.exercise.id,
+      targetSets: entry.targetSets,
+      targetReps: entry.targetReps,
+      targetWeightKg: entry.targetWeightKg ?? "",
+      notes: entry.notes ?? undefined,
+    }));
+  }
 
   function createRow(list: Exercise[]): ExerciseRow {
     const exercise = list[0];
@@ -30,10 +44,21 @@
     };
   }
 
-  let name = $state("");
-  let description = $state("");
+  const available = $derived([
+    ...exercises,
+    ...(plan?.exercises ?? [])
+      .map((entry) => entry.exercise)
+      .filter(
+        (exercise) => !exercises.some((active) => active.id === exercise.id)
+      ),
+  ]);
+
   // svelte-ignore state_referenced_locally
-  let rows = $state<ExerciseRow[]>([createRow(exercises)]);
+  let name = $state(plan?.name ?? "");
+  // svelte-ignore state_referenced_locally
+  let description = $state(plan?.description ?? "");
+  // svelte-ignore state_referenced_locally
+  let rows = $state<ExerciseRow[]>(plan ? planRows(plan) : [createRow(exercises)]);
   let pending = $state(false);
   let error = $state<string | null>(null);
 
@@ -44,12 +69,14 @@
   }
 
   function selectExercise(index: number, exerciseId: string) {
-    const exercise = exercises.find((entry) => entry.id === exerciseId);
+    const exercise = available.find((entry) => entry.id === exerciseId);
+    const notes = rows[index]?.exerciseId === exerciseId ? rows[index]?.notes : undefined;
     updateRow(index, {
       exerciseId,
       targetSets: exercise?.defaultSets ?? 3,
       targetReps: exercise?.defaultReps ?? 8,
       targetWeightKg: exercise?.defaultWeightKg ?? "",
+      notes,
     });
   }
 
@@ -87,27 +114,32 @@
           targetReps: row.targetReps,
           targetWeightKg:
             row.targetWeightKg === "" ? undefined : row.targetWeightKg,
+          notes: row.notes,
         })),
       });
-      name = "";
-      description = "";
-      rows = [createRow(exercises)];
+      if (!plan) {
+        name = "";
+        description = "";
+        rows = [createRow(exercises)];
+      }
     } catch (submitError) {
       error =
         submitError instanceof Error
           ? submitError.message
-          : "Could not create the plan";
+          : "Could not save the plan";
     } finally {
       pending = false;
     }
   }
 </script>
 
-{#if exercises.length === 0}
+{#if available.length === 0}
   <p class="empty">No exercises available. Add one in the exercise register.</p>
 {:else}
   <form class="card stack" onsubmit={handleSubmit}>
-    <h3 class="card-title">New training plan</h3>
+    <h3 class="card-title">
+      {plan ? "Edit training plan" : "New training plan"}
+    </h3>
 
     <label class="field">
       <span class="label">Name</span>
@@ -132,7 +164,7 @@
                 onchange={(event) =>
                   selectExercise(index, event.currentTarget.value)}
               >
-                {#each exercises as exercise (exercise.id)}
+                {#each available as exercise (exercise.id)}
                   <option value={exercise.id}>{exercise.name}</option>
                 {/each}
               </select>

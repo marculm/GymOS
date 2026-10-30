@@ -16,12 +16,14 @@
     createExercise,
     createPlan,
     deleteExercise,
+    deletePlan,
     getActiveSession,
     listAllExercises,
     listAllPlans,
     listSessions,
     startSession,
     updateExercise,
+    updatePlan,
   } from "../../api/gym.mts";
   import ExerciseRegister from "./ExerciseRegister.svelte";
   import PlanForm from "./PlanForm.svelte";
@@ -34,6 +36,7 @@
   let loading = $state(true);
   let error = $state<string | null>(null);
   let showPlanForm = $state(false);
+  let editingPlan = $state<WorkoutPlan | null>(null);
   let pending = $state(false);
 
   function messageOf(value: unknown): string {
@@ -92,6 +95,28 @@
     const created = await createPlan(input);
     plans = [created, ...plans];
     showPlanForm = false;
+  }
+
+  async function handleUpdatePlan(input: CreateWorkoutPlanInput) {
+    if (!editingPlan) return;
+    const updated = await updatePlan(editingPlan.id, input);
+    plans = plans.map((plan) => (plan.id === updated.id ? updated : plan));
+    editingPlan = null;
+  }
+
+  async function handleDeletePlan(plan: WorkoutPlan) {
+    if (!confirm(`Delete ${plan.name}? Past workouts keep their records.`)) {
+      return;
+    }
+
+    error = null;
+    try {
+      await deletePlan(plan.id);
+      plans = plans.filter((entry) => entry.id !== plan.id);
+      if (editingPlan?.id === plan.id) editingPlan = null;
+    } catch (deleteError) {
+      error = messageOf(deleteError);
+    }
   }
 
   async function handleCreateExercise(input: CreateExerciseInput) {
@@ -206,6 +231,27 @@
                 Start plan
               </button>
             </div>
+            <div class="row">
+              <button
+                type="button"
+                class="btn btn-ghost"
+                aria-label={`Edit ${plan.name}`}
+                onclick={() => {
+                  showPlanForm = false;
+                  editingPlan = plan;
+                }}
+              >
+                Edit
+              </button>
+              <button
+                type="button"
+                class="btn btn-ghost"
+                aria-label={`Delete ${plan.name}`}
+                onclick={() => void handleDeletePlan(plan)}
+              >
+                Delete
+              </button>
+            </div>
           </article>
         {/each}
       {/if}
@@ -213,13 +259,27 @@
       <button
         type="button"
         class="btn btn-ghost"
-        onclick={() => (showPlanForm = !showPlanForm)}
+        onclick={() => {
+          if (editingPlan) {
+            editingPlan = null;
+            return;
+          }
+          showPlanForm = !showPlanForm;
+        }}
       >
-        {showPlanForm ? "Cancel" : "Create plan"}
+        {showPlanForm || editingPlan ? "Cancel" : "Create plan"}
       </button>
 
       {#if showPlanForm}
         <PlanForm exercises={exercises} onSubmit={handleCreatePlan} />
+      {:else if editingPlan}
+        {#key editingPlan?.id}
+          <PlanForm
+            exercises={exercises}
+            plan={editingPlan}
+            onSubmit={handleUpdatePlan}
+          />
+        {/key}
       {/if}
     </section>
 

@@ -6,6 +6,7 @@ import type {
   Exercise,
   LoggedSet,
   UpdateExerciseInput,
+  UpdateWorkoutPlanInput,
   WorkoutPlan,
   WorkoutSessionDetail,
 } from "@gymos/shared";
@@ -24,7 +25,10 @@ type ExerciseWriter = Pick<
   ExerciseRepository,
   "findIds" | "create" | "update" | "softDelete"
 >;
-type PlanReader = Pick<PlanRepository, "findById" | "create">;
+type PlanWriter = Pick<
+  PlanRepository,
+  "findById" | "create" | "update" | "delete"
+>;
 type SessionWriter = Pick<
   SessionRepository,
   "createIfNoActive" | "logSet" | "completeIfOpen"
@@ -33,7 +37,7 @@ type SessionWriter = Pick<
 export class GymWriteService {
   constructor(
     private readonly exerciseRepository: ExerciseWriter,
-    private readonly planRepository: PlanReader,
+    private readonly planRepository: PlanWriter,
     private readonly sessionRepository: SessionWriter
   ) {}
 
@@ -64,17 +68,53 @@ export class GymWriteService {
     userId: string,
     input: CreateWorkoutPlanInput
   ): Promise<WorkoutPlan> {
+    await this.assertExercisesExist(input.exercises);
+    return this.planRepository.create(userId, input);
+  }
+
+  async updatePlan(
+    userId: string,
+    planId: string,
+    input: UpdateWorkoutPlanInput
+  ): Promise<WorkoutPlan> {
+    const current = await this.planRepository.findById(userId, planId);
+    if (!current) {
+      throw new NotFoundError("Plan not found");
+    }
+
+    await this.assertExercisesExist(
+      input.exercises,
+      current.exercises.map((entry) => entry.exercise.id)
+    );
+
+    const plan = await this.planRepository.update(userId, planId, input);
+    if (!plan) {
+      throw new NotFoundError("Plan not found");
+    }
+    return plan;
+  }
+
+  async deletePlan(userId: string, planId: string): Promise<void> {
+    const deleted = await this.planRepository.delete(userId, planId);
+    if (!deleted) {
+      throw new NotFoundError("Plan not found");
+    }
+  }
+
+  private async assertExercisesExist(
+    exercises: Array<{ exerciseId: string }>,
+    alreadyInPlan: string[] = []
+  ): Promise<void> {
     const requestedIds = [
-      ...new Set(input.exercises.map((exercise) => exercise.exerciseId)),
+      ...new Set(exercises.map((exercise) => exercise.exerciseId)),
     ];
-    const existingIds = await this.exerciseRepository.findIds(requestedIds);
-    const missing = requestedIds.filter((id) => !existingIds.includes(id));
+    const activeIds = await this.exerciseRepository.findIds(requestedIds);
+    const knownIds = new Set([...alreadyInPlan, ...activeIds]);
+    const missing = requestedIds.filter((id) => !knownIds.has(id));
 
     if (missing.length > 0) {
       throw new UnknownExerciseError(`Unknown exercise IDs: ${missing.join(", ")}`);
     }
-
-    return this.planRepository.create(userId, input);
   }
 
   async startSession(

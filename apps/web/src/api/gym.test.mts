@@ -4,11 +4,13 @@ import {
   createExercise,
   createPlan,
   deleteExercise,
+  deletePlan,
   getActiveSession,
   listAllExercises,
   listExercises,
   listSessions,
   updateExercise,
+  updatePlan,
 } from "./gym.mts";
 
 afterEach(() => {
@@ -134,6 +136,47 @@ describe("gym api client", () => {
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/gym/plans",
       expect.objectContaining({ method: "POST" })
+    );
+  });
+
+  it("updates and deletes a plan", async () => {
+    const plan = {
+      id: "plan-1",
+      name: "Push",
+      description: null,
+      createdAt: "2026-10-26T18:00:00.000Z",
+      exercises: [],
+    };
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(plan), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        })
+      )
+      .mockResolvedValueOnce(new Response(null, { status: 204 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await updatePlan("plan-1", {
+      name: "Push",
+      exercises: [
+        {
+          exerciseId: "00000000-0000-4000-8000-000000000001",
+          targetSets: 3,
+          targetReps: 8,
+        },
+      ],
+    });
+    await expect(deletePlan("plan-1")).resolves.toBeUndefined();
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/gym/plans/plan-1");
+    expect(fetchMock.mock.calls[0]?.[1]).toEqual(
+      expect.objectContaining({ method: "PUT" })
+    );
+    expect(fetchMock.mock.calls[1]?.[0]).toBe("/api/gym/plans/plan-1");
+    expect(fetchMock.mock.calls[1]?.[1]).toEqual(
+      expect.objectContaining({ method: "DELETE" })
     );
   });
 
