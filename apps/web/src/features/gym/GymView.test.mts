@@ -1,6 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/svelte";
-import type { Exercise, WorkoutPlan, WorkoutSessionDetail } from "@gymos/shared";
+import type {
+  Exercise,
+  WorkoutPlan,
+  WorkoutRotation,
+  WorkoutSessionDetail,
+} from "@gymos/shared";
 import { ApiError } from "../../api/client.mts";
 import GymView from "./GymView.svelte";
 import {
@@ -379,6 +384,56 @@ describe("GymView", () => {
         planIds: [extraPlan.id],
       });
     });
+  });
+
+  it("disables rotation controls while saving", async () => {
+    vi.mocked(getRotation).mockResolvedValueOnce({
+      plans: [plan, extraPlan],
+      nextPlanId: plan.id,
+    });
+    let resolveSave!: (rotation: WorkoutRotation) => void;
+    vi.mocked(setRotation).mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveSave = resolve;
+      })
+    );
+
+    render(GymView);
+
+    await fireEvent.click(
+      await screen.findByRole("button", { name: /move pull day up/i })
+    );
+
+    expect(
+      screen.getByRole("button", { name: /remove pull day/i })
+    ).toBeDisabled();
+
+    resolveSave({ plans: [plan, extraPlan], nextPlanId: plan.id });
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: /remove pull day/i })
+      ).toBeEnabled();
+    });
+  });
+
+  it("shows an error when saving the rotation fails", async () => {
+    vi.mocked(getRotation).mockResolvedValueOnce({
+      plans: [plan],
+      nextPlanId: plan.id,
+    });
+    vi.mocked(setRotation).mockRejectedValueOnce(
+      new ApiError(422, "Unknown plan IDs: missing")
+    );
+
+    render(GymView);
+
+    await fireEvent.click(
+      await screen.findByRole("button", { name: /remove push day/i })
+    );
+
+    expect(
+      await screen.findByText("Unknown plan IDs: missing")
+    ).toBeInTheDocument();
   });
 
   it("refreshes the rotation after deleting a plan", async () => {

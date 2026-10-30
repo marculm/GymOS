@@ -129,9 +129,15 @@
       await deletePlan(plan.id);
       plans = plans.filter((entry) => entry.id !== plan.id);
       if (editingPlan?.id === plan.id) editingPlan = null;
-      rotation = await getRotation();
     } catch (deleteError) {
       error = messageOf(deleteError);
+      return;
+    }
+
+    try {
+      rotation = await getRotation();
+    } catch {
+      // The plan is deleted; the rotation refreshes on the next load.
     }
   }
 
@@ -316,6 +322,7 @@
           <button
             type="button"
             class="btn btn-ghost"
+            disabled={rotationPending}
             aria-label={`Remove ${plan.name} from rotation`}
             onclick={() => removeRotationPlan(plan.id)}
           >
@@ -342,7 +349,8 @@
           <button
             type="button"
             class="btn btn-ghost"
-            disabled={rotationPending || planToAdd === ""}
+            disabled={rotationPending ||
+              !availableRotationPlans.some((plan) => plan.id === planToAdd)}
             onclick={addRotationPlan}
           >
             Add
