@@ -7,6 +7,7 @@ import {
   type WorkoutSessionDetail,
   type WorkoutSessionSummary,
 } from "@gymos/shared";
+import { InvalidMuscleGroupError } from "../service/errors.mts";
 
 export const planInclude = {
   exercises: {
@@ -37,12 +38,6 @@ type SessionWithSetCount = Prisma.WorkoutSessionGetPayload<{
 }>;
 
 const muscleGroupSchema = ExerciseSchema.shape.muscleGroup;
-
-export class InvalidMuscleGroupError extends Error {
-  constructor(exerciseId: string, muscleGroup: string) {
-    super(`Exercise ${exerciseId} has invalid muscle group "${muscleGroup}"`);
-  }
-}
 
 export function toExercise(exercise: {
   id: string;

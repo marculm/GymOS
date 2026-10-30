@@ -10,8 +10,8 @@ Accepted
 shared `ExerciseSchema` restricts it to `chest`, `back`, `legs`, `shoulders`, `arms`,
 and `core`. The repository mapping cast the database value to the enum without
 validation, so invalid seeded or externally written data could reach clients and break
-the API contract (known issue 8). ADR-0005 makes the shared schemas the single
-contract; ADR-0015 defines the error model.
+the API contract (previously tracked as known issue 8). ADR-0005 makes the shared
+schemas the single contract; ADR-0015 defines the error model.
 
 ## Decision
 
