@@ -231,6 +231,28 @@ button {
   padding: 12px;
 }
 
+.picker {
+  width: min(100% - 32px, 480px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text);
+  padding: var(--space);
+}
+
+.picker::backdrop {
+  background: rgb(31 27 22 / 45%);
+}
+
+.picker-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+}
+
 .grow {
   flex: 1 1 160px;
 }
