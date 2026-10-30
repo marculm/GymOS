@@ -77,7 +77,16 @@ export class GymWriteService {
     planId: string,
     input: UpdateWorkoutPlanInput
   ): Promise<WorkoutPlan> {
-    await this.assertExercisesExist(input.exercises);
+    const current = await this.planRepository.findById(userId, planId);
+    if (!current) {
+      throw new NotFoundError("Plan not found");
+    }
+
+    await this.assertExercisesExist(
+      input.exercises,
+      current.exercises.map((entry) => entry.exercise.id)
+    );
+
     const plan = await this.planRepository.update(userId, planId, input);
     if (!plan) {
       throw new NotFoundError("Plan not found");
@@ -93,13 +102,15 @@ export class GymWriteService {
   }
 
   private async assertExercisesExist(
-    exercises: Array<{ exerciseId: string }>
+    exercises: Array<{ exerciseId: string }>,
+    alreadyInPlan: string[] = []
   ): Promise<void> {
     const requestedIds = [
       ...new Set(exercises.map((exercise) => exercise.exerciseId)),
     ];
-    const existingIds = await this.exerciseRepository.findIds(requestedIds);
-    const missing = requestedIds.filter((id) => !existingIds.includes(id));
+    const activeIds = await this.exerciseRepository.findIds(requestedIds);
+    const knownIds = new Set([...alreadyInPlan, ...activeIds]);
+    const missing = requestedIds.filter((id) => !knownIds.has(id));
 
     if (missing.length > 0) {
       throw new UnknownExerciseError(`Unknown exercise IDs: ${missing.join(", ")}`);

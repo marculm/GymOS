@@ -258,6 +258,48 @@ describe("Gym plan routes", () => {
     expect(plans.content.map((plan) => plan.name)).toEqual(["Guarded"]);
   });
 
+  it("keeps an exercise that is already in the plan after it was deleted", async () => {
+    const createdExercise = (await (
+      await sendJson("POST", "/api/gym/exercises", {
+        name: `Plan Exercise ${crypto.randomUUID()}`,
+        muscleGroup: "chest",
+      })
+    ).json()) as { id: string };
+
+    const created = (await (
+      await sendJson("POST", "/api/gym/plans", {
+        name: "Deleted Exercise Plan",
+        exercises: [
+          { exerciseId: createdExercise.id, targetSets: 3, targetReps: 10 },
+        ],
+      })
+    ).json()) as { id: string };
+
+    const deleted = await app.request(
+      `/api/gym/exercises/${createdExercise.id}`,
+      { method: "DELETE" }
+    );
+    expect(deleted.status).toBe(200);
+
+    const res = await sendJson("PUT", `/api/gym/plans/${created.id}`, {
+      name: "Renamed Deleted Exercise Plan",
+      exercises: [
+        { exerciseId: createdExercise.id, targetSets: 4, targetReps: 8 },
+      ],
+    });
+
+    expect(res.status).toBe(200);
+    const plan = (await res.json()) as {
+      name: string;
+      exercises: Array<{ targetSets: number; exercise: { id: string } }>;
+    };
+    expect(plan.name).toBe("Renamed Deleted Exercise Plan");
+    expect(plan.exercises[0]).toMatchObject({
+      targetSets: 4,
+      exercise: { id: createdExercise.id },
+    });
+  });
+
   it("rejects renaming a plan to an existing name", async () => {
     await createPlan("Taken");
     const created = await createPlan("Renamed");

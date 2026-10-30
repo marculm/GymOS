@@ -195,6 +195,7 @@ describe("GymWriteService", () => {
 
   it("updates a plan when all exercises exist", async () => {
     const { service, planRepository } = createService();
+    planRepository.findById.mockResolvedValueOnce(plan);
 
     await expect(
       service.updatePlan("user-1", "plan-1", planUpdate)
@@ -208,21 +209,50 @@ describe("GymWriteService", () => {
 
   it("rejects updating a missing plan", async () => {
     const { service, planRepository } = createService();
-    planRepository.update.mockResolvedValueOnce(null);
 
     await expect(
       service.updatePlan("user-1", "plan-1", planUpdate)
     ).rejects.toBeInstanceOf(NotFoundError);
+    expect(planRepository.update).not.toHaveBeenCalled();
   });
 
   it("rejects unknown exercise IDs before updating", async () => {
     const { service, exerciseRepository, planRepository } = createService();
+    planRepository.findById.mockResolvedValueOnce(plan);
     exerciseRepository.findIds.mockResolvedValueOnce([]);
 
     await expect(
       service.updatePlan("user-1", "plan-1", planUpdate)
     ).rejects.toBeInstanceOf(UnknownExerciseError);
     expect(planRepository.update).not.toHaveBeenCalled();
+  });
+
+  it("keeps an exercise already in the plan after it was deleted", async () => {
+    const { service, exerciseRepository, planRepository } = createService();
+    planRepository.findById.mockResolvedValueOnce({
+      ...plan,
+      exercises: [
+        {
+          id: "plan-exercise-1",
+          position: 0,
+          targetSets: 4,
+          targetReps: 8,
+          targetWeightKg: 80,
+          notes: null,
+          exercise,
+        },
+      ],
+    });
+    exerciseRepository.findIds.mockResolvedValueOnce([]);
+
+    await expect(
+      service.updatePlan("user-1", "plan-1", planUpdate)
+    ).resolves.toEqual(plan);
+    expect(planRepository.update).toHaveBeenCalledWith(
+      "user-1",
+      "plan-1",
+      planUpdate
+    );
   });
 
   it("deletes a plan", async () => {
