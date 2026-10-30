@@ -114,7 +114,7 @@ afterEach(() => {
 });
 
 beforeEach(() => {
-  vi.clearAllMocks();
+  vi.resetAllMocks();
   vi.mocked(listExercises).mockResolvedValue(page([exercise]));
   vi.mocked(listPlans).mockResolvedValue(page([plan]));
   vi.mocked(listAllExercises).mockResolvedValue([exercise]);
@@ -378,6 +378,47 @@ describe("GymView", () => {
       expect(setRotation).toHaveBeenLastCalledWith({
         planIds: [extraPlan.id],
       });
+    });
+  });
+
+  it("refreshes the rotation after deleting a plan", async () => {
+    vi.stubGlobal("confirm", vi.fn(() => true));
+    vi.mocked(getRotation)
+      .mockResolvedValueOnce({ plans: [plan], nextPlanId: plan.id })
+      .mockResolvedValueOnce({ plans: [], nextPlanId: null });
+
+    render(GymView);
+
+    await fireEvent.click(
+      await screen.findByRole("button", { name: /delete push day/i })
+    );
+
+    expect(
+      await screen.findByText("Add plans to set up a rotation")
+    ).toBeInTheDocument();
+  });
+
+  it("renames the plan in the rotation after editing", async () => {
+    vi.mocked(getRotation).mockResolvedValueOnce({
+      plans: [plan],
+      nextPlanId: plan.id,
+    });
+    vi.mocked(updatePlan).mockResolvedValueOnce({ ...plan, name: "Push Day A" });
+
+    render(GymView);
+
+    await fireEvent.click(
+      await screen.findByRole("button", { name: /edit push day/i })
+    );
+    await fireEvent.input(await screen.findByLabelText("Name"), {
+      target: { value: "Push Day A" },
+    });
+    await fireEvent.click(screen.getByRole("button", { name: /save plan/i }));
+
+    await waitFor(() => {
+      expect(
+        screen.getAllByRole("heading", { name: "Push Day A" })
+      ).toHaveLength(2);
     });
   });
 

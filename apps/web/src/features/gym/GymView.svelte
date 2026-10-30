@@ -110,6 +110,12 @@
     if (!editingPlan) return;
     const updated = await updatePlan(editingPlan.id, input);
     plans = plans.map((plan) => (plan.id === updated.id ? updated : plan));
+    rotation = {
+      ...rotation,
+      plans: rotation.plans.map((entry) =>
+        entry.id === updated.id ? updated : entry
+      ),
+    };
     editingPlan = null;
   }
 
@@ -123,6 +129,7 @@
       await deletePlan(plan.id);
       plans = plans.filter((entry) => entry.id !== plan.id);
       if (editingPlan?.id === plan.id) editingPlan = null;
+      rotation = await getRotation();
     } catch (deleteError) {
       error = messageOf(deleteError);
     }
