@@ -19,9 +19,6 @@ import {
   getRotation,
   listAllExercises,
   listAllPlans,
-  listExercises,
-  listPlans,
-  listSessions,
   setRotation,
   startSession,
   updateExercise,
@@ -29,8 +26,6 @@ import {
 } from "../../api/gym.mts";
 
 vi.mock("../../api/gym.mts", () => ({
-  listExercises: vi.fn(),
-  listPlans: vi.fn(),
   listAllExercises: vi.fn(),
   listAllPlans: vi.fn(),
   createExercise: vi.fn(),
@@ -43,7 +38,6 @@ vi.mock("../../api/gym.mts", () => ({
   setRotation: vi.fn(),
   startSession: vi.fn(),
   getActiveSession: vi.fn(),
-  listSessions: vi.fn(),
   addSet: vi.fn(),
   completeSession: vi.fn(),
 }));
@@ -114,18 +108,25 @@ const session: WorkoutSessionDetail = {
   sets: [],
 };
 
+async function startScreenReady() {
+  return screen.findByRole("button", { name: /other workout/i });
+}
+
+async function openManagement() {
+  await fireEvent.click(
+    await screen.findByRole("button", { name: /manage training plan/i })
+  );
+}
+
 afterEach(() => {
   vi.unstubAllGlobals();
 });
 
 beforeEach(() => {
   vi.resetAllMocks();
-  vi.mocked(listExercises).mockResolvedValue(page([exercise]));
-  vi.mocked(listPlans).mockResolvedValue(page([plan]));
   vi.mocked(listAllExercises).mockResolvedValue([exercise]);
   vi.mocked(listAllPlans).mockResolvedValue([plan]);
   vi.mocked(getActiveSession).mockResolvedValue(null);
-  vi.mocked(listSessions).mockResolvedValue(page([]));
   vi.mocked(startSession).mockResolvedValue(session);
   vi.mocked(createPlan).mockResolvedValue(plan);
   vi.mocked(updatePlan).mockResolvedValue(plan);
@@ -156,29 +157,125 @@ beforeEach(() => {
 });
 
 describe("GymView", () => {
-  it("renders plans and recent workouts", async () => {
+  it("leads with the next rotation workout", async () => {
+    vi.mocked(getRotation).mockResolvedValueOnce({
+      plans: [plan],
+      nextPlanId: plan.id,
+    });
+
     render(GymView);
 
-    expect(await screen.findByRole("heading", { name: "Push Day" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "Push Day" })
+    ).toBeInTheDocument();
+    expect(screen.getByText("Chest and shoulders")).toBeInTheDocument();
     expect(screen.getByText(/1\s+exercise/)).toBeInTheDocument();
-    expect(screen.getByText("No completed workouts yet")).toBeInTheDocument();
+    expect(screen.getByText("4 × 8 @ 80 kg")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Start workout" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /other workout/i })
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Recent workouts")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "Training rotation" })
+    ).not.toBeInTheDocument();
   });
 
-  it("starts a plan session", async () => {
+  it("starts the suggested workout", async () => {
+    vi.mocked(getRotation).mockResolvedValueOnce({
+      plans: [plan],
+      nextPlanId: plan.id,
+    });
+
     render(GymView);
 
-    await screen.findByRole("heading", { name: "Push Day" });
-    await fireEvent.click(screen.getByRole("button", { name: /start plan/i }));
+    await fireEvent.click(
+      await screen.findByRole("button", { name: "Start workout" })
+    );
 
     await waitFor(() => {
       expect(startSession).toHaveBeenCalledWith({ planId: "plan-1" });
     });
     expect(
+      await screen.findByRole("button", { name: /finish workout/i })
+    ).toBeInTheDocument();
+  });
+
+  it("starts a suggestion that is not the first rotation plan", async () => {
+    vi.mocked(getRotation).mockResolvedValueOnce({
+      plans: [plan, extraPlan],
+      nextPlanId: extraPlan.id,
+    });
+
+    render(GymView);
+
+    await fireEvent.click(
+      await screen.findByRole("button", { name: "Start workout" })
+    );
+
+    await waitFor(() => {
+      expect(startSession).toHaveBeenCalledWith({ planId: extraPlan.id });
+    });
+  });
+
+  it("starts a free workout from the secondary action", async () => {
+    render(GymView);
+
+    await fireEvent.click(await startScreenReady());
+
+    await waitFor(() => {
+      expect(startSession).toHaveBeenCalledWith({});
+    });
+  });
+
+  it("opens management from the empty state", async () => {
+    render(GymView);
+
+    expect(
+      await screen.findByRole("heading", { name: "No workout scheduled" })
+    ).toBeInTheDocument();
+    await fireEvent.click(
+      screen.getByRole("button", { name: /set up training plan/i })
+    );
+
+    expect(
+      await screen.findByRole("heading", { name: "Training rotation" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Push Day" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "My training plan" })
+    ).toHaveFocus();
+  });
+
+  it("keeps management hidden until requested", async () => {
+    render(GymView);
+
+    await startScreenReady();
+    expect(
+      screen.queryByRole("heading", { name: "Push Day" })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /manage training plan/i })
+    ).toHaveAttribute("aria-expanded", "false");
+
+    await openManagement();
+    expect(
       await screen.findByRole("heading", { name: "Push Day" })
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /finish workout/i })
-    ).toBeInTheDocument();
+      screen.getByRole("button", { name: /hide training plan/i })
+    ).toHaveAttribute("aria-expanded", "true");
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: /hide training plan/i })
+    );
+    expect(
+      screen.queryByRole("heading", { name: "Push Day" })
+    ).not.toBeInTheDocument();
   });
 
   it("creates a plan from the form", async () => {
@@ -190,7 +287,8 @@ describe("GymView", () => {
 
     render(GymView);
 
-    await screen.findByRole("heading", { name: "Push Day" });
+    await startScreenReady();
+    await openManagement();
     await fireEvent.click(screen.getByRole("button", { name: /create plan/i }));
     await fireEvent.input(screen.getByLabelText("Name"), {
       target: { value: "Leg Day" },
@@ -218,7 +316,8 @@ describe("GymView", () => {
 
     render(GymView);
 
-    await screen.findByRole("heading", { name: "Push Day" });
+    await startScreenReady();
+    await openManagement();
     await fireEvent.click(
       screen.getByRole("button", { name: /edit push day/i })
     );
@@ -249,7 +348,8 @@ describe("GymView", () => {
 
     render(GymView);
 
-    await screen.findByRole("heading", { name: "Push Day" });
+    await startScreenReady();
+    await openManagement();
     await fireEvent.click(
       screen.getByRole("button", { name: /edit push day/i })
     );
@@ -265,7 +365,8 @@ describe("GymView", () => {
   it("cancels a plan edit", async () => {
     render(GymView);
 
-    await screen.findByRole("heading", { name: "Push Day" });
+    await startScreenReady();
+    await openManagement();
     await fireEvent.click(
       screen.getByRole("button", { name: /edit push day/i })
     );
@@ -286,7 +387,8 @@ describe("GymView", () => {
 
     render(GymView);
 
-    await screen.findByRole("heading", { name: "Push Day" });
+    await startScreenReady();
+    await openManagement();
     await fireEvent.click(
       screen.getByRole("button", { name: /delete push day/i })
     );
@@ -304,7 +406,8 @@ describe("GymView", () => {
   it("rejects a plan that repeats an exercise", async () => {
     render(GymView);
 
-    await screen.findByRole("heading", { name: "Push Day" });
+    await startScreenReady();
+    await openManagement();
     await fireEvent.click(screen.getByRole("button", { name: /create plan/i }));
     await fireEvent.input(screen.getByLabelText("Name"), {
       target: { value: "Repeated" },
@@ -318,23 +421,6 @@ describe("GymView", () => {
     expect(createPlan).not.toHaveBeenCalled();
   });
 
-  it("shows the next rotation plan and starts it", async () => {
-    vi.mocked(getRotation).mockResolvedValueOnce({
-      plans: [plan, extraPlan],
-      nextPlanId: extraPlan.id,
-    });
-
-    render(GymView);
-
-    await fireEvent.click(
-      await screen.findByRole("button", { name: /start next plan/i })
-    );
-
-    await waitFor(() => {
-      expect(startSession).toHaveBeenCalledWith({ planId: extraPlan.id });
-    });
-  });
-
   it("adds a plan to the rotation", async () => {
     vi.mocked(getRotation).mockResolvedValueOnce({
       plans: [plan],
@@ -344,6 +430,8 @@ describe("GymView", () => {
 
     render(GymView);
 
+    await startScreenReady();
+    await openManagement();
     await fireEvent.change(
       await screen.findByLabelText("Add plan to rotation"),
       { target: { value: extraPlan.id } }
@@ -367,6 +455,8 @@ describe("GymView", () => {
 
     render(GymView);
 
+    await startScreenReady();
+    await openManagement();
     await fireEvent.click(
       await screen.findByRole("button", { name: /move pull day up/i })
     );
@@ -400,6 +490,8 @@ describe("GymView", () => {
 
     render(GymView);
 
+    await startScreenReady();
+    await openManagement();
     await fireEvent.click(
       await screen.findByRole("button", { name: /move pull day up/i })
     );
@@ -427,13 +519,15 @@ describe("GymView", () => {
 
     render(GymView);
 
+    await startScreenReady();
+    await openManagement();
     await fireEvent.click(
       await screen.findByRole("button", { name: /remove push day/i })
     );
 
-    expect(
-      await screen.findByText("Unknown plan IDs: missing")
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Unknown plan IDs: missing"
+    );
   });
 
   it("refreshes the rotation after deleting a plan", async () => {
@@ -444,6 +538,8 @@ describe("GymView", () => {
 
     render(GymView);
 
+    await startScreenReady();
+    await openManagement();
     await fireEvent.click(
       await screen.findByRole("button", { name: /delete push day/i })
     );
@@ -462,6 +558,8 @@ describe("GymView", () => {
 
     render(GymView);
 
+    await startScreenReady();
+    await openManagement();
     await fireEvent.click(
       await screen.findByRole("button", { name: /edit push day/i })
     );
@@ -473,7 +571,7 @@ describe("GymView", () => {
     await waitFor(() => {
       expect(
         screen.getAllByRole("heading", { name: "Push Day A" })
-      ).toHaveLength(2);
+      ).toHaveLength(3);
     });
   });
 
@@ -525,9 +623,7 @@ describe("GymView", () => {
     await waitFor(() => {
       expect(completeSession).toHaveBeenCalledWith("session-1");
     });
-    expect(
-      await screen.findByText("No completed workouts yet")
-    ).toBeInTheDocument();
+    expect(await startScreenReady()).toBeInTheDocument();
   });
 
   it("retries the start once when the conflict leaves no active session", async () => {
@@ -537,8 +633,7 @@ describe("GymView", () => {
 
     render(GymView);
 
-    await screen.findByRole("heading", { name: "Push Day" });
-    await fireEvent.click(screen.getByRole("button", { name: /start free workout/i }));
+    await fireEvent.click(await startScreenReady());
 
     await waitFor(() => {
       expect(startSession).toHaveBeenCalledTimes(2);
@@ -554,7 +649,8 @@ describe("GymView", () => {
   it("stops adding plan exercises at the schema limit", async () => {
     render(GymView);
 
-    await screen.findByRole("heading", { name: "Push Day" });
+    await startScreenReady();
+    await openManagement();
     await fireEvent.click(screen.getByRole("button", { name: /create plan/i }));
 
     const addButton = screen.getByRole("button", { name: /add exercise/i });
@@ -572,8 +668,7 @@ describe("GymView", () => {
 
     render(GymView);
 
-    await screen.findByRole("heading", { name: "Push Day" });
-    await fireEvent.click(screen.getByRole("button", { name: /start free workout/i }));
+    await fireEvent.click(await startScreenReady());
 
     expect(await screen.findByText("still blocked")).toBeInTheDocument();
   });
@@ -585,7 +680,8 @@ describe("GymView", () => {
 
     render(GymView);
 
-    await screen.findByRole("heading", { name: "Push Day" });
+    await startScreenReady();
+    await openManagement();
     await fireEvent.click(screen.getByRole("button", { name: /create plan/i }));
     await fireEvent.input(screen.getByLabelText("Name"), {
       target: { value: "Push Day" },
@@ -604,7 +700,7 @@ describe("GymView", () => {
 
     expect(await screen.findByText("Backend unavailable")).toBeInTheDocument();
     await fireEvent.click(screen.getByRole("button", { name: /retry/i }));
-    expect(await screen.findByRole("heading", { name: "Push Day" })).toBeInTheDocument();
+    expect(await startScreenReady()).toBeInTheDocument();
   });
 
   it("prefills plan targets from exercise defaults", async () => {
@@ -616,7 +712,8 @@ describe("GymView", () => {
 
     render(GymView);
 
-    await screen.findByRole("heading", { name: "Push Day" });
+    await startScreenReady();
+    await openManagement();
     await fireEvent.click(screen.getByRole("button", { name: /create plan/i }));
 
     expect(screen.getByLabelText("Sets")).toHaveValue(4);
@@ -648,7 +745,8 @@ describe("GymView", () => {
 
     render(GymView);
 
-    await screen.findByRole("heading", { name: "Push Day" });
+    await startScreenReady();
+    await openManagement();
     await fireEvent.click(screen.getByRole("button", { name: /create plan/i }));
     expect(screen.getByLabelText("Sets")).toHaveValue(4);
 
@@ -667,7 +765,8 @@ describe("GymView", () => {
 
     render(GymView);
 
-    await screen.findByRole("heading", { name: "Push Day" });
+    await startScreenReady();
+    await openManagement();
     await fireEvent.click(screen.getByRole("button", { name: /new exercise/i }));
     await fireEvent.input(screen.getByLabelText("Name"), {
       target: { value: "Cable Fly" },
@@ -682,12 +781,40 @@ describe("GymView", () => {
     expect(await screen.findByText("Cable Fly")).toBeInTheDocument();
   });
 
+  it("updates exercise names in the next workout after a rename", async () => {
+    vi.mocked(getRotation).mockResolvedValueOnce({
+      plans: [plan],
+      nextPlanId: plan.id,
+    });
+    vi.mocked(updateExercise).mockResolvedValueOnce({
+      ...exercise,
+      name: "Bench Press Pro",
+    });
+
+    render(GymView);
+
+    await startScreenReady();
+    await openManagement();
+    await fireEvent.click(
+      screen.getByRole("button", { name: /edit bench press/i })
+    );
+    await fireEvent.input(screen.getByLabelText("Name"), {
+      target: { value: "Bench Press Pro" },
+    });
+    await fireEvent.click(screen.getByRole("button", { name: /save exercise/i }));
+
+    expect(
+      await screen.findAllByText("Bench Press Pro")
+    ).toHaveLength(2);
+  });
+
   it("deletes an exercise from the register", async () => {
     vi.stubGlobal("confirm", vi.fn(() => true));
 
     render(GymView);
 
-    await screen.findByRole("heading", { name: "Push Day" });
+    await startScreenReady();
+    await openManagement();
     await fireEvent.click(
       screen.getByRole("button", { name: /delete bench press/i })
     );

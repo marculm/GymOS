@@ -17,7 +17,7 @@ The **Gym Tracker** slice is implemented:
   defaults)
 - Start free or plan-based workouts
 - Log sets with weight, reps, and RPE
-- Finish workouts and review recent history
+- Finish workouts (the history view is being reworked in a follow-up, ADR-0027)
 
 Nutrition, the AI recipe extractor, authentication, and offline logging are not implemented yet. The API is single-user (no login) and must be protected before public deployment. See [`docs/known-issues.md`](docs/known-issues.md) for known limitations.
 

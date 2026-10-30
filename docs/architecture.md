@@ -10,7 +10,8 @@ is complete.
 ## 1. System Context
 
 GymOS is a single-user gym and nutrition application. The first slice is a gym tracker:
-create a plan, start a workout, log sets, finish, and review history.
+create a plan, start a workout, log sets, and finish. The history view is being moved
+to the bottom of the Gym page in a follow-up (ADR-0027).
 
 ```text
 ┌──────────────────────────────┐
@@ -430,6 +431,10 @@ apps/web/
   exercises and targets; past sessions and logged sets are unaffected (ADR-0025).
 - The training rotation section shows the next suggested plan and lets the user add,
   remove, and reorder plans. Free workouts never advance it (ADR-0026).
+- The start screen leads with the suggested next workout and one primary start action.
+  Rotation, plan management, and the exercise register sit in a collapsible "My training
+  plan" section; free workouts are a secondary action and history is not shown
+  (ADR-0027).
 - The session screen displays every logged set, including exercises that are not part of
   the session's plan (ADR-0019). Logged sets carry `exerciseName`, so deleted exercises
   stay readable in history.
@@ -574,3 +579,4 @@ The target architecture deliberately excludes:
 | [0024](adr/0024-exercise-register-soft-delete.md) | Exercise register with soft delete |
 | [0025](adr/0025-plan-editing-and-deletion.md) | Plan editing and deletion |
 | [0026](adr/0026-workout-rotation.md) | Workout rotation and next-workout suggestion |
+| [0027](adr/0027-gym-start-screen-hierarchy.md) | Gym start screen hierarchy |
