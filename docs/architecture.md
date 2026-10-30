@@ -210,8 +210,9 @@ Services are classes with constructor injection:
 
 - `GymReadService` handles queries: exercises, plans, active session, session list,
   session detail.
-- `GymWriteService` handles commands: create plan, start session, log set, complete
-  session. It may receive the read service for read-side checks.
+- `GymWriteService` handles commands: create, edit, and soft-delete exercises; create
+  plan; start session; log set; complete session. It may receive the read service for
+  read-side checks.
 - Dependencies, includes, and the logger are `readonly #private` fields.
 - Each class uses `getLogger(ClassName.name)`.
 - Services are stateless. The container creates one instance each.
@@ -228,11 +229,13 @@ Repositories own all Prisma access (ADR-0007):
 - One repository per aggregate: exercises, plans, sessions.
 - They map Prisma rows to `packages/shared` contract types.
 - They translate Prisma errors into domain errors:
-  - `P2002` → duplicate plan name or duplicate set.
+  - `P2002` → duplicate plan name, duplicate exercise name, or duplicate set.
   - `P2034` after retries → concurrent update.
 - `transaction.mts` owns `withSerializableRetry`, which retries `P2034` up to three
   times.
 - Repositories never throw `HTTPException`.
+- Exercise reads exclude rows with `deletedAt` set. Hard deletion is never exposed;
+  `WorkoutSet` and `WorkoutPlanExercise` keep `onDelete: Restrict`.
 
 ### 3.8 Error Model
 
@@ -258,6 +261,7 @@ All client errors use RFC 9457 Problem Details with
 | `SessionCompletedError` | `409` |
 | `DuplicateSetError` | `409` |
 | `DuplicatePlanNameError` | `409` |
+| `DuplicateExerciseNameError` | `409` |
 | `ConcurrentUpdateError` | `409` |
 | `UnknownExerciseError` | `422` |
 | `ZodError` | `422` |
@@ -396,6 +400,8 @@ apps/web/
     │   ├── gym.mts
     │   └── gym.test.mts
     ├── features/gym/
+    │   ├── ExerciseRegister.svelte
+    │   ├── ExerciseRegister.test.mts
     │   ├── GymView.svelte
     │   ├── GymView.test.mts
     │   ├── PlanForm.svelte
@@ -412,8 +418,11 @@ apps/web/
 - Events use attributes (`onclick`, `onsubmit`), not `on:click`.
 - Data fetching and mutations live in `src/api/`; components call that layer and never
   call `fetch` directly.
+- The exercise register creates, edits, and soft-deletes exercises. Exercise defaults
+  prefill new plan rows and the set-logging form (ADR-0021).
 - The session screen displays every logged set, including exercises that are not part of
-  the session's plan (ADR-0019).
+  the session's plan (ADR-0019). Logged sets carry `exerciseName`, so deleted exercises
+  stay readable in history.
 - After a start conflict (`409`), the screen re-reads the active session; if none exists,
   it retries the start once or shows a message (ADR-0019).
 
@@ -447,7 +456,7 @@ returns `null` for a `404`.
 
 `packages/shared` is the single source of truth for data contracts (ADR-0005):
 
-- Zod schemas for workout plans, sessions, sets, nutrition, and recipes.
+- Zod schemas for exercises, workout plans, sessions, sets, nutrition, and recipes.
 - Inferred TypeScript types exported from the same files.
 - No imports from `apps/*`.
 - Source files use `.mts`; package `main`, `types`, and `exports` point to
@@ -546,3 +555,4 @@ The target architecture deliberately excludes:
 | [0018](adr/0018-testing-strategy.md) | Testing strategy and required coverage |
 | [0019](adr/0019-session-ui-behavior.md) | Session screen behavior |
 | [0020](adr/0020-warm-light-ui-theme.md) | Warm light UI theme |
+| [0021](adr/0021-exercise-register-soft-delete.md) | Exercise register with soft delete |

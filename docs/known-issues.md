@@ -1,6 +1,6 @@
 # Known Issues and Deferred Work
 
-Last updated: 2026-10-29
+Last updated: 2026-10-30
 Scope: Gym Tracker MVP on `refactor/ponytail`.
 
 These are known, non-blocking issues. They do not affect the core flow: create a plan, start a workout, log sets, finish, and review history.
@@ -24,6 +24,7 @@ These are known, non-blocking issues. They do not affect the core flow: create a
 6. **No request timeout in the web client** — a hung API leaves the Gym tab in the loading state. Impact: no retry path until reload. Fix: `AbortController`/timeout and an error state.
 7. **Accessibility polish** — repeated "Start plan" buttons lack plan-specific accessible names, and error messages are not announced (`role="alert"`/`aria-live`). Impact: screen-reader ambiguity and silent errors. Fix: add plan names to button labels and live regions.
 8. **`muscleGroup` cast** — `apps/api/src/modules/gym/repository/mapping.mts` casts the Prisma string to the shared enum without runtime validation. Impact: invalid seeded or externally written data could break the contract. Fix: validate at the boundary or handle unknown groups.
+9. **No exercise restore** — soft-deleted exercises are hidden from the register and cannot be restored in the UI; their names stay reserved by the unique constraint. Impact: an accidental delete needs database access to undo, and the name cannot be reused. Fix: restore action or allow name reuse after deletion (ADR-0021).
 
 ## Deferred features
 
