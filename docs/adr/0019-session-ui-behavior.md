@@ -20,7 +20,8 @@ nothing.
 - When a start request returns `409`, the screen reloads the active session. If an active
   session exists, it is shown. If none exists, the screen retries the start once; if the
   retry fails, it shows an error message instead of silently doing nothing.
-- Controls that trigger a request are disabled while that request is pending.
+- The set form and the controls that trigger a request are disabled while a request is
+  pending.
 
 ## Consequences
 
