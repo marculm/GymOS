@@ -415,6 +415,7 @@ apps/web/
     │   ├── GymView.test.mts
     │   ├── PlanForm.svelte
     │   ├── SessionView.svelte
+    │   ├── SetLogForm.svelte
     │   └── SessionView.test.mts
     └── test/
         └── setup.mts
@@ -428,7 +429,7 @@ apps/web/
 - Data fetching and mutations live in `src/api/`; components call that layer and never
   call `fetch` directly.
 - The exercise register creates, edits, and soft-deletes exercises. Exercise defaults
-  prefill new plan rows and the set-logging form (ADR-0024).
+  prefill new plan rows and each exercise card's set form (ADR-0024, ADR-0029).
 - Plans can be edited and deleted from the plan list. Editing replaces the plan's
   exercises and targets; past sessions and logged sets are unaffected (ADR-0025).
 - The training rotation section shows the next suggested plan and lets the user add,
@@ -439,6 +440,9 @@ apps/web/
   (ADR-0027).
 - The secondary action opens a modal picker with every plan and a free workout. Choosing
   a plan counts as a deviation; choosing free never advances the rotation (ADR-0028).
+- Set logging happens inside each exercise card: plan cards show their target and their
+  own form; free sessions build cards with an "Add exercise" control. No global set form
+  remains (ADR-0029).
 - The session screen displays every logged set, including exercises that are not part of
   the session's plan (ADR-0019). Logged sets carry `exerciseName`, so deleted exercises
   stay readable in history.
@@ -585,3 +589,4 @@ The target architecture deliberately excludes:
 | [0026](adr/0026-workout-rotation.md) | Workout rotation and next-workout suggestion |
 | [0027](adr/0027-gym-start-screen-hierarchy.md) | Gym start screen hierarchy |
 | [0028](adr/0028-alternate-workout-picker.md) | Alternate workout picker |
+| [0029](adr/0029-inline-set-logging.md) | Inline set logging in exercise cards |
