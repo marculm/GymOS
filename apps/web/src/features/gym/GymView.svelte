@@ -63,7 +63,7 @@
           listAllPlans(),
           getRotation(),
           getActiveSession(),
-          getWeightSuggestions(),
+          getWeightSuggestions().catch(() => ({})),
         ]);
       exercises = exerciseList;
       plans = planList;
@@ -223,12 +223,15 @@
     await completeSession(activeSession.id);
     activeSession = null;
     try {
-      [rotation, weightSuggestions] = await Promise.all([
-        getRotation(),
-        getWeightSuggestions(),
-      ]);
+      rotation = await getRotation();
     } catch {
-      // The workout is complete; rotation and suggestions refresh on the next load.
+      // The workout is complete; the rotation refreshes on the next load.
+    }
+
+    try {
+      weightSuggestions = await getWeightSuggestions();
+    } catch {
+      // The workout is complete; the suggestion refreshes on the next load.
     }
   }
 

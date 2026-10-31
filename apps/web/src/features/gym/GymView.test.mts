@@ -616,6 +616,36 @@ describe("GymView", () => {
     });
   });
 
+  it("loads the gym when weight suggestions fail", async () => {
+    vi.mocked(getWeightSuggestions).mockRejectedValueOnce(
+      new Error("No suggestions")
+    );
+
+    render(GymView);
+
+    expect(await screen.findByText("No workout scheduled")).toBeInTheDocument();
+  });
+
+  it("refreshes the rotation when the suggestion refresh fails", async () => {
+    vi.mocked(getActiveSession).mockResolvedValue(session);
+    vi.mocked(getWeightSuggestions)
+      .mockResolvedValueOnce({})
+      .mockRejectedValueOnce(new Error("No suggestions"));
+    vi.mocked(getRotation)
+      .mockResolvedValueOnce({ plans: [plan, extraPlan], nextPlanId: plan.id })
+      .mockResolvedValueOnce({ plans: [plan, extraPlan], nextPlanId: extraPlan.id });
+
+    render(GymView);
+
+    await fireEvent.click(
+      await screen.findByRole("button", { name: /finish workout/i })
+    );
+
+    expect(
+      await screen.findByRole("heading", { name: "Pull Day" })
+    ).toBeInTheDocument();
+  });
+
   it("refreshes the next rotation plan after finishing a workout", async () => {
     vi.mocked(getActiveSession).mockResolvedValue(session);
     vi.mocked(getRotation)
