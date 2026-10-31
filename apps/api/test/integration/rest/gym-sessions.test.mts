@@ -281,7 +281,7 @@ describe("Gym session routes", () => {
 
   it("returns a session with its logged sets", async () => {
     const session = await startSession();
-    await logSet(session.id, { reps: 8, weightKg: 60, rpe: 8 });
+    await logSet(session.id, { reps: 8, weightKg: 60 });
 
     const res = await app.request(`/api/gym/sessions/${session.id}`);
     expect(res.status).toBe(200);
@@ -363,6 +363,16 @@ describe("Gym session routes", () => {
       });
       await prisma.exercise.delete({ where: { id: otherExercise.id } });
     }
+  });
+
+  it("ignores an rpe sent by an older client", async () => {
+    const session = await startSession();
+
+    const res = await logSet(session.id, { rpe: 9 });
+
+    expect(res.status).toBe(201);
+    const set = (await res.json()) as Record<string, unknown>;
+    expect(set).not.toHaveProperty("rpe");
   });
 
   it("ignores active sessions and other users", async () => {

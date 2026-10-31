@@ -152,9 +152,6 @@
   <p class="set-row">
     <span class="badge">Set {set.setNumber}</span>
     <span>{set.reps} × {set.weightKg} kg</span>
-    {#if set.rpe != null}
-      <span class="muted">@ RPE {set.rpe}</span>
-    {/if}
   </p>
 {/snippet}
 

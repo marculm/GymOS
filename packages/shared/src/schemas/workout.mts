@@ -106,7 +106,6 @@ export const CreateWorkoutSetSchema = z.object({
   exerciseId: z.string().uuid(),
   reps: z.number().int().positive().max(MAX_SET_REPS),
   weightKg: z.number().nonnegative().max(MAX_SET_WEIGHT_KG),
-  rpe: z.number().min(1).max(10).optional(),
 });
 
 export const LoggedSetSchema = z.object({
@@ -116,7 +115,6 @@ export const LoggedSetSchema = z.object({
   setNumber: z.number().int().positive(),
   reps: z.number().int().positive(),
   weightKg: z.number().nonnegative(),
-  rpe: z.number().min(1).max(10).nullable(),
   createdAt: z.iso.datetime(),
 });
 

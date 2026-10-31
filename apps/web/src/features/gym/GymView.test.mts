@@ -138,7 +138,6 @@ beforeEach(() => {
     setNumber: 1,
     reps: 8,
     weightKg: 80,
-    rpe: null,
     createdAt: "2026-10-26T18:05:00.000Z",
   });
   vi.mocked(completeSession).mockResolvedValue({
@@ -697,7 +696,6 @@ describe("GymView", () => {
         exerciseId: "exercise-1",
         weightKg: 80,
         reps: 8,
-        rpe: undefined,
       });
     });
 

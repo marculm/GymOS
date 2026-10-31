@@ -107,7 +107,6 @@ const cableSet: LoggedSet = {
   setNumber: 1,
   reps: 12,
   weightKg: 15,
-  rpe: null,
   createdAt: "2026-10-26T18:05:00.000Z",
 };
 
@@ -168,10 +167,6 @@ describe("SessionView", () => {
     await fireEvent.input(cardForm("Bench Press").getByLabelText("Reps"), {
       target: { value: "6" },
     });
-    await fireEvent.input(
-      cardForm("Bench Press").getByLabelText("RPE (optional)"),
-      { target: { value: "9" } }
-    );
     await fireEvent.click(
       cardForm("Bench Press").getByRole("button", { name: "Add set" })
     );
@@ -181,7 +176,6 @@ describe("SessionView", () => {
         exerciseId: "exercise-1",
         weightKg: 82.5,
         reps: 6,
-        rpe: 9,
       });
     });
   });
@@ -204,7 +198,6 @@ describe("SessionView", () => {
         exerciseId: "exercise-2",
         weightKg: 15,
         reps: 12,
-        rpe: undefined,
       });
     });
   });
@@ -243,7 +236,6 @@ describe("SessionView", () => {
     const otherForm = cardForm("Cable Fly");
     expect(otherForm.getByLabelText("Weight (kg)")).toBeDisabled();
     expect(otherForm.getByLabelText("Reps")).toBeDisabled();
-    expect(otherForm.getByLabelText("RPE (optional)")).toBeDisabled();
     expect(otherForm.getByRole("button", { name: "Add set" })).toBeDisabled();
 
     request.resolve();
@@ -317,35 +309,12 @@ describe("SessionView", () => {
     );
   });
 
-  it("omits RPE when the optional field is cleared", async () => {
-    const { onLogSet } = renderSession();
+  it("has no RPE field", () => {
+    renderSession();
 
-    await fireEvent.input(cardForm("Bench Press").getByLabelText("Weight (kg)"), {
-      target: { value: "60" },
-    });
-    await fireEvent.input(cardForm("Bench Press").getByLabelText("Reps"), {
-      target: { value: "10" },
-    });
-    await fireEvent.input(
-      cardForm("Bench Press").getByLabelText("RPE (optional)"),
-      { target: { value: "8" } }
-    );
-    await fireEvent.input(
-      cardForm("Bench Press").getByLabelText("RPE (optional)"),
-      { target: { value: "" } }
-    );
-    await fireEvent.click(
-      cardForm("Bench Press").getByRole("button", { name: "Add set" })
-    );
-
-    await waitFor(() => {
-      expect(onLogSet).toHaveBeenCalledWith({
-        exerciseId: "exercise-1",
-        weightKg: 60,
-        reps: 10,
-        rpe: undefined,
-      });
-    });
+    expect(
+      cardForm("Bench Press").queryByLabelText("RPE (optional)")
+    ).not.toBeInTheDocument();
   });
 
   it("shows the suggestion as a placeholder without prefilling inputs", () => {
@@ -358,9 +327,6 @@ describe("SessionView", () => {
     expect(weight).toHaveAttribute("placeholder", "82.5");
     expect(weight).toHaveValue(null);
     expect(cardForm("Bench Press").getByLabelText("Reps")).toHaveValue(null);
-    expect(
-      cardForm("Bench Press").getByLabelText("RPE (optional)")
-    ).toHaveValue(null);
   });
 
   it("falls back to the exercise default weight as the placeholder", () => {
@@ -419,7 +385,6 @@ describe("SessionView", () => {
         exerciseId: "exercise-1",
         weightKg: 65,
         reps: 5,
-        rpe: undefined,
       });
     });
   });
@@ -528,7 +493,6 @@ describe("SessionView", () => {
         exerciseId: "exercise-2",
         weightKg: 20,
         reps: 10,
-        rpe: undefined,
       });
     });
   });

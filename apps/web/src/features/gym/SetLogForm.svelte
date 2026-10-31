@@ -18,7 +18,6 @@
 
   let weightKg = $state<string | number | null>("");
   let reps = $state<string | number | null>("");
-  let rpe = $state<string | number | null>("");
   let submitting = $state(false);
   let error = $state<string | null>(null);
 
@@ -41,12 +40,10 @@
       const logged = await onSubmit({
         weightKg: Number(weightKg),
         reps: Number(reps),
-        rpe: rpe == null || rpe === "" ? undefined : Number(rpe),
       });
       if (!logged) return;
       weightKg = "";
       reps = "";
-      rpe = "";
     } catch (logError) {
       error =
         logError instanceof Error ? logError.message : "Could not log the set";
@@ -85,17 +82,6 @@
           max={MAX_SET_REPS}
           required
           bind:value={reps}
-        />
-      </label>
-      <label class="field grow">
-        <span class="label">RPE (optional)</span>
-        <input
-          class="input"
-          type="number"
-          min={1}
-          max={10}
-          step={0.5}
-          bind:value={rpe}
         />
       </label>
     </div>

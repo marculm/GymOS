@@ -89,7 +89,6 @@ export function toSet(set: {
   setNumber: number;
   reps: number;
   weightKg: number;
-  rpe: number | null;
   createdAt: Date;
 }): LoggedSet {
   return {
@@ -99,7 +98,6 @@ export function toSet(set: {
     setNumber: set.setNumber,
     reps: set.reps,
     weightKg: set.weightKg,
-    rpe: set.rpe,
     createdAt: set.createdAt.toISOString(),
   };
 }

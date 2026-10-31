@@ -137,7 +137,7 @@ export class SessionRepository {
   async logSet(
     userId: string,
     sessionId: string,
-    input: { exerciseId: string; reps: number; weightKg: number; rpe?: number }
+    input: { exerciseId: string; reps: number; weightKg: number }
   ): Promise<LogSetResult> {
     try {
       return await withSerializableRetry(async (tx) => {
@@ -165,7 +165,6 @@ export class SessionRepository {
             setNumber: (max._max.setNumber ?? 0) + 1,
             reps: input.reps,
             weightKg: input.weightKg,
-            rpe: input.rpe ?? null,
           },
         });
         return {
