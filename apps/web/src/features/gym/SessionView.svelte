@@ -196,70 +196,72 @@
     <form class="card stack" onsubmit={handleSubmit}>
       <h3 class="card-title">Log a set</h3>
 
-      <label class="field">
-        <span class="label">Exercise</span>
-        <select
-          class="input"
-          required
-          value={exerciseId}
-          onchange={(event) => selectExercise(event.currentTarget.value)}
+      <fieldset class="stack" disabled={pending}>
+        <label class="field">
+          <span class="label">Exercise</span>
+          <select
+            class="input"
+            required
+            value={exerciseId}
+            onchange={(event) => selectExercise(event.currentTarget.value)}
+          >
+            {#each selectableExercises as exercise (exercise.id)}
+              <option value={exercise.id}>{exercise.name}</option>
+            {/each}
+          </select>
+        </label>
+
+        {#if selectableExercises.length === 0}
+          <p class="muted">
+            No exercises available. Add one in the exercise register.
+          </p>
+        {/if}
+
+        <div class="row">
+          <label class="field grow">
+            <span class="label">Weight (kg)</span>
+            <input
+              class="input"
+              type="number"
+              min={0}
+              max={MAX_SET_WEIGHT_KG}
+              step={0.5}
+              required
+              bind:value={weightKg}
+            />
+          </label>
+          <label class="field grow">
+            <span class="label">Reps</span>
+            <input
+              class="input"
+              type="number"
+              min={1}
+              max={MAX_SET_REPS}
+              required
+              bind:value={reps}
+            />
+          </label>
+          <label class="field grow">
+            <span class="label">RPE (optional)</span>
+            <input
+              class="input"
+              type="number"
+              min={1}
+              max={10}
+              step={0.5}
+              bind:value={rpe}
+            />
+          </label>
+        </div>
+
+        <button
+          type="submit"
+          class="btn btn-primary"
+          disabled={selectableExercises.length === 0}
         >
-          {#each selectableExercises as exercise (exercise.id)}
-            <option value={exercise.id}>{exercise.name}</option>
-          {/each}
-        </select>
-      </label>
-
-      {#if selectableExercises.length === 0}
-        <p class="muted">
-          No exercises available. Add one in the exercise register.
-        </p>
-      {/if}
-
-      <div class="row">
-        <label class="field grow">
-          <span class="label">Weight (kg)</span>
-          <input
-            class="input"
-            type="number"
-            min={0}
-            max={MAX_SET_WEIGHT_KG}
-            step={0.5}
-            required
-            bind:value={weightKg}
-          />
-        </label>
-        <label class="field grow">
-          <span class="label">Reps</span>
-          <input
-            class="input"
-            type="number"
-            min={1}
-            max={MAX_SET_REPS}
-            required
-            bind:value={reps}
-          />
-        </label>
-        <label class="field grow">
-          <span class="label">RPE (optional)</span>
-          <input
-            class="input"
-            type="number"
-            min={1}
-            max={10}
-            step={0.5}
-            bind:value={rpe}
-          />
-        </label>
-      </div>
-
-      <button
-        type="submit"
-        class="btn btn-primary"
-        disabled={pending || selectableExercises.length === 0}
-      >
-        Log set
-      </button>
+          Log set
+        </button>
+      </fieldset>
     </form>
   {/if}
 </div>

@@ -69,6 +69,14 @@ const session: WorkoutSessionDetail = {
   sets: [],
 };
 
+function deferred() {
+  let resolve!: () => void;
+  const promise = new Promise<void>((res) => {
+    resolve = res;
+  });
+  return { promise, resolve };
+}
+
 function renderSession(overrides: Partial<Props> = {}) {
   const onLogSet = vi.fn().mockResolvedValue(undefined);
   const onComplete = vi.fn().mockResolvedValue(undefined);
@@ -118,6 +126,60 @@ describe("SessionView", () => {
         rpe: 9,
       });
     });
+  });
+
+  it("disables the set form while a set is being logged", async () => {
+    const request = deferred();
+    renderSession({ onLogSet: vi.fn().mockReturnValue(request.promise) });
+
+    await fireEvent.click(screen.getByRole("button", { name: "Log set" }));
+    await waitFor(() =>
+      expect(screen.getByLabelText("Weight (kg)")).toBeDisabled()
+    );
+
+    expect(screen.getByLabelText("Exercise")).toBeDisabled();
+    expect(screen.getByLabelText("Reps")).toBeDisabled();
+    expect(screen.getByLabelText("RPE (optional)")).toBeDisabled();
+
+    request.resolve();
+    await waitFor(() =>
+      expect(screen.getByLabelText("Weight (kg)")).not.toBeDisabled()
+    );
+  });
+
+  it("disables the set form while the workout is being finished", async () => {
+    const request = deferred();
+    renderSession({ onComplete: vi.fn().mockReturnValue(request.promise) });
+
+    await fireEvent.click(screen.getByRole("button", { name: "Finish workout" }));
+    await waitFor(() =>
+      expect(screen.getByLabelText("Weight (kg)")).toBeDisabled()
+    );
+
+    request.resolve();
+    await waitFor(() =>
+      expect(screen.getByLabelText("Weight (kg)")).not.toBeDisabled()
+    );
+  });
+
+  it("keeps typed values when logging a set fails", async () => {
+    renderSession({
+      onLogSet: vi.fn().mockRejectedValue(new Error("Network down")),
+    });
+
+    await fireEvent.input(screen.getByLabelText("Weight (kg)"), {
+      target: { value: "82.5" },
+    });
+    await fireEvent.input(screen.getByLabelText("Reps"), {
+      target: { value: "6" },
+    });
+    await fireEvent.click(screen.getByRole("button", { name: "Log set" }));
+
+    await waitFor(() =>
+      expect(screen.getByText("Network down")).toBeInTheDocument()
+    );
+    expect(screen.getByLabelText("Weight (kg)")).toHaveValue(82.5);
+    expect(screen.getByLabelText("Reps")).toHaveValue(6);
   });
 
   it("caps weight and reps at the API limits", () => {

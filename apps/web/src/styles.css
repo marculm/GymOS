@@ -50,6 +50,13 @@ button {
   -webkit-tap-highlight-color: transparent;
 }
 
+fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+
 :focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
