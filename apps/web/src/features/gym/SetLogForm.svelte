@@ -11,7 +11,7 @@
   }: {
     exercise: Exercise;
     disabled?: boolean;
-    onSubmit: (input: SetInput) => Promise<void>;
+    onSubmit: (input: SetInput) => Promise<boolean>;
   } = $props();
 
   // svelte-ignore state_referenced_locally
@@ -19,22 +19,31 @@
   // svelte-ignore state_referenced_locally
   let reps = $state<string | number | null>(exercise.defaultReps ?? "");
   let rpe = $state<string | number | null>("");
+  let submitting = $state(false);
+  let error = $state<string | null>(null);
 
   async function handleSubmit(event: SubmitEvent) {
     event.preventDefault();
-    if (disabled) return;
+    if (disabled || submitting) return;
+
+    submitting = true;
+    error = null;
 
     try {
-      await onSubmit({
+      const logged = await onSubmit({
         weightKg: Number(weightKg),
         reps: Number(reps),
         rpe: rpe == null || rpe === "" ? undefined : Number(rpe),
       });
+      if (!logged) return;
       weightKg = "";
       reps = "";
       rpe = "";
-    } catch {
-      // SessionView shows the error; keep the typed values.
+    } catch (logError) {
+      error =
+        logError instanceof Error ? logError.message : "Could not log the set";
+    } finally {
+      submitting = false;
     }
   }
 </script>
@@ -81,6 +90,10 @@
         />
       </label>
     </div>
+
+    {#if error}
+      <p class="error" role="alert">{error}</p>
+    {/if}
 
     <button type="submit" class="btn btn-primary" disabled={disabled}>
       Add set

@@ -127,7 +127,7 @@ function renderSession(overrides: Partial<Props> = {}) {
   const onLogSet = vi.fn().mockResolvedValue(undefined);
   const onComplete = vi.fn().mockResolvedValue(undefined);
 
-  render(SessionView, {
+  const result = render(SessionView, {
     props: {
       session,
       plan,
@@ -138,7 +138,7 @@ function renderSession(overrides: Partial<Props> = {}) {
     },
   });
 
-  return { onLogSet, onComplete };
+  return { onLogSet, onComplete, rerender: result.rerender };
 }
 
 function cardForm(name: string) {
@@ -258,8 +258,9 @@ describe("SessionView", () => {
     );
   });
 
-  it("keeps typed values when logging a set fails", async () => {
+  it("shows a failed log in the card that failed and keeps its values", async () => {
     renderSession({
+      plan: twoExercisePlan,
       onLogSet: vi.fn().mockRejectedValue(new Error("Network down")),
     });
 
@@ -274,8 +275,11 @@ describe("SessionView", () => {
     );
 
     await waitFor(() =>
-      expect(screen.getByText("Network down")).toBeInTheDocument()
+      expect(cardForm("Bench Press").getByRole("alert")).toHaveTextContent(
+        "Network down"
+      )
     );
+    expect(cardForm("Cable Fly").queryByRole("alert")).not.toBeInTheDocument();
     expect(cardForm("Bench Press").getByLabelText("Weight (kg)")).toHaveValue(
       82.5
     );
@@ -444,6 +448,33 @@ describe("SessionView", () => {
         rpe: undefined,
       });
     });
+  });
+
+  it("keeps one card and clears the form after a free-session set is logged", async () => {
+    const { rerender } = renderSession({ session: freeSession, plan: null });
+
+    await fireEvent.change(screen.getByLabelText("Exercise"), {
+      target: { value: extraExercise.id },
+    });
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Add exercise" })
+    );
+    await fireEvent.click(
+      cardForm("Cable Fly").getByRole("button", { name: "Add set" })
+    );
+
+    await waitFor(() =>
+      expect(cardForm("Cable Fly").getByLabelText("Weight (kg)")).toHaveValue(
+        null
+      )
+    );
+
+    await rerender({ session: { ...freeSession, sets: [cableSet] } });
+
+    expect(
+      screen.getAllByRole("form", { name: "Add set for Cable Fly" })
+    ).toHaveLength(1);
+    expect(screen.getByText("Set 1")).toBeInTheDocument();
   });
 
   it("does not offer an exercise that already has a card", () => {

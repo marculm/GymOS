@@ -74,21 +74,22 @@
       }
     >();
 
-    for (const group of setGroups) {
-      cards.set(group.exerciseId, {
-        exerciseId: group.exerciseId,
-        name: group.name,
-        sets: group.sets,
-        exercise: byId.get(group.exerciseId) ?? null,
-      });
-    }
-
     for (const exercise of freeExercises) {
       cards.set(exercise.id, {
         exerciseId: exercise.id,
         name: exercise.name,
         sets: setsByExercise.get(exercise.id) ?? [],
         exercise,
+      });
+    }
+
+    for (const group of setGroups) {
+      if (cards.has(group.exerciseId)) continue;
+      cards.set(group.exerciseId, {
+        exerciseId: group.exerciseId,
+        name: group.name,
+        sets: group.sets,
+        exercise: byId.get(group.exerciseId) ?? null,
       });
     }
 
@@ -113,18 +114,13 @@
   async function logSet(
     exerciseId: string,
     input: Omit<CreateWorkoutSetInput, "exerciseId">
-  ) {
-    if (pending) return;
+  ): Promise<boolean> {
+    if (pending) return false;
 
     pending = true;
-    error = null;
-
     try {
       await onLogSet({ exerciseId, ...input });
-    } catch (logError) {
-      error =
-        logError instanceof Error ? logError.message : "Could not log the set";
-      throw logError;
+      return true;
     } finally {
       pending = false;
     }
@@ -159,12 +155,36 @@
   </p>
 {/snippet}
 
+{#snippet setRowsAndForm(
+  exerciseId: string,
+  sets: LoggedSet[],
+  exercise: Exercise | null
+)}
+  {#if sets.length === 0}
+    <p class="muted">No sets yet</p>
+  {:else}
+    {#each sets as set (set.id)}
+      {@render setRow(set)}
+    {/each}
+  {/if}
+  {#if !completed && exercise}
+    <SetLogForm
+      exercise={exercise}
+      disabled={pending}
+      onSubmit={(input) => logSet(exerciseId, input)}
+    />
+  {/if}
+{/snippet}
+
 <div class="stack">
   <header class="card stack">
     <div>
       <p class="muted">{new Date(session.startedAt).toLocaleString()}</p>
       <h2 class="card-title">{session.title}</h2>
     </div>
+    {#if error}
+      <p class="error" role="alert">{error}</p>
+    {/if}
     {#if !completed}
       <button
         type="button"
@@ -189,21 +209,11 @@
               : ""}
           </p>
         </div>
-        {#if (setsByExercise.get(planExercise.exercise.id) ?? []).length === 0}
-          <p class="muted">No sets yet</p>
-        {:else}
-          {#each setsByExercise.get(planExercise.exercise.id) ?? [] as set (set.id)}
-            {@render setRow(set)}
-          {/each}
-        {/if}
-        {#if !completed}
-          <SetLogForm
-            exercise={planExercise.exercise}
-            disabled={pending}
-            onSubmit={(input) =>
-              logSet(planExercise.exercise.id, input)}
-          />
-        {/if}
+        {@render setRowsAndForm(
+          planExercise.exercise.id,
+          setsByExercise.get(planExercise.exercise.id) ?? [],
+          planExercise.exercise
+        )}
       </section>
     {/each}
 
@@ -223,20 +233,7 @@
     {#each freeCards as card (card.exerciseId)}
       <section class="card stack">
         <h3 class="card-title">{card.name}</h3>
-        {#if card.sets.length === 0}
-          <p class="muted">No sets yet</p>
-        {:else}
-          {#each card.sets as set (set.id)}
-            {@render setRow(set)}
-          {/each}
-        {/if}
-        {#if !completed && card.exercise}
-          <SetLogForm
-            exercise={card.exercise}
-            disabled={pending}
-            onSubmit={(input) => logSet(card.exerciseId, input)}
-          />
-        {/if}
+        {@render setRowsAndForm(card.exerciseId, card.sets, card.exercise)}
       </section>
     {/each}
 
@@ -274,9 +271,5 @@
         {/if}
       </section>
     {/if}
-  {/if}
-
-  {#if error}
-    <p class="error">{error}</p>
   {/if}
 </div>
