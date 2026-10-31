@@ -446,7 +446,8 @@ apps/web/
   remains (ADR-0029).
 - Every weight input shows a suggestion as a placeholder: the average weight of that
   exercise in the most recent completed workout, rounded to 0.5 kg, falling back to the
-  exercise default. Reps and RPE are not prefilled (ADR-0030).
+  exercise default. Reps are not prefilled, and RPE is no longer recorded (ADR-0030,
+  ADR-0031).
 - The session screen displays every logged set, including exercises that are not part of
   the session's plan (ADR-0019). Logged sets carry `exerciseName`, so deleted exercises
   stay readable in history.
@@ -595,3 +596,4 @@ The target architecture deliberately excludes:
 | [0028](adr/0028-alternate-workout-picker.md) | Alternate workout picker |
 | [0029](adr/0029-inline-set-logging.md) | Inline set logging in exercise cards |
 | [0030](adr/0030-suggested-set-weight.md) | Suggested set weight as a placeholder |
+| [0031](adr/0031-remove-rpe.md) | Remove RPE from set logging |
