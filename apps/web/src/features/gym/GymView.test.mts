@@ -17,6 +17,7 @@ import {
   deletePlan,
   getActiveSession,
   getRotation,
+  getWeightSuggestions,
   listAllExercises,
   listAllPlans,
   setRotation,
@@ -35,6 +36,7 @@ vi.mock("../../api/gym.mts", () => ({
   updatePlan: vi.fn(),
   deletePlan: vi.fn(),
   getRotation: vi.fn(),
+  getWeightSuggestions: vi.fn(),
   setRotation: vi.fn(),
   startSession: vi.fn(),
   getActiveSession: vi.fn(),
@@ -120,6 +122,7 @@ beforeEach(() => {
   vi.mocked(updatePlan).mockResolvedValue(plan);
   vi.mocked(deletePlan).mockResolvedValue(undefined);
   vi.mocked(getRotation).mockResolvedValue({ plans: [], nextPlanId: null });
+  vi.mocked(getWeightSuggestions).mockResolvedValue({});
   vi.mocked(setRotation).mockImplementation(async ({ planIds }) => {
     const byId = new Map([plan, extraPlan].map((entry) => [entry.id, entry]));
     const plans = planIds.flatMap((id) => byId.get(id) ?? []);
@@ -628,6 +631,18 @@ describe("GymView", () => {
     expect(
       await screen.findByRole("heading", { name: "Pull Day" })
     ).toBeInTheDocument();
+  });
+
+  it("shows the suggested weight in the active session", async () => {
+    vi.mocked(getActiveSession).mockResolvedValue(session);
+    vi.mocked(getWeightSuggestions).mockResolvedValue({ "exercise-1": 82.5 });
+
+    render(GymView);
+
+    expect(await screen.findByLabelText("Weight (kg)")).toHaveAttribute(
+      "placeholder",
+      "82.5"
+    );
   });
 
   it("logs a set and finishes the active session", async () => {

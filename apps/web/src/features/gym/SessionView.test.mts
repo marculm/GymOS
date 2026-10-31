@@ -11,6 +11,7 @@ import type {
   CreateWorkoutSetInput,
   Exercise,
   LoggedSet,
+  WeightSuggestions,
   WorkoutPlan,
   WorkoutSessionDetail,
 } from "@gymos/shared";
@@ -20,6 +21,7 @@ type Props = {
   session: WorkoutSessionDetail;
   plan: WorkoutPlan | null;
   exercises: Exercise[];
+  weightSuggestions: WeightSuggestions;
   onLogSet: (input: CreateWorkoutSetInput) => Promise<void>;
   onComplete: () => Promise<void>;
 };
@@ -132,6 +134,7 @@ function renderSession(overrides: Partial<Props> = {}) {
       session,
       plan,
       exercises: [exercise, extraExercise],
+      weightSuggestions: {},
       onLogSet,
       onComplete,
       ...overrides,
@@ -186,6 +189,12 @@ describe("SessionView", () => {
   it("logs each card's set for that card's exercise", async () => {
     const { onLogSet } = renderSession({ plan: twoExercisePlan });
 
+    await fireEvent.input(cardForm("Cable Fly").getByLabelText("Weight (kg)"), {
+      target: { value: "15" },
+    });
+    await fireEvent.input(cardForm("Cable Fly").getByLabelText("Reps"), {
+      target: { value: "12" },
+    });
     await fireEvent.click(
       cardForm("Cable Fly").getByRole("button", { name: "Add set" })
     );
@@ -216,6 +225,12 @@ describe("SessionView", () => {
       onLogSet: vi.fn().mockReturnValue(request.promise),
     });
 
+    await fireEvent.input(cardForm("Bench Press").getByLabelText("Weight (kg)"), {
+      target: { value: "80" },
+    });
+    await fireEvent.input(cardForm("Bench Press").getByLabelText("Reps"), {
+      target: { value: "8" },
+    });
     await fireEvent.click(
       cardForm("Bench Press").getByRole("button", { name: "Add set" })
     );
@@ -305,6 +320,12 @@ describe("SessionView", () => {
   it("omits RPE when the optional field is cleared", async () => {
     const { onLogSet } = renderSession();
 
+    await fireEvent.input(cardForm("Bench Press").getByLabelText("Weight (kg)"), {
+      target: { value: "60" },
+    });
+    await fireEvent.input(cardForm("Bench Press").getByLabelText("Reps"), {
+      target: { value: "10" },
+    });
     await fireEvent.input(
       cardForm("Bench Press").getByLabelText("RPE (optional)"),
       { target: { value: "8" } }
@@ -327,16 +348,35 @@ describe("SessionView", () => {
     });
   });
 
-  it("prefills each card from its exercise defaults", () => {
-    renderSession({ plan: twoExercisePlan });
+  it("shows the suggestion as a placeholder without prefilling inputs", () => {
+    renderSession({
+      plan: twoExercisePlan,
+      weightSuggestions: { "exercise-1": 82.5 },
+    });
 
-    expect(cardForm("Bench Press").getByLabelText("Weight (kg)")).toHaveValue(60);
-    expect(cardForm("Bench Press").getByLabelText("Reps")).toHaveValue(10);
-    expect(cardForm("Cable Fly").getByLabelText("Weight (kg)")).toHaveValue(15);
-    expect(cardForm("Cable Fly").getByLabelText("Reps")).toHaveValue(12);
+    const weight = cardForm("Bench Press").getByLabelText("Weight (kg)");
+    expect(weight).toHaveAttribute("placeholder", "82.5");
+    expect(weight).toHaveValue(null);
+    expect(cardForm("Bench Press").getByLabelText("Reps")).toHaveValue(null);
+    expect(
+      cardForm("Bench Press").getByLabelText("RPE (optional)")
+    ).toHaveValue(null);
   });
 
-  it("does not borrow another exercise's default weight", () => {
+  it("falls back to the exercise default weight as the placeholder", () => {
+    renderSession({ plan: twoExercisePlan });
+
+    expect(cardForm("Bench Press").getByLabelText("Weight (kg)")).toHaveAttribute(
+      "placeholder",
+      "60"
+    );
+    expect(cardForm("Cable Fly").getByLabelText("Weight (kg)")).toHaveAttribute(
+      "placeholder",
+      "15"
+    );
+  });
+
+  it("has no weight placeholder without history or a default", () => {
     renderSession({
       plan: {
         ...plan,
@@ -349,10 +389,39 @@ describe("SessionView", () => {
       },
     });
 
-    expect(cardForm("Bench Press").getByLabelText("Weight (kg)")).toHaveValue(
-      null
-    );
-    expect(cardForm("Bench Press").getByLabelText("Reps")).toHaveValue(10);
+    expect(
+      cardForm("Bench Press").getByLabelText("Weight (kg)").getAttribute(
+        "placeholder"
+      )
+    ).toBeNull();
+  });
+
+  it("submits typed values instead of the placeholder", async () => {
+    const { onLogSet } = renderSession({
+      weightSuggestions: { "exercise-1": 82.5 },
+    });
+    const form = cardForm("Bench Press");
+
+    await fireEvent.click(form.getByRole("button", { name: "Add set" }));
+    await fireEvent.input(form.getByLabelText("Weight (kg)"), {
+      target: { value: "65" },
+    });
+    await fireEvent.click(form.getByRole("button", { name: "Add set" }));
+    expect(onLogSet).not.toHaveBeenCalled();
+
+    await fireEvent.input(form.getByLabelText("Reps"), {
+      target: { value: "5" },
+    });
+    await fireEvent.click(form.getByRole("button", { name: "Add set" }));
+
+    await waitFor(() => {
+      expect(onLogSet).toHaveBeenCalledWith({
+        exerciseId: "exercise-1",
+        weightKg: 65,
+        reps: 5,
+        rpe: undefined,
+      });
+    });
   });
 
   it("finishes the workout", async () => {
@@ -420,7 +489,11 @@ describe("SessionView", () => {
   });
 
   it("adds an exercise card to a free session and logs a set", async () => {
-    const { onLogSet } = renderSession({ session: freeSession, plan: null });
+    const { onLogSet } = renderSession({
+      session: freeSession,
+      plan: null,
+      weightSuggestions: { "exercise-2": 17.5 },
+    });
 
     await fireEvent.change(screen.getByLabelText("Exercise"), {
       target: { value: extraExercise.id },
@@ -435,7 +508,17 @@ describe("SessionView", () => {
     expect(
       screen.getByRole("form", { name: "Add set for Cable Fly" })
     ).toBeInTheDocument();
+    expect(cardForm("Cable Fly").getByLabelText("Weight (kg)")).toHaveAttribute(
+      "placeholder",
+      "17.5"
+    );
 
+    await fireEvent.input(cardForm("Cable Fly").getByLabelText("Weight (kg)"), {
+      target: { value: "20" },
+    });
+    await fireEvent.input(cardForm("Cable Fly").getByLabelText("Reps"), {
+      target: { value: "10" },
+    });
     await fireEvent.click(
       cardForm("Cable Fly").getByRole("button", { name: "Add set" })
     );
@@ -443,8 +526,8 @@ describe("SessionView", () => {
     await waitFor(() => {
       expect(onLogSet).toHaveBeenCalledWith({
         exerciseId: "exercise-2",
-        weightKg: 15,
-        reps: 12,
+        weightKg: 20,
+        reps: 10,
         rpe: undefined,
       });
     });
@@ -459,6 +542,12 @@ describe("SessionView", () => {
     await fireEvent.click(
       screen.getByRole("button", { name: "Add exercise" })
     );
+    await fireEvent.input(cardForm("Cable Fly").getByLabelText("Weight (kg)"), {
+      target: { value: "20" },
+    });
+    await fireEvent.input(cardForm("Cable Fly").getByLabelText("Reps"), {
+      target: { value: "10" },
+    });
     await fireEvent.click(
       cardForm("Cable Fly").getByRole("button", { name: "Add set" })
     );
@@ -506,6 +595,12 @@ describe("SessionView", () => {
     await fireEvent.click(
       screen.getByRole("button", { name: "Add exercise" })
     );
+    await fireEvent.input(cardForm("Bench Press").getByLabelText("Weight (kg)"), {
+      target: { value: "80" },
+    });
+    await fireEvent.input(cardForm("Bench Press").getByLabelText("Reps"), {
+      target: { value: "8" },
+    });
     await fireEvent.click(
       cardForm("Bench Press").getByRole("button", { name: "Add set" })
     );

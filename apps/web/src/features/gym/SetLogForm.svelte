@@ -6,25 +6,33 @@
 
   let {
     exercise,
+    suggestedWeightKg,
     disabled = false,
     onSubmit,
   }: {
     exercise: Exercise;
+    suggestedWeightKg?: number;
     disabled?: boolean;
     onSubmit: (input: SetInput) => Promise<boolean>;
   } = $props();
 
-  // svelte-ignore state_referenced_locally
-  let weightKg = $state<string | number | null>(exercise.defaultWeightKg ?? "");
-  // svelte-ignore state_referenced_locally
-  let reps = $state<string | number | null>(exercise.defaultReps ?? "");
+  let weightKg = $state<string | number | null>("");
+  let reps = $state<string | number | null>("");
   let rpe = $state<string | number | null>("");
   let submitting = $state(false);
   let error = $state<string | null>(null);
 
+  const weightPlaceholder = $derived(
+    suggestedWeightKg ?? exercise.defaultWeightKg ?? undefined
+  );
+
+  function isEmpty(value: string | number | null) {
+    return value === "" || value == null;
+  }
+
   async function handleSubmit(event: SubmitEvent) {
     event.preventDefault();
-    if (disabled || submitting) return;
+    if (disabled || submitting || isEmpty(weightKg) || isEmpty(reps)) return;
 
     submitting = true;
     error = null;
@@ -64,6 +72,7 @@
           max={MAX_SET_WEIGHT_KG}
           step={0.5}
           required
+          placeholder={weightPlaceholder?.toString()}
           bind:value={weightKg}
         />
       </label>
