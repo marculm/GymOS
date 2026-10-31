@@ -112,6 +112,7 @@ full contract.
 | `POST` | `/api/gym/exercises` | Create an exercise (`{ name, muscleGroup, description?, defaultSets?, defaultReps?, defaultWeightKg? }`); `201` + `Location` |
 | `PUT` | `/api/gym/exercises/:id` | Edit an exercise; omitted optional fields are preserved |
 | `DELETE` | `/api/gym/exercises/:id` | Soft-delete an exercise |
+| `GET` | `/api/gym/exercises/weight-suggestions` | Suggested weight per exercise: average of the latest completed workout containing it, rounded to 0.5 kg |
 | `GET` | `/api/gym/plans?page=&size=&name=` | List the current user's plans |
 | `POST` | `/api/gym/plans` | Create a plan (`{ name, description?, exercises[] }`); `201` + `Location` |
 | `PUT` | `/api/gym/plans/:id` | Replace a plan's name, description, and exercises |
