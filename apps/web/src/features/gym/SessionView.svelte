@@ -196,7 +196,7 @@
     <form class="card stack" onsubmit={handleSubmit}>
       <h3 class="card-title">Log a set</h3>
 
-      <fieldset class="stack" disabled={pending}>
+      <fieldset class="stack" aria-label="Log a set" disabled={pending}>
         <label class="field">
           <span class="label">Exercise</span>
           <select

@@ -202,6 +202,11 @@ fieldset {
   border-color: var(--accent);
 }
 
+.input:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .muted {
   color: var(--muted);
 }
