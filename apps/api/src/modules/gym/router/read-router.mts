@@ -20,6 +20,11 @@ readRouter.get("/exercises", async (c) => {
   return c.json(createPage(slice, pageable));
 });
 
+readRouter.get("/exercises/weight-suggestions", async (c) => {
+  const suggestions = await readService.getWeightSuggestions(c.get("user").id);
+  return c.json(suggestions);
+});
+
 readRouter.get("/plans", async (c) => {
   const query = PlanListQuerySchema.parse(c.req.query());
   const pageable = createPageable(query);

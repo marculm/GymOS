@@ -129,6 +129,11 @@ export const WorkoutSessionDetailSchema = z.object({
   sets: z.array(LoggedSetSchema),
 });
 
+export const WeightSuggestionsSchema = z.record(
+  z.string(),
+  z.number().nonnegative()
+);
+
 export const WorkoutSessionSummarySchema = z.object({
   id: z.string().uuid(),
   title: z.string().min(1),
@@ -152,3 +157,4 @@ export type CreateWorkoutSetInput = z.infer<typeof CreateWorkoutSetSchema>;
 export type LoggedSet = z.infer<typeof LoggedSetSchema>;
 export type WorkoutSessionDetail = z.infer<typeof WorkoutSessionDetailSchema>;
 export type WorkoutSessionSummary = z.infer<typeof WorkoutSessionSummarySchema>;
+export type WeightSuggestions = z.infer<typeof WeightSuggestionsSchema>;
