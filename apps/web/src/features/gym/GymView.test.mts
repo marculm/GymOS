@@ -645,7 +645,7 @@ describe("GymView", () => {
     await fireEvent.input(screen.getByLabelText("Reps"), {
       target: { value: "8" },
     });
-    await fireEvent.click(screen.getByRole("button", { name: "Log set" }));
+    await fireEvent.click(screen.getByRole("button", { name: "Add set" }));
 
     await waitFor(() => {
       expect(addSet).toHaveBeenCalledWith("session-1", {
