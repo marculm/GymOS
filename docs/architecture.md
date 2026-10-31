@@ -594,3 +594,4 @@ The target architecture deliberately excludes:
 | [0027](adr/0027-gym-start-screen-hierarchy.md) | Gym start screen hierarchy |
 | [0028](adr/0028-alternate-workout-picker.md) | Alternate workout picker |
 | [0029](adr/0029-inline-set-logging.md) | Inline set logging in exercise cards |
+| [0030](adr/0030-suggested-set-weight.md) | Suggested set weight as a placeholder |
