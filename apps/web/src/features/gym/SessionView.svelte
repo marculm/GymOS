@@ -257,7 +257,7 @@
         <button
           type="submit"
           class="btn btn-primary"
-          disabled={selectableExercises.length === 0}
+          disabled={pending || selectableExercises.length === 0}
         >
           Log set
         </button>
