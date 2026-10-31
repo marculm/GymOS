@@ -140,6 +140,7 @@ describe("SessionView", () => {
     expect(screen.getByLabelText("Exercise")).toBeDisabled();
     expect(screen.getByLabelText("Reps")).toBeDisabled();
     expect(screen.getByLabelText("RPE (optional)")).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Log set" })).toBeDisabled();
 
     request.resolve();
     await waitFor(() =>
@@ -180,6 +181,7 @@ describe("SessionView", () => {
     );
     expect(screen.getByLabelText("Weight (kg)")).toHaveValue(82.5);
     expect(screen.getByLabelText("Reps")).toHaveValue(6);
+    expect(screen.getByLabelText("Weight (kg)")).not.toBeDisabled();
   });
 
   it("caps weight and reps at the API limits", () => {
