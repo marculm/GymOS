@@ -23,8 +23,8 @@ user scope, and ADR-0019 requires every logged set to stay visible.
   control. Added exercises are view state and are deduplicated against logged sets.
 - Sets for exercises outside the plan stay visible in read-only cards (ADR-0019).
 - A single pending flag still disables every set form, the add-exercise control, and the
-  finish action. A failed log keeps the typed values and shows the existing error
-  message.
+  finish action. A failed log keeps the typed values and shows the error inside that
+  card.
 - Weight suggestions as grey placeholders are deferred to the separate change for #26.
 
 ## Consequences

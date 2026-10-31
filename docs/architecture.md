@@ -415,6 +415,7 @@ apps/web/
     │   ├── GymView.test.mts
     │   ├── PlanForm.svelte
     │   ├── SessionView.svelte
+    │   ├── SetLogForm.svelte
     │   └── SessionView.test.mts
     └── test/
         └── setup.mts
@@ -588,3 +589,4 @@ The target architecture deliberately excludes:
 | [0026](adr/0026-workout-rotation.md) | Workout rotation and next-workout suggestion |
 | [0027](adr/0027-gym-start-screen-hierarchy.md) | Gym start screen hierarchy |
 | [0028](adr/0028-alternate-workout-picker.md) | Alternate workout picker |
+| [0029](adr/0029-inline-set-logging.md) | Inline set logging in exercise cards |
