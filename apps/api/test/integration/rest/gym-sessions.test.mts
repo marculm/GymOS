@@ -337,10 +337,32 @@ describe("Gym session routes", () => {
     await logSet(newer.id, { weightKg: 51 });
     await postJson(`/api/gym/sessions/${newer.id}/complete`, {});
 
-    const res = await app.request("/api/gym/exercises/weight-suggestions");
+    const otherExercise = await prisma.exercise.create({
+      data: {
+        name: `Other Exercise ${crypto.randomUUID()}`,
+        muscleGroup: "arms",
+      },
+    });
 
-    const suggestions = (await res.json()) as Record<string, number>;
-    expect(suggestions[exerciseId]).toBe(50.5);
+    try {
+      const newest = await startSession();
+      await logSet(newest.id, {
+        exerciseId: otherExercise.id,
+        weightKg: 12.5,
+      });
+      await postJson(`/api/gym/sessions/${newest.id}/complete`, {});
+
+      const res = await app.request("/api/gym/exercises/weight-suggestions");
+
+      const suggestions = (await res.json()) as Record<string, number>;
+      expect(suggestions[exerciseId]).toBe(50.5);
+      expect(suggestions[otherExercise.id]).toBe(12.5);
+    } finally {
+      await prisma.workoutSession.deleteMany({
+        where: { user: { email: TEST_EMAIL } },
+      });
+      await prisma.exercise.delete({ where: { id: otherExercise.id } });
+    }
   });
 
   it("ignores active sessions and other users", async () => {
