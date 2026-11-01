@@ -3,6 +3,7 @@
     CreateWorkoutSetInput,
     Exercise,
     LoggedSet,
+    WeightSuggestions,
     WorkoutPlan,
     WorkoutSessionDetail,
   } from "@gymos/shared";
@@ -12,12 +13,14 @@
     session,
     plan,
     exercises,
+    weightSuggestions = {},
     onLogSet,
     onComplete,
   }: {
     session: WorkoutSessionDetail;
     plan: WorkoutPlan | null;
     exercises: Exercise[];
+    weightSuggestions?: WeightSuggestions;
     onLogSet: (input: CreateWorkoutSetInput) => Promise<void>;
     onComplete: () => Promise<void>;
   } = $props();
@@ -149,9 +152,6 @@
   <p class="set-row">
     <span class="badge">Set {set.setNumber}</span>
     <span>{set.reps} × {set.weightKg} kg</span>
-    {#if set.rpe != null}
-      <span class="muted">@ RPE {set.rpe}</span>
-    {/if}
   </p>
 {/snippet}
 
@@ -170,6 +170,7 @@
   {#if !completed && exercise}
     <SetLogForm
       exercise={exercise}
+      suggestedWeightKg={weightSuggestions[exerciseId]}
       disabled={pending}
       onSubmit={(input) => logSet(exerciseId, input)}
     />

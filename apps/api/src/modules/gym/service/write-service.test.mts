@@ -50,7 +50,6 @@ const loggedSet: LoggedSet = {
   setNumber: 1,
   reps: 10,
   weightKg: 20,
-  rpe: null,
   createdAt: "2026-10-26T18:00:00.000Z",
 };
 
@@ -94,7 +93,7 @@ function createService() {
       async (
         _userId: string,
         _sessionId: string,
-        _input: { exerciseId: string; reps: number; weightKg: number; rpe?: number }
+        _input: { exerciseId: string; reps: number; weightKg: number }
       ) => ({ kind: "created", set: loggedSet }) as LogSetResult
     ),
     completeIfOpen: vi.fn(

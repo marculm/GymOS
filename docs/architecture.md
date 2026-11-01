@@ -429,7 +429,8 @@ apps/web/
 - Data fetching and mutations live in `src/api/`; components call that layer and never
   call `fetch` directly.
 - The exercise register creates, edits, and soft-deletes exercises. Exercise defaults
-  prefill new plan rows and each exercise card's set form (ADR-0024, ADR-0029).
+  prefill new plan rows and the weight placeholder of an exercise without history
+  (ADR-0024, ADR-0030).
 - Plans can be edited and deleted from the plan list. Editing replaces the plan's
   exercises and targets; past sessions and logged sets are unaffected (ADR-0025).
 - The training rotation section shows the next suggested plan and lets the user add,
@@ -443,6 +444,10 @@ apps/web/
 - Set logging happens inside each exercise card: plan cards show their target and their
   own form; free sessions build cards with an "Add exercise" control. No global set form
   remains (ADR-0029).
+- Every weight input shows a suggestion as a placeholder: the average weight of that
+  exercise in the most recent completed workout, rounded to 0.5 kg, falling back to the
+  exercise default. Reps are not prefilled, and RPE is no longer recorded (ADR-0030,
+  ADR-0031).
 - The session screen displays every logged set, including exercises that are not part of
   the session's plan (ADR-0019). Logged sets carry `exerciseName`, so deleted exercises
   stay readable in history.
@@ -590,3 +595,5 @@ The target architecture deliberately excludes:
 | [0027](adr/0027-gym-start-screen-hierarchy.md) | Gym start screen hierarchy |
 | [0028](adr/0028-alternate-workout-picker.md) | Alternate workout picker |
 | [0029](adr/0029-inline-set-logging.md) | Inline set logging in exercise cards |
+| [0030](adr/0030-suggested-set-weight.md) | Suggested set weight as a placeholder |
+| [0031](adr/0031-remove-rpe.md) | Remove RPE from set logging |

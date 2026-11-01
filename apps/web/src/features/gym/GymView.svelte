@@ -5,6 +5,7 @@
     CreateWorkoutPlanInput,
     CreateWorkoutSetInput,
     Exercise,
+    WeightSuggestions,
     WorkoutPlan,
     WorkoutRotation,
     WorkoutSessionDetail,
@@ -19,6 +20,7 @@
     deletePlan,
     getActiveSession,
     getRotation,
+    getWeightSuggestions,
     listAllExercises,
     listAllPlans,
     setRotation,
@@ -35,6 +37,7 @@
   let plans = $state<WorkoutPlan[]>([]);
   let rotation = $state<WorkoutRotation>({ plans: [], nextPlanId: null });
   let activeSession = $state<WorkoutSessionDetail | null>(null);
+  let weightSuggestions = $state<WeightSuggestions>({});
   let loading = $state(true);
   let error = $state<string | null>(null);
   let showManagement = $state(false);
@@ -54,16 +57,19 @@
     error = null;
 
     try {
-      const [exerciseList, planList, rotationState, active] = await Promise.all([
-        listAllExercises(),
-        listAllPlans(),
-        getRotation(),
-        getActiveSession(),
-      ]);
+      const [exerciseList, planList, rotationState, active, suggestions] =
+        await Promise.all([
+          listAllExercises(),
+          listAllPlans(),
+          getRotation(),
+          getActiveSession(),
+          getWeightSuggestions().catch(() => ({})),
+        ]);
       exercises = exerciseList;
       plans = planList;
       rotation = rotationState;
       activeSession = active;
+      weightSuggestions = suggestions;
     } catch (loadError) {
       error = messageOf(loadError);
     } finally {
@@ -219,6 +225,12 @@
     try {
       rotation = await getRotation();
     } catch {
+      // The workout is complete; the rotation refreshes on the next load.
+    }
+
+    try {
+      weightSuggestions = await getWeightSuggestions();
+    } catch {
       // The workout is complete; the suggestion refreshes on the next load.
     }
   }
@@ -260,6 +272,7 @@
     session={activeSession}
     plan={matchingPlan}
     exercises={exercises}
+    weightSuggestions={weightSuggestions}
     onLogSet={handleLogSet}
     onComplete={handleComplete}
   />

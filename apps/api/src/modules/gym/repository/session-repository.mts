@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import type {
   LoggedSet,
+  WeightSuggestions,
   WorkoutSessionDetail,
   WorkoutSessionSummary,
 } from "@gymos/shared";
@@ -81,6 +82,39 @@ export class SessionRepository {
     return session?.planId ?? null;
   }
 
+  async findWeightSuggestions(userId: string): Promise<WeightSuggestions> {
+    // shortcut: loads every completed set for the user; add a per-exercise
+    // latest-session query if history grows large.
+    const sessions = await prisma.workoutSession.findMany({
+      where: { userId, completedAt: { not: null }, sets: { some: {} } },
+      orderBy: [{ completedAt: "desc" }, { startedAt: "desc" }],
+      select: { sets: { select: { exerciseId: true, weightKg: true } } },
+    });
+
+    const latestWeights = new Map<string, number[]>();
+    for (const session of sessions) {
+      const byExercise = new Map<string, number[]>();
+      for (const set of session.sets) {
+        const weights = byExercise.get(set.exerciseId) ?? [];
+        weights.push(set.weightKg);
+        byExercise.set(set.exerciseId, weights);
+      }
+      for (const [exerciseId, weights] of byExercise) {
+        if (!latestWeights.has(exerciseId)) {
+          latestWeights.set(exerciseId, weights);
+        }
+      }
+    }
+
+    const suggestions: WeightSuggestions = {};
+    for (const [exerciseId, weights] of latestWeights) {
+      const average =
+        weights.reduce((sum, weight) => sum + weight, 0) / weights.length;
+      suggestions[exerciseId] = Math.round(average * 2) / 2;
+    }
+    return suggestions;
+  }
+
   async createIfNoActive(
     userId: string,
     input: { title: string; planId: string | null }
@@ -103,7 +137,7 @@ export class SessionRepository {
   async logSet(
     userId: string,
     sessionId: string,
-    input: { exerciseId: string; reps: number; weightKg: number; rpe?: number }
+    input: { exerciseId: string; reps: number; weightKg: number }
   ): Promise<LogSetResult> {
     try {
       return await withSerializableRetry(async (tx) => {
@@ -131,7 +165,6 @@ export class SessionRepository {
             setNumber: (max._max.setNumber ?? 0) + 1,
             reps: input.reps,
             weightKg: input.weightKg,
-            rpe: input.rpe ?? null,
           },
         });
         return {

@@ -64,7 +64,6 @@ model WorkoutSet {
   setNumber        Int
   reps             Int
   weightKg         Float
-  rpe              Float?
   createdAt        DateTime       @default(now())
 
   @@unique([workoutSessionId, exerciseId, setNumber])

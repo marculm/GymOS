@@ -198,14 +198,14 @@ describe("CreateWorkoutSetSchema", () => {
     expect(result.success).toBe(false);
   });
 
-  it("rejects RPE above 10", () => {
-    const result = CreateWorkoutSetSchema.safeParse({
+  it("ignores an rpe sent by an older client", () => {
+    const result = CreateWorkoutSetSchema.parse({
       exerciseId: "00000000-0000-4000-8000-000000000001",
       reps: 10,
       weightKg: 20,
-      rpe: 11,
+      rpe: 9,
     });
-    expect(result.success).toBe(false);
+    expect(result).not.toHaveProperty("rpe");
   });
 });
 
@@ -217,7 +217,6 @@ describe("LoggedSetSchema", () => {
     setNumber: 1,
     reps: 8,
     weightKg: 80,
-    rpe: null,
     createdAt: "2026-10-26T18:05:00.000Z",
   };
 

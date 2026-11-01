@@ -106,7 +106,6 @@ export const CreateWorkoutSetSchema = z.object({
   exerciseId: z.string().uuid(),
   reps: z.number().int().positive().max(MAX_SET_REPS),
   weightKg: z.number().nonnegative().max(MAX_SET_WEIGHT_KG),
-  rpe: z.number().min(1).max(10).optional(),
 });
 
 export const LoggedSetSchema = z.object({
@@ -116,7 +115,6 @@ export const LoggedSetSchema = z.object({
   setNumber: z.number().int().positive(),
   reps: z.number().int().positive(),
   weightKg: z.number().nonnegative(),
-  rpe: z.number().min(1).max(10).nullable(),
   createdAt: z.iso.datetime(),
 });
 
@@ -128,6 +126,11 @@ export const WorkoutSessionDetailSchema = z.object({
   completedAt: z.iso.datetime().nullable(),
   sets: z.array(LoggedSetSchema),
 });
+
+export const WeightSuggestionsSchema = z.record(
+  z.string(),
+  z.number().nonnegative()
+);
 
 export const WorkoutSessionSummarySchema = z.object({
   id: z.string().uuid(),
@@ -152,3 +155,4 @@ export type CreateWorkoutSetInput = z.infer<typeof CreateWorkoutSetSchema>;
 export type LoggedSet = z.infer<typeof LoggedSetSchema>;
 export type WorkoutSessionDetail = z.infer<typeof WorkoutSessionDetailSchema>;
 export type WorkoutSessionSummary = z.infer<typeof WorkoutSessionSummarySchema>;
+export type WeightSuggestions = z.infer<typeof WeightSuggestionsSchema>;

@@ -83,6 +83,7 @@ function createService() {
     findLastCompletedPlanId: vi.fn(
       async (_userId: string) => null as string | null
     ),
+    findWeightSuggestions: vi.fn(async (_userId: string) => ({})),
   };
   const rotationRepository = {
     findByUser: vi.fn(async (_userId: string) => [plan, secondPlan]),
@@ -179,6 +180,20 @@ describe("GymReadService", () => {
 
     await expect(service.getSession("user-1", "missing")).rejects.toBeInstanceOf(
       NotFoundError
+    );
+  });
+
+  it("returns weight suggestions for the user", async () => {
+    const { service, sessionRepository } = createService();
+    sessionRepository.findWeightSuggestions.mockResolvedValueOnce({
+      "exercise-1": 61,
+    });
+
+    await expect(service.getWeightSuggestions("user-1")).resolves.toEqual({
+      "exercise-1": 61,
+    });
+    expect(sessionRepository.findWeightSuggestions).toHaveBeenCalledWith(
+      "user-1"
     );
   });
 });

@@ -16,7 +16,7 @@ The **Gym Tracker** slice is implemented:
 - Create plans with target sets, reps, and optional weight (prefilled from exercise
   defaults)
 - Start free or plan-based workouts
-- Log sets with weight, reps, and RPE
+- Log sets with weight and reps
 - Finish workouts (the history view is being reworked in a follow-up, ADR-0027)
 
 Nutrition, the AI recipe extractor, authentication, and offline logging are not implemented yet. The API is single-user (no login) and must be protected before public deployment. See [`docs/known-issues.md`](docs/known-issues.md) for known limitations.
@@ -112,6 +112,7 @@ full contract.
 | `POST` | `/api/gym/exercises` | Create an exercise (`{ name, muscleGroup, description?, defaultSets?, defaultReps?, defaultWeightKg? }`); `201` + `Location` |
 | `PUT` | `/api/gym/exercises/:id` | Edit an exercise; omitted optional fields are preserved |
 | `DELETE` | `/api/gym/exercises/:id` | Soft-delete an exercise |
+| `GET` | `/api/gym/exercises/weight-suggestions` | Suggested weight per exercise: average of the latest completed workout containing it, rounded to 0.5 kg |
 | `GET` | `/api/gym/plans?page=&size=&name=` | List the current user's plans |
 | `POST` | `/api/gym/plans` | Create a plan (`{ name, description?, exercises[] }`); `201` + `Location` |
 | `PUT` | `/api/gym/plans/:id` | Replace a plan's name, description, and exercises |
@@ -122,7 +123,7 @@ full contract.
 | `GET` | `/api/gym/sessions/active` | Active session, or `404` when none exists |
 | `GET` | `/api/gym/sessions?page=&size=&planId=&from=&to=` | List completed sessions |
 | `GET` | `/api/gym/sessions/:id` | Get a session with its sets |
-| `POST` | `/api/gym/sessions/:id/sets` | Log a set (`{ exerciseId, reps, weightKg, rpe? }`) |
+| `POST` | `/api/gym/sessions/:id/sets` | Log a set (`{ exerciseId, reps, weightKg }`) |
 | `POST` | `/api/gym/sessions/:id/complete` | Finish a session |
 
 `GET /health/liveness`, `GET /health/readiness`, and `GET /prometheus` are available for

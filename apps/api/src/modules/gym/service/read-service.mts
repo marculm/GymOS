@@ -1,5 +1,6 @@
 import type {
   Exercise,
+  WeightSuggestions,
   WorkoutPlan,
   WorkoutRotation,
   WorkoutSessionDetail,
@@ -20,7 +21,12 @@ type PlanReader = Pick<PlanRepository, "findByUser" | "countByUser">;
 type RotationReader = Pick<RotationRepository, "findByUser">;
 type SessionReader = Pick<
   SessionRepository,
-  "findActive" | "findById" | "findRecent" | "countRecent" | "findLastCompletedPlanId"
+  | "findActive"
+  | "findById"
+  | "findRecent"
+  | "countRecent"
+  | "findLastCompletedPlanId"
+  | "findWeightSuggestions"
 >;
 
 export class GymReadService {
@@ -63,6 +69,10 @@ export class GymReadService {
         lastPlanId
       ),
     };
+  }
+
+  async getWeightSuggestions(userId: string): Promise<WeightSuggestions> {
+    return this.sessionRepository.findWeightSuggestions(userId);
   }
 
   async getActiveSession(userId: string): Promise<WorkoutSessionDetail> {

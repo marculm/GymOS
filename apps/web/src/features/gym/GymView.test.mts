@@ -17,6 +17,7 @@ import {
   deletePlan,
   getActiveSession,
   getRotation,
+  getWeightSuggestions,
   listAllExercises,
   listAllPlans,
   setRotation,
@@ -35,6 +36,7 @@ vi.mock("../../api/gym.mts", () => ({
   updatePlan: vi.fn(),
   deletePlan: vi.fn(),
   getRotation: vi.fn(),
+  getWeightSuggestions: vi.fn(),
   setRotation: vi.fn(),
   startSession: vi.fn(),
   getActiveSession: vi.fn(),
@@ -120,6 +122,7 @@ beforeEach(() => {
   vi.mocked(updatePlan).mockResolvedValue(plan);
   vi.mocked(deletePlan).mockResolvedValue(undefined);
   vi.mocked(getRotation).mockResolvedValue({ plans: [], nextPlanId: null });
+  vi.mocked(getWeightSuggestions).mockResolvedValue({});
   vi.mocked(setRotation).mockImplementation(async ({ planIds }) => {
     const byId = new Map([plan, extraPlan].map((entry) => [entry.id, entry]));
     const plans = planIds.flatMap((id) => byId.get(id) ?? []);
@@ -135,7 +138,6 @@ beforeEach(() => {
     setNumber: 1,
     reps: 8,
     weightKg: 80,
-    rpe: null,
     createdAt: "2026-10-26T18:05:00.000Z",
   });
   vi.mocked(completeSession).mockResolvedValue({
@@ -613,6 +615,36 @@ describe("GymView", () => {
     });
   });
 
+  it("loads the gym when weight suggestions fail", async () => {
+    vi.mocked(getWeightSuggestions).mockRejectedValueOnce(
+      new Error("No suggestions")
+    );
+
+    render(GymView);
+
+    expect(await screen.findByText("No workout scheduled")).toBeInTheDocument();
+  });
+
+  it("refreshes the rotation when the suggestion refresh fails", async () => {
+    vi.mocked(getActiveSession).mockResolvedValue(session);
+    vi.mocked(getWeightSuggestions)
+      .mockResolvedValueOnce({})
+      .mockRejectedValueOnce(new Error("No suggestions"));
+    vi.mocked(getRotation)
+      .mockResolvedValueOnce({ plans: [plan, extraPlan], nextPlanId: plan.id })
+      .mockResolvedValueOnce({ plans: [plan, extraPlan], nextPlanId: extraPlan.id });
+
+    render(GymView);
+
+    await fireEvent.click(
+      await screen.findByRole("button", { name: /finish workout/i })
+    );
+
+    expect(
+      await screen.findByRole("heading", { name: "Pull Day" })
+    ).toBeInTheDocument();
+  });
+
   it("refreshes the next rotation plan after finishing a workout", async () => {
     vi.mocked(getActiveSession).mockResolvedValue(session);
     vi.mocked(getRotation)
@@ -628,6 +660,18 @@ describe("GymView", () => {
     expect(
       await screen.findByRole("heading", { name: "Pull Day" })
     ).toBeInTheDocument();
+  });
+
+  it("shows the suggested weight in the active session", async () => {
+    vi.mocked(getActiveSession).mockResolvedValue(session);
+    vi.mocked(getWeightSuggestions).mockResolvedValue({ "exercise-1": 82.5 });
+
+    render(GymView);
+
+    expect(await screen.findByLabelText("Weight (kg)")).toHaveAttribute(
+      "placeholder",
+      "82.5"
+    );
   });
 
   it("logs a set and finishes the active session", async () => {
@@ -652,7 +696,6 @@ describe("GymView", () => {
         exerciseId: "exercise-1",
         weightKg: 80,
         reps: 8,
-        rpe: undefined,
       });
     });
 

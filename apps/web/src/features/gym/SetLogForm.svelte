@@ -6,25 +6,32 @@
 
   let {
     exercise,
+    suggestedWeightKg,
     disabled = false,
     onSubmit,
   }: {
     exercise: Exercise;
+    suggestedWeightKg?: number;
     disabled?: boolean;
     onSubmit: (input: SetInput) => Promise<boolean>;
   } = $props();
 
-  // svelte-ignore state_referenced_locally
-  let weightKg = $state<string | number | null>(exercise.defaultWeightKg ?? "");
-  // svelte-ignore state_referenced_locally
-  let reps = $state<string | number | null>(exercise.defaultReps ?? "");
-  let rpe = $state<string | number | null>("");
+  let weightKg = $state<string | number | null>("");
+  let reps = $state<string | number | null>("");
   let submitting = $state(false);
   let error = $state<string | null>(null);
 
+  const weightPlaceholder = $derived(
+    suggestedWeightKg ?? exercise.defaultWeightKg ?? undefined
+  );
+
+  function isEmpty(value: string | number | null) {
+    return value === "" || value == null;
+  }
+
   async function handleSubmit(event: SubmitEvent) {
     event.preventDefault();
-    if (disabled || submitting) return;
+    if (disabled || submitting || isEmpty(weightKg) || isEmpty(reps)) return;
 
     submitting = true;
     error = null;
@@ -33,12 +40,10 @@
       const logged = await onSubmit({
         weightKg: Number(weightKg),
         reps: Number(reps),
-        rpe: rpe == null || rpe === "" ? undefined : Number(rpe),
       });
       if (!logged) return;
       weightKg = "";
       reps = "";
-      rpe = "";
     } catch (logError) {
       error =
         logError instanceof Error ? logError.message : "Could not log the set";
@@ -64,6 +69,7 @@
           max={MAX_SET_WEIGHT_KG}
           step={0.5}
           required
+          placeholder={weightPlaceholder?.toString()}
           bind:value={weightKg}
         />
       </label>
@@ -76,17 +82,6 @@
           max={MAX_SET_REPS}
           required
           bind:value={reps}
-        />
-      </label>
-      <label class="field grow">
-        <span class="label">RPE (optional)</span>
-        <input
-          class="input"
-          type="number"
-          min={1}
-          max={10}
-          step={0.5}
-          bind:value={rpe}
         />
       </label>
     </div>
