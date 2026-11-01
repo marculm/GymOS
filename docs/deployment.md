@@ -36,12 +36,19 @@ The profile uses the same `gymos-postgres` container name as the development dat
 stop the development stack first. `docker compose ... --profile app down` stops the full
 stack; add `-v` to delete its data volume.
 
+The Compose URLs interpolate `POSTGRES_PASSWORD` directly. Use a URL-safe password, or
+URL-encode it in both `DATABASE_URL` values if it contains `@`, `:`, `/`, or `?`.
+
 ## One-time VM setup
 
 ### 1. Network
 
 - Create an Oracle Cloud ARM VM (Ubuntu 24.04).
-- Open SSH (22) in the VCN security list. Do **not** open 80, 443, or 6443.
+- Open SSH (22) only temporarily and restrict the source to your admin IP. Do **not** open
+  80, 443, or 6443.
+- After Tailscale SSH works (step 3), remove the temporary SSH rule; the deploy path does
+  not use port 22. Optionally disable OpenSSH. If the rule is removed before Tailscale is
+  working, use the Oracle Cloud Shell or serial console.
 - Optionally open UDP 41641 for direct Tailscale connections; Tailscale works without it
   through DERP relays.
 
@@ -70,7 +77,22 @@ sudo tailscale status
 it becomes `DEPLOY_HOST`. Enable MagicDNS and HTTPS certificates for the tailnet in the
 admin console; Tailscale Serve provisions the certificate for that name.
 
-### 4. Checkout and cluster access
+### 4. Deploy key, checkout, and cluster access
+
+Generate a deploy key on the VM and add its public key as a **read-only deploy key** in
+the GitHub repository (Settings → Deploy keys) before cloning:
+
+```bash
+ssh-keygen -t ed25519 -C gymos-deploy -f ~/.ssh/gymos_deploy -N ""
+cat ~/.ssh/gymos_deploy.pub
+
+printf 'Host github.com\n  IdentityFile ~/.ssh/gymos_deploy\n  IdentitiesOnly yes\n' >> ~/.ssh/config
+ssh -T git@github.com
+# Expect: "successfully authenticated, but GitHub does not provide shell access."
+```
+
+If `~/.ssh/config` already has a `github.com` block, merge the `IdentityFile` line instead
+of appending a duplicate block. Then check out the repository and configure kubectl:
 
 ```bash
 sudo mkdir -p /srv/gymos
@@ -83,14 +105,13 @@ sudo chown "$USER" ~/.kube/config
 chmod 600 ~/.kube/config
 ```
 
-Add a read-only deploy key to the GitHub repository for the VM user. `deploy.sh` updates
-this checkout with `git fetch origin main` and `git checkout --force --detach`; do not keep
-local edits there.
+`deploy.sh` updates this checkout with `git fetch origin main` and
+`git checkout --force --detach`; do not keep local edits there.
 
 ### 5. Tailscale ACL and GitHub deployment access
 
-Create a Tailscale OAuth client with the `tag:ci` tag. The tailnet ACL must allow the CI
-tag to SSH into the VM as the deploy user:
+Create a Tailscale OAuth client with the `tag:ci` tag and the writable `auth_keys` scope.
+The tailnet ACL must allow CI SSH and the phone to reach the app:
 
 ```json
 {
@@ -103,6 +124,11 @@ tag to SSH into the VM as the deploy user:
       "src": ["tag:ci"],
       "dst": ["tag:server"],
       "ip": ["tcp:22"]
+    },
+    {
+      "src": ["autogroup:member"],
+      "dst": ["tag:server"],
+      "ip": ["tcp:22", "tcp:8443"]
     }
   ],
   "ssh": [
@@ -111,14 +137,23 @@ tag to SSH into the VM as the deploy user:
       "src": ["tag:ci"],
       "dst": ["tag:server"],
       "users": ["ubuntu"]
+    },
+    {
+      "action": "accept",
+      "src": ["autogroup:member"],
+      "dst": ["tag:server"],
+      "users": ["ubuntu"]
     }
   ]
 }
 ```
 
-The `grants` rule is required in addition to the `ssh` rule; Tailscale SSH rules do not
-grant network access by themselves. Replace `ubuntu` with the local account used by
-`DEPLOY_USER`.
+This is a **complete policy**; a full policy replaces Tailscale's default allow-all, so
+only the listed grants work. `autogroup:member` covers your own devices (including the
+phone); the `tcp:8443` grant is what lets the phone open the app, and `tcp:22` allows
+interactive SSH. The `grants` rules are required in addition to the `ssh` rules; Tailscale
+SSH rules do not grant network access by themselves. Replace `ubuntu` with the local
+account used by `DEPLOY_USER`, and add other sources if more devices need access.
 
 Add these GitHub repository secrets and variables:
 
@@ -149,11 +184,22 @@ The password in `POSTGRES_PASSWORD` and `DATABASE_URL` must match. URL-encode it
 the first deploy; `deploy.sh` applies the manifest on every deploy, so live edits are
 overwritten. The migration Job seeds this owner idempotently.
 
-### 7. GHCR visibility
+### 7. GHCR visibility and first deploy
 
-The repository is private, so new GHCR packages start private. After the first `main`
-pipeline, open each `gymos-api`, `gymos-web`, and `gymos-api-migrate` package in GitHub →
-Package settings → Change visibility → Public. The VM then pulls anonymously.
+The repository is private, so new GHCR packages start private. The first push to `main`
+builds and pushes the images, then the deploy job fails at the migrate Job's image pull
+because the VM has no pull secret. This is expected; the deploy job may wait up to ten
+minutes before the pull failure times out.
+
+After the images job finishes:
+
+1. Open each `gymos-api`, `gymos-web`, and `gymos-api-migrate` package in GitHub →
+   Package settings → Change visibility → Public.
+2. Re-run the failed deploy job in GitHub Actions, or run
+   `/srv/gymos/deploy/k8s/deploy.sh <commit>` on the VM.
+
+The migrate pod never started, so no database changes occurred and the re-run is safe.
+Later merges deploy normally.
 
 ### 8. Tailscale Serve
 
@@ -164,8 +210,8 @@ sudo tailscale serve --bg --https=8443 http://127.0.0.1:80
 sudo tailscale serve status
 ```
 
-Open `https://<DEPLOY_HOST>:8443` from any device in the tailnet. Tailscale terminates
-TLS; Traefik only sees HTTP.
+Open `https://<DEPLOY_HOST>:8443` from any device in the tailnet. This only works when the
+ACL grant from step 5 is in place. Tailscale terminates TLS; Traefik only sees HTTP.
 
 ## Deploy and rollback
 
@@ -175,8 +221,10 @@ The pipeline deploys automatically after a merge to `main`. To deploy manually o
 /srv/gymos/deploy/k8s/deploy.sh <commit-sha>
 ```
 
-The script applies the manifests, runs migrations and the seed Job, rolls out the API and
-web images pinned to that commit, and waits for both deployments.
+The script checks that the secret exists, waits for Postgres, runs migrations and the seed
+Job, rolls out the API and web images pinned to that commit, and waits for both
+deployments. It uses `ghcr.io/marculm` by default; CI passes `REGISTRY=ghcr.io/<owner>`.
+Set `REGISTRY` for manual deploys if the repository owner differs.
 
 Roll back by running the same script with an earlier commit:
 
@@ -213,6 +261,16 @@ curl -s http://127.0.0.1/health
 
 `/prometheus` is deliberately not routed by the ingress. For debugging, use
 `kubectl -n gymos port-forward svc/api 3000:3000` from the VM.
+
+- **ImagePullBackOff or 403 from GHCR:** the packages are still private. Make them public
+  (step 7), then re-run the deploy.
+- **Deploy job fails at the Tailscale action:** the OAuth client needs the writable
+  `auth_keys` scope and the `tag:ci` tag; check the ACL and the two repository secrets.
+- **Phone cannot open `:8443`:** the ACL needs a grant from the phone's source
+  (`autogroup:member`) to `tag:server` on `tcp:8443`, and `tailscale serve status` must
+  show the HTTPS handler.
+- **Migration Job timeout:** `kubectl -n gymos logs job/gymos-migrate` shows the Prisma
+  error; the deploy script prints the last 100 lines on failure.
 
 The K3s/Tailscale deploy path is unverified until the VM is provisioned; see
 [`known-issues.md`](known-issues.md).
