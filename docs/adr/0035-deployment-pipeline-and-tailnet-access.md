@@ -64,8 +64,8 @@ clean checkout.
 - Traefik is never reachable from the public internet. The Oracle firewall opens no HTTP
   ports; Tailscale is the only path to the cluster.
 - Tailscale Serve terminates TLS for the MagicDNS name and proxies to the local Traefik
-  entrypoint (`tailscale serve https / http://localhost:80`). The API does not load
-  certificates (ADR-0016).
+  entrypoint (`tailscale serve --bg --https=8443 http://127.0.0.1:80`). Port 8443 avoids
+  the Traefik listener on 443. The API does not load certificates (ADR-0016).
 - The Postgres password and `DATABASE_URL` exist only in a Kubernetes Secret created on
   the VM. The repository contains `deploy/k8s/secret.example.yaml` with placeholders.
 

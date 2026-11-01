@@ -101,6 +101,25 @@ Nutrition, the AI recipe extractor, authentication, and offline logging are not 
 
 ---
 
+## Deployment
+
+Production runs on a private K3s VM reached through Tailscale. GitHub Actions runs the
+checks, publishes `linux/arm64` images to GHCR, and deploys to the VM over Tailscale SSH.
+See [`docs/deployment.md`](docs/deployment.md) for the VM, Tailscale, secret, deploy,
+rollback, and backup steps.
+
+For a production-like local stack:
+
+```bash
+bun run db:down
+docker compose --env-file .env -f deploy/docker/docker-compose.yml \
+  --profile app up -d --build
+```
+
+The app is then available at [http://localhost:8080](http://localhost:8080).
+
+---
+
 ## Gym API
 
 All routes are under `/api/gym` and validate their input with Zod. List routes accept
@@ -145,7 +164,10 @@ GymOS/
 ├── packages/
 │   └── shared/          # Shared Zod schemas, domain types, constants
 ├── deploy/
-│   └── docker/          # Docker Compose configurations (PostgreSQL)
+│   ├── docker/          # Compose: PostgreSQL and optional full stack
+│   └── k8s/             # K3s manifests and deploy script
+├── .github/
+│   └── workflows/       # CI: checks, images, deploy
 ├── docs/
 │   ├── adr/             # Architecture Decision Records (MADR format)
 │   └── known-issues.md  # Known limitations and deferred work

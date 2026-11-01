@@ -34,11 +34,13 @@ the bottom of the Gym page (ADR-0032).
 └──────────────────────────────┘
 
 packages/shared: Zod schemas and contract types used by api and web.
-Reverse proxy/ingress: serves the static PWA build, terminates TLS, forwards /api.
+Tailscale Serve terminates TLS for the tailnet; Traefik routes `/api` and `/health` to the
+API and everything else to the static PWA served by nginx.
 ```
 
-The system is deployed as containers (ADR-0008). The API is single-user until
-authentication is added (ADR-0009).
+The system is deployed as containers (ADR-0008, ADR-0035). The API is single-user until
+authentication is added (ADR-0009). Deployment details live in
+[`deployment.md`](deployment.md).
 
 ---
 
@@ -614,3 +616,4 @@ The target architecture deliberately excludes:
 | [0032](adr/0032-workout-history-and-progress.md) | Workout history and progress analytics |
 | [0033](adr/0033-collapsed-history-section.md) | Collapsed history section |
 | [0034](adr/0034-gym-accessibility-names-alerts-focus.md) | Gym accessibility names, alerts, and focus |
+| [0035](adr/0035-deployment-pipeline-and-tailnet-access.md) | Deployment pipeline and tailnet access |
