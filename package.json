@@ -19,9 +19,9 @@
     "lint:all": "bun run lint && bun run lint:adr",
     "db:up": "docker compose --env-file .env -f deploy/docker/docker-compose.yml up -d",
     "db:down": "docker compose --env-file .env -f deploy/docker/docker-compose.yml down",
-    "db:migrate": "bun --filter @gymos/api db:migrate",
-    "db:seed": "bun --filter @gymos/api db:seed",
-    "db:studio": "bun --filter @gymos/api db:studio"
+    "db:migrate": "bun --env-file=.env --filter @gymos/api db:migrate",
+    "db:seed": "bun --env-file=.env --filter @gymos/api db:seed",
+    "db:studio": "bun --env-file=.env --filter @gymos/api db:studio"
   },
   "devDependencies": {
     "@types/bun": "latest",
