@@ -343,6 +343,11 @@ describe("GymView", () => {
     await waitFor(() => {
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });
+    await waitFor(() => {
+      expect(
+        screen.getByRole("heading", { name: "Push Day" })
+      ).toHaveFocus();
+    });
   });
 
   it("starts a non-rotation plan from the picker", async () => {
@@ -370,11 +375,14 @@ describe("GymView", () => {
     render(GymView);
 
     await fireEvent.click(await startScreenReady());
-    await fireEvent.click(
-      await screen.findByRole("button", { name: /free workout/i })
-    );
+    const freeWorkout = await screen.findByRole("button", {
+      name: /free workout/i,
+    });
+    freeWorkout.focus();
+    await fireEvent.click(freeWorkout);
 
     expect(await screen.findByRole("alert")).toHaveTextContent("still blocked");
+    await waitFor(() => expect(freeWorkout).toHaveFocus());
   });
 
   it("opens management from the empty state", async () => {
@@ -832,7 +840,7 @@ describe("GymView", () => {
     await fireEvent.input(screen.getByLabelText("Reps"), {
       target: { value: "8" },
     });
-    await fireEvent.click(screen.getByRole("button", { name: "Add set" }));
+    await fireEvent.click(screen.getByRole("button", { name: /add set/i }));
 
     await waitFor(() => {
       expect(addSet).toHaveBeenCalledWith("session-1", {
@@ -871,6 +879,11 @@ describe("GymView", () => {
     expect(
       screen.getByRole("button", { name: /finish workout/i })
     ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        screen.getByRole("heading", { name: "Push Day" })
+      ).toHaveFocus();
+    });
   });
 
   it("stops adding plan exercises at the schema limit", async () => {
@@ -951,6 +964,9 @@ describe("GymView", () => {
     expect(screen.getByLabelText("Sets")).toHaveValue(4);
     expect(screen.getByLabelText("Reps")).toHaveValue(8);
     expect(screen.getByLabelText("Weight (kg, optional)")).toHaveValue(80);
+    expect(
+      screen.getByRole("button", { name: "Remove Bench Press" })
+    ).toBeInTheDocument();
 
     await fireEvent.input(screen.getByLabelText("Name"), {
       target: { value: "Default Plan" },

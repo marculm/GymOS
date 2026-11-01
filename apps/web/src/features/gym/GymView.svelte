@@ -86,6 +86,7 @@
   });
 
   async function start(input: { planId?: string }) {
+    const trigger = document.activeElement;
     pending = true;
     error = null;
 
@@ -108,6 +109,11 @@
         showPicker = false;
         await tick();
         document.getElementById("session-heading")?.focus();
+      } else {
+        await tick();
+        if (trigger instanceof HTMLElement && trigger.isConnected) {
+          trigger.focus();
+        }
       }
     }
   }

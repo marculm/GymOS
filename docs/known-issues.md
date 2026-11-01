@@ -21,6 +21,7 @@ These are known, non-blocking issues. They do not affect the core flow: create a
 2. **No request timeout in the web client** — a hung API leaves the Gym tab in the loading state. Impact: no retry path until reload. Fix: `AbortController`/timeout and an error state.
 3. **No exercise restore** — soft-deleted exercises are hidden from the register and cannot be restored in the UI; their names stay reserved by the unique constraint. Impact: an accidental delete needs database access to undo, and the name cannot be reused. Fix: restore action or allow name reuse after deletion (ADR-0024).
 4. **Plan deleted while a session starts** — `startSession` reads the plan before the serializable insert; if the plan is deleted in between, the foreign-key insert fails with `P2003` and returns `500`. Impact: only reachable from two clients editing and starting at once. Fix: map `P2003` to a not-found or concurrent result.
+5. **Plan form rows lack row context** — every plan row labels its controls "Exercise", "Sets", "Reps", and "Weight"; screen-reader form navigation cannot tell which row a field belongs to. Impact: multi-exercise plans are ambiguous to edit without sight. Fix: wrap each row in a fieldset whose legend names the selected exercise, or include the exercise name in each control's accessible name.
 
 ## Deferred features
 

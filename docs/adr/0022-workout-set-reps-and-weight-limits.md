@@ -10,7 +10,7 @@ Accepted
 non-negative number for `weightKg`. `reps` values above Prisma's 32-bit `Int` range
 made the insert fail and the API returned `500`; extreme weights, stored as `Float`,
 were accepted. ADR-0017 bounded plan targets but left logged set limits open, tracked
-as known issue 5 in `docs/known-issues.md`.
+in `docs/known-issues.md` at the time.
 
 ## Decision
 

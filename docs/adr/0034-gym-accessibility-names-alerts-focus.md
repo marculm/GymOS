@@ -6,7 +6,8 @@ Accepted
 
 ## Context
 
-The Gym flow has three accessibility gaps (known issue 3):
+The Gym flow has three accessibility gaps (the accessibility item in
+`docs/known-issues.md` at the time of writing):
 
 - The plan list renders one "Start plan" button per plan, so screen-reader and voice
   users cannot tell the actions apart by name.
@@ -22,8 +23,10 @@ The other Gym errors, the picker, and the history and progress sections already 
 
 ## Decision
 
-- Each plan card's primary action uses visible text `Start <plan name>`. The visible
-  label and the accessible name are the same and include the plan name.
+- Repeated Gym actions include their object in the accessible name while keeping the
+  visible label: plan cards show `Start <plan name>`, plan-row remove buttons use
+  `Remove <exercise name>`, and set form submit buttons use
+  `Add set for <exercise name>`.
 - Every Gym error renders in a `role="alert"` element, which is an implicit assertive
   live region. This covers the top-level load error, plan form, exercise register,
   session, picker, history, and progress.
@@ -31,8 +34,9 @@ The other Gym errors, the picker, and the history and progress sections already 
   next-workout heading, or to the "No workout scheduled" heading when the rotation is
   empty. Both headings are focusable targets (`tabindex="-1"`).
 - Focus moves only after the new view has rendered (`await tick`) and only when the
-  action succeeded. Failure paths keep focus on the control the user used and announce
-  the error instead.
+  action succeeded. When starting or finishing a session fails, focus returns to the
+  control that started the request once it is enabled again, and the error is announced.
+  Other forms announce the error without moving focus.
 - Initial page loads and direct navigation do not move focus.
 - Component tests assert the plan-specific button names, the alert roles, and the focus
   transfer after starting and finishing a session.
