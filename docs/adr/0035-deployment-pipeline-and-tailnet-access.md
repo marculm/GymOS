@@ -24,14 +24,14 @@ clean checkout.
   repository root; `.dockerignore` excludes `node_modules`, `.git`, `.env`, and `dist`.
 - The API builder installs all dependencies and generates the Prisma client. The runtime
   stage contains production dependencies only, runs as the non-root `bun` user, sets
-  `NODE_ENV=production`, and never loads `pino-pretty`. A separate `migrate` target keeps
-  the Prisma CLI out of the runtime image.
+  `NODE_ENV=production`, and never loads `pino-pretty`. The Prisma CLI is a production
+  dependency because the migration Job runs `db:setup` from the same API image.
 - The web builder produces the Vite/PWA output; the runtime is `nginx-unprivileged` on
   port 8080 with SPA fallback and cache headers.
-- Images are published to public GHCR as `ghcr.io/marculm/gymos-api`,
-  `ghcr.io/marculm/gymos-web`, and `ghcr.io/marculm/gymos-api-migrate`, tagged
-  `sha-<commit>` and `latest`. Public packages need no pull secret and stay outside the
-  private-package quota. No secret is passed as a build argument or baked into an image.
+- Images are published to public GHCR as `ghcr.io/marculm/gymos-api` and
+  `ghcr.io/marculm/gymos-web`, tagged `sha-<commit>` and `latest`. Public packages need no
+  pull secret and stay outside the private-package quota. No secret is passed as a build
+  argument or baked into an image.
 - An `app` profile in `deploy/docker/docker-compose.yml` runs Postgres, migrations, API,
   and web locally with the same images. The default `db:up` flow remains Postgres-only.
 
@@ -50,10 +50,10 @@ clean checkout.
   GitHub. Access is granted by a tailnet ACL and revoked by changing the ACL or removing
   the OAuth client.
 - The VM holds a checkout at `/srv/gymos` and runs `deploy/k8s/deploy.sh <sha>`. The script
-  checks out the commit, applies the manifests, runs the migration Job to completion (which
-  also seeds the configured owner idempotently), rolls out API and web with SHA-pinned
-  images, and waits for the rollout. Manifests are
-  applied only through this versioned script; no ad-hoc `kubectl` changes.
+  checks out the commit, applies the manifests, runs the migration Job with the same API
+  image to completion (which also seeds the configured owner idempotently), rolls out API
+  and web with SHA-pinned images, and waits for the rollout. Manifests are applied only
+  through this versioned script; no ad-hoc `kubectl` changes.
 - Rollback is the same script with an earlier SHA. Prisma migrations are forward-only, so
   an application rollback is safe only when the schema change is backward compatible.
 

@@ -14,7 +14,6 @@ Pull requests run `checks` and `infra`. A push to `main` runs:
 3. `images` — builds `linux/arm64` images and pushes them to GHCR:
    - `ghcr.io/marculm/gymos-api:sha-<commit>`
    - `ghcr.io/marculm/gymos-web:sha-<commit>`
-   - `ghcr.io/marculm/gymos-api-migrate:sha-<commit>`
 4. `deploy` — runs only when the repository variable `DEPLOY_ENABLED` is `true`; joins the
    tailnet as an ephemeral `tag:ci` node and runs
    `/srv/gymos/deploy/k8s/deploy.sh <commit>` on the VM over Tailscale SSH.
@@ -196,7 +195,7 @@ The repository is private, so new GHCR packages start private. The first main ru
 and pushes the images; the deploy job is skipped while `DEPLOY_ENABLED` is unset. Make the
 packages public:
 
-1. Open each `gymos-api`, `gymos-web`, and `gymos-api-migrate` package in GitHub →
+1. Open each `gymos-api` and `gymos-web` package in GitHub →
    Package settings → Change visibility → Public.
 
 Then enable deployments (step 9). The next merge deploys. To deploy the current main
