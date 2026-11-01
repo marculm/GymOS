@@ -156,6 +156,11 @@ describe("SessionView", () => {
     ).toBeInTheDocument();
     expect(screen.getByText(/4\s*×\s*8/)).toBeInTheDocument();
     expect(screen.getByText(/@ 80 kg/)).toBeInTheDocument();
+    expect(
+      cardForm("Bench Press").getByRole("button", {
+        name: "Add set for Bench Press",
+      })
+    ).toBeInTheDocument();
   });
 
   it("logs a set from the exercise card", async () => {
@@ -168,7 +173,7 @@ describe("SessionView", () => {
       target: { value: "6" },
     });
     await fireEvent.click(
-      cardForm("Bench Press").getByRole("button", { name: "Add set" })
+      cardForm("Bench Press").getByRole("button", { name: /add set/i })
     );
 
     await waitFor(() => {
@@ -190,7 +195,7 @@ describe("SessionView", () => {
       target: { value: "12" },
     });
     await fireEvent.click(
-      cardForm("Cable Fly").getByRole("button", { name: "Add set" })
+      cardForm("Cable Fly").getByRole("button", { name: /add set/i })
     );
 
     await waitFor(() => {
@@ -225,7 +230,7 @@ describe("SessionView", () => {
       target: { value: "8" },
     });
     await fireEvent.click(
-      cardForm("Bench Press").getByRole("button", { name: "Add set" })
+      cardForm("Bench Press").getByRole("button", { name: /add set/i })
     );
     await waitFor(() =>
       expect(
@@ -236,7 +241,7 @@ describe("SessionView", () => {
     const otherForm = cardForm("Cable Fly");
     expect(otherForm.getByLabelText("Weight (kg)")).toBeDisabled();
     expect(otherForm.getByLabelText("Reps")).toBeDisabled();
-    expect(otherForm.getByRole("button", { name: "Add set" })).toBeDisabled();
+    expect(otherForm.getByRole("button", { name: /add set/i })).toBeDisabled();
 
     request.resolve();
     await waitFor(() =>
@@ -278,7 +283,7 @@ describe("SessionView", () => {
       target: { value: "6" },
     });
     await fireEvent.click(
-      cardForm("Bench Press").getByRole("button", { name: "Add set" })
+      cardForm("Bench Press").getByRole("button", { name: /add set/i })
     );
 
     await waitFor(() =>
@@ -368,17 +373,17 @@ describe("SessionView", () => {
     });
     const form = cardForm("Bench Press");
 
-    await fireEvent.click(form.getByRole("button", { name: "Add set" }));
+    await fireEvent.click(form.getByRole("button", { name: /add set/i }));
     await fireEvent.input(form.getByLabelText("Weight (kg)"), {
       target: { value: "65" },
     });
-    await fireEvent.click(form.getByRole("button", { name: "Add set" }));
+    await fireEvent.click(form.getByRole("button", { name: /add set/i }));
     expect(onLogSet).not.toHaveBeenCalled();
 
     await fireEvent.input(form.getByLabelText("Reps"), {
       target: { value: "5" },
     });
-    await fireEvent.click(form.getByRole("button", { name: "Add set" }));
+    await fireEvent.click(form.getByRole("button", { name: /add set/i }));
 
     await waitFor(() => {
       expect(onLogSet).toHaveBeenCalledWith({
@@ -401,6 +406,21 @@ describe("SessionView", () => {
     });
   });
 
+  it("returns focus to finish after a failed completion", async () => {
+    renderSession({
+      onComplete: vi.fn().mockRejectedValue(new Error("Could not finish")),
+    });
+
+    const finish = screen.getByRole("button", { name: "Finish workout" });
+    finish.focus();
+    await fireEvent.click(finish);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Could not finish"
+    );
+    await waitFor(() => expect(finish).toHaveFocus());
+  });
+
   it("hides logging controls for a completed session", () => {
     renderSession({
       session: { ...session, completedAt: "2026-10-26T19:00:00.000Z" },
@@ -410,7 +430,7 @@ describe("SessionView", () => {
       screen.queryByRole("button", { name: "Finish workout" })
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "Add set" })
+      screen.queryByRole("button", { name: /add set/i })
     ).not.toBeInTheDocument();
     expect(screen.queryByRole("form")).not.toBeInTheDocument();
   });
@@ -485,7 +505,7 @@ describe("SessionView", () => {
       target: { value: "10" },
     });
     await fireEvent.click(
-      cardForm("Cable Fly").getByRole("button", { name: "Add set" })
+      cardForm("Cable Fly").getByRole("button", { name: /add set/i })
     );
 
     await waitFor(() => {
@@ -513,7 +533,7 @@ describe("SessionView", () => {
       target: { value: "10" },
     });
     await fireEvent.click(
-      cardForm("Cable Fly").getByRole("button", { name: "Add set" })
+      cardForm("Cable Fly").getByRole("button", { name: /add set/i })
     );
 
     await waitFor(() =>
@@ -566,7 +586,7 @@ describe("SessionView", () => {
       target: { value: "8" },
     });
     await fireEvent.click(
-      cardForm("Bench Press").getByRole("button", { name: "Add set" })
+      cardForm("Bench Press").getByRole("button", { name: /add set/i })
     );
 
     await waitFor(() =>
@@ -608,7 +628,7 @@ describe("SessionView", () => {
       screen.queryByRole("button", { name: "Add exercise" })
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "Add set" })
+      screen.queryByRole("button", { name: /add set/i })
     ).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Exercise")).not.toBeInTheDocument();
     expect(screen.getByText("Set 1")).toBeInTheDocument();

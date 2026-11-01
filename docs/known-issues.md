@@ -1,6 +1,6 @@
 # Known Issues and Deferred Work
 
-Last updated: 2026-10-31
+Last updated: 2026-11-01
 Scope: Gym Tracker MVP on `refactor/ponytail`.
 
 These are known, non-blocking issues. They do not affect the core flow: create a plan, start a workout, log sets, finish, and review history.
@@ -19,9 +19,9 @@ These are known, non-blocking issues. They do not affect the core flow: create a
 
 1. **JSON-only request bodies** — handlers parse JSON with `c.req.json()`; missing or malformed bodies return `400`. The PWA always sends a JSON body (`{}` for bodyless session starts). Impact: non-browser callers must send `Content-Type` and a valid body. Fix: document the contract in the API docs.
 2. **No request timeout in the web client** — a hung API leaves the Gym tab in the loading state. Impact: no retry path until reload. Fix: `AbortController`/timeout and an error state.
-3. **Accessibility polish** — repeated "Start plan" buttons lack plan-specific accessible names, and error messages are not announced (`role="alert"`/`aria-live`). Impact: screen-reader ambiguity and silent errors. Fix: add plan names to button labels and live regions.
-4. **No exercise restore** — soft-deleted exercises are hidden from the register and cannot be restored in the UI; their names stay reserved by the unique constraint. Impact: an accidental delete needs database access to undo, and the name cannot be reused. Fix: restore action or allow name reuse after deletion (ADR-0024).
-5. **Plan deleted while a session starts** — `startSession` reads the plan before the serializable insert; if the plan is deleted in between, the foreign-key insert fails with `P2003` and returns `500`. Impact: only reachable from two clients editing and starting at once. Fix: map `P2003` to a not-found or concurrent result.
+3. **No exercise restore** — soft-deleted exercises are hidden from the register and cannot be restored in the UI; their names stay reserved by the unique constraint. Impact: an accidental delete needs database access to undo, and the name cannot be reused. Fix: restore action or allow name reuse after deletion (ADR-0024).
+4. **Plan deleted while a session starts** — `startSession` reads the plan before the serializable insert; if the plan is deleted in between, the foreign-key insert fails with `P2003` and returns `500`. Impact: only reachable from two clients editing and starting at once. Fix: map `P2003` to a not-found or concurrent result.
+5. **Plan form rows lack row context** — every plan row labels its controls "Exercise", "Sets", "Reps", and "Weight"; screen-reader form navigation cannot tell which row a field belongs to. Impact: multi-exercise plans are ambiguous to edit without sight. Fix: wrap each row in a fieldset whose legend names the selected exercise, or include the exercise name in each control's accessible name.
 
 ## Deferred features
 

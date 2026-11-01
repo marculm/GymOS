@@ -153,6 +153,9 @@
 
     <div class="stack">
       {#each rows as row, index (index)}
+        {@const rowExercise = available.find(
+          (entry) => entry.id === row.exerciseId
+        )}
         <div class="plan-exercise stack">
           <div class="row">
             <label class="field grow">
@@ -172,6 +175,7 @@
             <button
               type="button"
               class="btn btn-ghost"
+              aria-label={`Remove ${rowExercise?.name ?? "exercise"}`}
               disabled={rows.length === 1}
               onclick={() => removeRow(index)}
             >
@@ -225,7 +229,7 @@
     </div>
 
     {#if error}
-      <p class="error">{error}</p>
+      <p class="error" role="alert">{error}</p>
     {/if}
 
     {#if rows.length >= MAX_PLAN_EXERCISES}

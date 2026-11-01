@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { tick } from "svelte";
   import type {
     CreateWorkoutSetInput,
     Exercise,
@@ -29,6 +30,7 @@
   let exerciseToAdd = $state("");
   let pending = $state(false);
   let error = $state<string | null>(null);
+  let finishButton = $state<HTMLButtonElement | null>(null);
 
   const completed = $derived(session.completedAt !== null);
 
@@ -134,16 +136,23 @@
 
     pending = true;
     error = null;
+    let failed = false;
 
     try {
       await onComplete();
     } catch (completeError) {
+      failed = true;
       error =
         completeError instanceof Error
           ? completeError.message
           : "Could not finish the workout";
     } finally {
       pending = false;
+    }
+
+    if (failed) {
+      await tick();
+      finishButton?.focus();
     }
   }
 </script>
@@ -181,13 +190,16 @@
   <header class="card stack">
     <div>
       <p class="muted">{new Date(session.startedAt).toLocaleString()}</p>
-      <h2 class="card-title">{session.title}</h2>
+      <h2 class="card-title" id="session-heading" tabindex="-1">
+        {session.title}
+      </h2>
     </div>
     {#if error}
       <p class="error" role="alert">{error}</p>
     {/if}
     {#if !completed}
       <button
+        bind:this={finishButton}
         type="button"
         class="btn btn-primary"
         disabled={pending}

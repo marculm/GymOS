@@ -90,7 +90,12 @@
       <p class="error" role="alert">{error}</p>
     {/if}
 
-    <button type="submit" class="btn btn-primary" disabled={disabled}>
+    <button
+      type="submit"
+      class="btn btn-primary"
+      aria-label={`Add set for ${exercise.name}`}
+      disabled={disabled}
+    >
       Add set
     </button>
   </fieldset>

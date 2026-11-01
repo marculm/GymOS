@@ -213,6 +213,11 @@ describe("GymView", () => {
     expect(
       await screen.findByRole("button", { name: /finish workout/i })
     ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        screen.getByRole("heading", { name: "Push Day" })
+      ).toHaveFocus();
+    });
   });
 
   it("starts a suggestion that is not the first rotation plan", async () => {
@@ -338,6 +343,11 @@ describe("GymView", () => {
     await waitFor(() => {
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });
+    await waitFor(() => {
+      expect(
+        screen.getByRole("heading", { name: "Push Day" })
+      ).toHaveFocus();
+    });
   });
 
   it("starts a non-rotation plan from the picker", async () => {
@@ -365,11 +375,14 @@ describe("GymView", () => {
     render(GymView);
 
     await fireEvent.click(await startScreenReady());
-    await fireEvent.click(
-      await screen.findByRole("button", { name: /free workout/i })
-    );
+    const freeWorkout = await screen.findByRole("button", {
+      name: /free workout/i,
+    });
+    freeWorkout.focus();
+    await fireEvent.click(freeWorkout);
 
     expect(await screen.findByRole("alert")).toHaveTextContent("still blocked");
+    await waitFor(() => expect(freeWorkout).toHaveFocus());
   });
 
   it("opens management from the empty state", async () => {
@@ -762,6 +775,42 @@ describe("GymView", () => {
     expect(
       await screen.findByRole("heading", { name: "Pull Day" })
     ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        screen.getByRole("heading", { name: "Pull Day" })
+      ).toHaveFocus();
+    });
+  });
+
+  it("focuses the empty start card after finishing with no next plan", async () => {
+    vi.mocked(getActiveSession).mockResolvedValue(session);
+
+    render(GymView);
+
+    await fireEvent.click(
+      await screen.findByRole("button", { name: /finish workout/i })
+    );
+
+    const heading = await screen.findByRole("heading", {
+      name: "No workout scheduled",
+    });
+    await waitFor(() => expect(heading).toHaveFocus());
+  });
+
+  it("gives each plan start button a plan-specific name", async () => {
+    vi.mocked(listAllPlans).mockResolvedValueOnce([plan, extraPlan]);
+
+    render(GymView);
+
+    await startScreenReady();
+    await openManagement();
+
+    expect(
+      await screen.findByRole("button", { name: "Start Push Day" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Start Pull Day" })
+    ).toBeInTheDocument();
   });
 
   it("shows the suggested weight in the active session", async () => {
@@ -791,7 +840,7 @@ describe("GymView", () => {
     await fireEvent.input(screen.getByLabelText("Reps"), {
       target: { value: "8" },
     });
-    await fireEvent.click(screen.getByRole("button", { name: "Add set" }));
+    await fireEvent.click(screen.getByRole("button", { name: /add set/i }));
 
     await waitFor(() => {
       expect(addSet).toHaveBeenCalledWith("session-1", {
@@ -830,6 +879,11 @@ describe("GymView", () => {
     expect(
       screen.getByRole("button", { name: /finish workout/i })
     ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        screen.getByRole("heading", { name: "Push Day" })
+      ).toHaveFocus();
+    });
   });
 
   it("stops adding plan exercises at the schema limit", async () => {
@@ -877,9 +931,9 @@ describe("GymView", () => {
     });
     await fireEvent.click(screen.getByRole("button", { name: /save plan/i }));
 
-    expect(
-      await screen.findByText("A plan with this name already exists")
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "A plan with this name already exists"
+    );
   });
 
   it("shows an error with retry when loading fails", async () => {
@@ -887,7 +941,9 @@ describe("GymView", () => {
 
     render(GymView);
 
-    expect(await screen.findByText("Backend unavailable")).toBeInTheDocument();
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Backend unavailable"
+    );
     await fireEvent.click(screen.getByRole("button", { name: /retry/i }));
     expect(await startScreenReady()).toBeInTheDocument();
   });
@@ -908,6 +964,9 @@ describe("GymView", () => {
     expect(screen.getByLabelText("Sets")).toHaveValue(4);
     expect(screen.getByLabelText("Reps")).toHaveValue(8);
     expect(screen.getByLabelText("Weight (kg, optional)")).toHaveValue(80);
+    expect(
+      screen.getByRole("button", { name: "Remove Bench Press" })
+    ).toBeInTheDocument();
 
     await fireEvent.input(screen.getByLabelText("Name"), {
       target: { value: "Default Plan" },
