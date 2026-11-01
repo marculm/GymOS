@@ -109,6 +109,12 @@ async function startScreenReady() {
   return screen.findByRole("button", { name: /other workout/i });
 }
 
+function historyContent(): HTMLElement {
+  const element = document.getElementById("history-content");
+  if (!element) throw new Error("history content is missing");
+  return element;
+}
+
 async function openManagement() {
   await fireEvent.click(
     await screen.findByRole("button", { name: /manage training plan/i })
@@ -262,6 +268,10 @@ describe("GymView", () => {
       screen.getByRole("button", { name: /show history/i })
     ).toHaveAttribute("aria-expanded", "false");
     expect(
+      screen.getByRole("button", { name: /show history/i })
+    ).toHaveAttribute("aria-controls", "history-content");
+    expect(historyContent()).toHaveAttribute("hidden");
+    expect(
       screen.queryByRole("heading", { name: "Leg Day" })
     ).not.toBeInTheDocument();
     expect(listSessions).not.toHaveBeenCalled();
@@ -279,6 +289,8 @@ describe("GymView", () => {
       await screen.findByRole("heading", { name: "Leg Day" })
     ).toBeInTheDocument();
     expect(listSessions).toHaveBeenCalledWith({ page: 1, size: 10 });
+    expect(listSessions).toHaveBeenCalledTimes(1);
+    expect(historyContent()).not.toHaveAttribute("hidden");
     expect(
       screen.getByRole("button", { name: /hide history/i })
     ).toHaveAttribute("aria-expanded", "true");
@@ -289,6 +301,15 @@ describe("GymView", () => {
     expect(
       screen.queryByRole("heading", { name: "Leg Day" })
     ).not.toBeInTheDocument();
+    expect(historyContent()).toHaveAttribute("hidden");
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: /show history/i })
+    );
+    expect(
+      screen.getByRole("heading", { name: "Leg Day" })
+    ).toBeInTheDocument();
+    expect(listSessions).toHaveBeenCalledTimes(1);
   });
 
   it("opens the alternate workout picker and starts a free workout", async () => {
