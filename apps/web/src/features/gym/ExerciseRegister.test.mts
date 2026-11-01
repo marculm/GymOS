@@ -96,6 +96,18 @@ describe("ExerciseRegister", () => {
     });
   });
 
+  it("announces a failed delete", async () => {
+    vi.stubGlobal("confirm", vi.fn(() => true));
+    const { onDelete } = renderRegister();
+    onDelete.mockRejectedValueOnce(new Error("Cannot delete"));
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: /delete bench press/i })
+    );
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Cannot delete");
+  });
+
   it("deletes an exercise after confirmation", async () => {
     vi.stubGlobal("confirm", vi.fn(() => true));
     const { onDelete } = renderRegister();

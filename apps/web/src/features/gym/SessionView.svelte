@@ -181,7 +181,9 @@
   <header class="card stack">
     <div>
       <p class="muted">{new Date(session.startedAt).toLocaleString()}</p>
-      <h2 class="card-title">{session.title}</h2>
+      <h2 class="card-title" id="session-heading" tabindex="-1">
+        {session.title}
+      </h2>
     </div>
     {#if error}
       <p class="error" role="alert">{error}</p>

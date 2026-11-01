@@ -104,7 +104,11 @@
       }
     } finally {
       pending = false;
-      if (activeSession) showPicker = false;
+      if (activeSession) {
+        showPicker = false;
+        await tick();
+        document.getElementById("session-heading")?.focus();
+      }
     }
   }
 
@@ -236,6 +240,8 @@
     } catch {
       // The workout is complete; the rotation refreshes on the next load.
     }
+    await tick();
+    document.getElementById("next-workout-heading")?.focus();
 
     try {
       weightSuggestions = await getWeightSuggestions();
@@ -271,7 +277,7 @@
   <p class="muted">Loading gym data…</p>
 {:else if error && plans.length === 0 && exercises.length === 0}
   <div class="card stack">
-    <p class="error">{error}</p>
+    <p class="error" role="alert">{error}</p>
     <button type="button" class="btn btn-ghost" onclick={() => void load()}>
       Retry
     </button>
@@ -295,7 +301,9 @@
       <section class="card plan-card stack">
         <div>
           <p class="muted">Next workout</p>
-          <h2 class="card-title">{nextPlan.name}</h2>
+          <h2 class="card-title" id="next-workout-heading" tabindex="-1">
+            {nextPlan.name}
+          </h2>
           {#if nextPlan.description}
             <p class="muted">{nextPlan.description}</p>
           {/if}
@@ -332,7 +340,9 @@
       </section>
     {:else}
       <section class="card stack">
-        <h2 class="card-title">No workout scheduled</h2>
+        <h2 class="card-title" id="next-workout-heading" tabindex="-1">
+          No workout scheduled
+        </h2>
         <p class="muted">
           Add plans to your rotation and the next workout shows up here.
         </p>
@@ -497,7 +507,7 @@
                     disabled={pending}
                     onclick={() => void start({ planId: plan.id })}
                   >
-                    Start plan
+                    Start {plan.name}
                   </button>
                 </div>
                 <div class="row">
