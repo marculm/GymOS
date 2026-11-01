@@ -64,6 +64,15 @@ export class SessionRepository {
     return sessions.map(toSessionSummary);
   }
 
+  async findCompleted(userId: string): Promise<WorkoutSessionDetail[]> {
+    const sessions = await prisma.workoutSession.findMany({
+      where: { userId, completedAt: { not: null } },
+      orderBy: { startedAt: "desc" },
+      include: sessionInclude,
+    });
+    return sessions.map(toSessionDetail);
+  }
+
   async countRecent(
     userId: string,
     filters: SessionSearchParams = {}

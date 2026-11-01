@@ -279,6 +279,68 @@ describe("Gym session routes", () => {
     expect(data.content.some((session) => session.id === active.id)).toBe(false);
   });
 
+  it("reports personal records and volume for completed sessions", async () => {
+    const older = await startSession();
+    await logSet(older.id, { reps: 10, weightKg: 50 });
+    await logSet(older.id, { reps: 5, weightKg: 60 });
+    await postJson(`/api/gym/sessions/${older.id}/complete`, {});
+
+    const newer = await startSession();
+    await logSet(newer.id, { reps: 8, weightKg: 55 });
+    await postJson(`/api/gym/sessions/${newer.id}/complete`, {});
+
+    const active = await startSession();
+    await logSet(active.id, { reps: 1, weightKg: 500 });
+
+    const res = await app.request("/api/gym/progress");
+    expect(res.status).toBe(200);
+    const data = (await res.json()) as {
+      personalRecords: Array<{
+        exerciseId: string;
+        weightKg: number;
+        reps: number;
+      }>;
+      volume: Array<{ sessionId: string; totalVolumeKg: number }>;
+    };
+
+    expect(data.personalRecords).toEqual([
+      expect.objectContaining({ exerciseId, weightKg: 60, reps: 5 }),
+    ]);
+    expect(data.volume.map((point) => point.sessionId)).toEqual([
+      newer.id,
+      older.id,
+    ]);
+    expect(data.volume[0]?.totalVolumeKg).toBe(440);
+    expect(data.volume[1]?.totalVolumeKg).toBe(800);
+  });
+
+  it("keeps personal records for soft-deleted exercises", async () => {
+    const deleted = await prisma.exercise.create({
+      data: { name: `Progress Exercise ${crypto.randomUUID()}`, muscleGroup: "back" },
+    });
+
+    try {
+      const session = await startSession();
+      await logSet(session.id, { exerciseId: deleted.id, reps: 6, weightKg: 42.5 });
+      await postJson(`/api/gym/sessions/${session.id}/complete`, {});
+      await app.request(`/api/gym/exercises/${deleted.id}`, { method: "DELETE" });
+
+      const res = await app.request("/api/gym/progress");
+      const data = (await res.json()) as {
+        personalRecords: Array<{ exerciseId: string; weightKg: number }>;
+      };
+
+      expect(data.personalRecords).toContainEqual(
+        expect.objectContaining({ exerciseId: deleted.id, weightKg: 42.5 })
+      );
+    } finally {
+      await prisma.workoutSession.deleteMany({
+        where: { user: { email: TEST_EMAIL } },
+      });
+      await prisma.exercise.delete({ where: { id: deleted.id } });
+    }
+  });
+
   it("returns a session with its logged sets", async () => {
     const session = await startSession();
     await logSet(session.id, { reps: 8, weightKg: 60 });
@@ -450,6 +512,11 @@ describe("Gym session routes", () => {
       await expect(
         container.readService.getSession(other.id, session.id)
       ).rejects.toBeInstanceOf(NotFoundError);
+
+      await expect(container.readService.getProgress(other.id)).resolves.toEqual({
+        personalRecords: [],
+        volume: [],
+      });
 
       await expect(
         container.writeService.logSet(other.id, session.id, {

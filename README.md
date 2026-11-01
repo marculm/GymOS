@@ -17,7 +17,8 @@ The **Gym Tracker** slice is implemented:
   defaults)
 - Start free or plan-based workouts
 - Log sets with weight and reps
-- Finish workouts (the history view is being reworked in a follow-up, ADR-0027)
+- Finish workouts and review history with details, filters, and progress analytics
+  (ADR-0032)
 
 Nutrition, the AI recipe extractor, authentication, and offline logging are not implemented yet. The API is single-user (no login) and must be protected before public deployment. See [`docs/known-issues.md`](docs/known-issues.md) for known limitations.
 
@@ -123,6 +124,7 @@ full contract.
 | `GET` | `/api/gym/sessions/active` | Active session, or `404` when none exists |
 | `GET` | `/api/gym/sessions?page=&size=&planId=&from=&to=` | List completed sessions |
 | `GET` | `/api/gym/sessions/:id` | Get a session with its sets |
+| `GET` | `/api/gym/progress` | Personal records per exercise and volume per completed session |
 | `POST` | `/api/gym/sessions/:id/sets` | Log a set (`{ exerciseId, reps, weightKg }`) |
 | `POST` | `/api/gym/sessions/:id/complete` | Finish a session |
 

@@ -5,6 +5,7 @@ import type {
   WorkoutPlan,
   WorkoutRotation,
   WorkoutSessionDetail,
+  WorkoutSessionSummary,
 } from "@gymos/shared";
 import { ApiError } from "../../api/client.mts";
 import GymView from "./GymView.svelte";
@@ -16,10 +17,13 @@ import {
   deleteExercise,
   deletePlan,
   getActiveSession,
+  getProgress,
   getRotation,
+  getSession,
   getWeightSuggestions,
   listAllExercises,
   listAllPlans,
+  listSessions,
   setRotation,
   startSession,
   updateExercise,
@@ -42,6 +46,9 @@ vi.mock("../../api/gym.mts", () => ({
   getActiveSession: vi.fn(),
   addSet: vi.fn(),
   completeSession: vi.fn(),
+  listSessions: vi.fn(),
+  getSession: vi.fn(),
+  getProgress: vi.fn(),
 }));
 
 const exercise: Exercise = {
@@ -144,6 +151,15 @@ beforeEach(() => {
     ...session,
     completedAt: "2026-10-26T19:00:00.000Z",
   });
+  vi.mocked(listSessions).mockResolvedValue({
+    content: [],
+    page: { size: 10, number: 0, totalElements: 0, totalPages: 0 },
+  });
+  vi.mocked(getSession).mockResolvedValue(session);
+  vi.mocked(getProgress).mockResolvedValue({
+    personalRecords: [],
+    volume: [],
+  });
 });
 
 describe("GymView", () => {
@@ -208,6 +224,44 @@ describe("GymView", () => {
     await waitFor(() => {
       expect(startSession).toHaveBeenCalledWith({ planId: extraPlan.id });
     });
+  });
+
+  it("shows progress and history on the start screen", async () => {
+    const completed: WorkoutSessionSummary = {
+      ...session,
+      id: "session-2",
+      title: "Leg Day",
+      planId: null,
+      completedAt: "2026-10-26T19:00:00.000Z",
+      totalSets: 3,
+    };
+    vi.mocked(listSessions).mockResolvedValueOnce({
+      content: [completed],
+      page: { size: 10, number: 0, totalElements: 1, totalPages: 1 },
+    });
+    vi.mocked(getProgress).mockResolvedValueOnce({
+      personalRecords: [
+        {
+          exerciseId: exercise.id,
+          exerciseName: exercise.name,
+          weightKg: 90,
+          reps: 5,
+          achievedAt: "2026-10-26T18:05:00.000Z",
+        },
+      ],
+      volume: [],
+    });
+
+    render(GymView);
+
+    await startScreenReady();
+    expect(
+      await screen.findByRole("heading", { name: "Leg Day" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Progress" })
+    ).toBeInTheDocument();
+    expect(await screen.findByText("5 × 90 kg")).toBeInTheDocument();
   });
 
   it("opens the alternate workout picker and starts a free workout", async () => {
