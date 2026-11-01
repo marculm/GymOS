@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gymos-config
+  namespace: gymos
+data:
+  NODE_ENV: production
+  PORT: "3000"
+  GYMOS_USER_EMAIL: demo@gymos.app
+  LOG_LEVEL: info
+  POSTGRES_USER: gymos
+  POSTGRES_DB: gymos
