@@ -19,10 +19,11 @@ services:
 
   migrate:
     profiles: ["app"]
+    image: gymos-api-local
     build:
       context: ../..
       dockerfile: apps/api/Dockerfile
-      target: migrate
+      target: runtime
     command: ["bun", "--filter", "@gymos/api", "db:setup"]
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
@@ -34,6 +35,7 @@ services:
 
   api:
     profiles: ["app"]
+    image: gymos-api-local
     build:
       context: ../..
       dockerfile: apps/api/Dockerfile

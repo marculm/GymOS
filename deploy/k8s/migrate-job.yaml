@@ -17,7 +17,7 @@ spec:
         runAsGroup: 1000
       containers:
         - name: migrate
-          image: __IMAGE_API_MIGRATE__
+          image: __IMAGE_API__
           imagePullPolicy: IfNotPresent
           command: ["bun", "--filter", "@gymos/api", "db:setup"]
           env:

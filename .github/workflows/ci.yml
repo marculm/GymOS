@@ -76,9 +76,6 @@ jobs:
           - image: gymos-web
             dockerfile: apps/web/Dockerfile
             target: runtime
-          - image: gymos-api-migrate
-            dockerfile: apps/api/Dockerfile
-            target: migrate
     steps:
       - uses: actions/checkout@v7
       - uses: docker/setup-qemu-action@v4
