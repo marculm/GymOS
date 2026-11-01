@@ -22,7 +22,9 @@ COPY package.json bun.lock ./
 COPY apps/api/package.json apps/api/
 COPY apps/web/package.json apps/web/
 COPY packages/shared/package.json packages/shared/
-RUN bun install --frozen-lockfile --production --linker hoisted
+# @prisma/client lists TypeScript as an optional peer; the runtime does not need it.
+RUN bun install --frozen-lockfile --production --linker hoisted --filter @gymos/api \
+    && rm -rf node_modules/typescript
 
 FROM oven/bun:1.4.4-slim AS runtime
 
