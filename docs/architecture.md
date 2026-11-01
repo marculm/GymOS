@@ -444,6 +444,8 @@ apps/web/
 - A progress section shows personal records and per-workout volume. Below it, history
   lists completed sessions with plan and date filters and a "Load more" action; opening a
   session expands its sets, targets, and duration inline (ADR-0032).
+- History is collapsed by default behind a Show/Hide toggle at the bottom of the screen,
+  and its list loads only after it is opened (ADR-0033).
 - The secondary action opens a modal picker with every plan and a free workout. Choosing
   a plan counts as a deviation; choosing free never advances the rotation (ADR-0028).
 - Set logging happens inside each exercise card: plan cards show their target and their
@@ -607,3 +609,4 @@ The target architecture deliberately excludes:
 | [0030](adr/0030-suggested-set-weight.md) | Suggested set weight as a placeholder |
 | [0031](adr/0031-remove-rpe.md) | Remove RPE from set logging |
 | [0032](adr/0032-workout-history-and-progress.md) | Workout history and progress analytics |
+| [0033](adr/0033-collapsed-history-section.md) | Collapsed history section |

@@ -44,6 +44,8 @@
   let error = $state<string | null>(null);
   let showManagement = $state(false);
   let showPicker = $state(false);
+  let showHistory = $state(false);
+  let historyOpened = $state(false);
   let showPlanForm = $state(false);
   let editingPlan = $state<WorkoutPlan | null>(null);
   let pending = $state(false);
@@ -182,6 +184,11 @@
     showManagement = true;
     await tick();
     document.getElementById("training-plan-heading")?.focus();
+  }
+
+  function toggleHistory() {
+    showHistory = !showHistory;
+    if (showHistory) historyOpened = true;
   }
 
   function addRotationPlan() {
@@ -560,7 +567,27 @@
 
     <Progress />
 
-    <History plans={plans} />
+    <section class="stack" aria-labelledby="history-heading">
+      <div class="row">
+        <h2 class="card-title grow" id="history-heading">History</h2>
+        <button
+          type="button"
+          class="btn btn-ghost"
+          aria-expanded={showHistory}
+          aria-controls="history-content"
+          aria-label={showHistory ? "Hide history" : "Show history"}
+          onclick={toggleHistory}
+        >
+          {showHistory ? "Hide" : "Show"}
+        </button>
+      </div>
+
+      <div id="history-content" hidden={!showHistory}>
+        {#if historyOpened}
+          <History plans={plans} />
+        {/if}
+      </div>
+    </section>
 
     {#if showPicker}
       <WorkoutPicker

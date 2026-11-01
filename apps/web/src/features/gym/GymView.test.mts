@@ -109,6 +109,12 @@ async function startScreenReady() {
   return screen.findByRole("button", { name: /other workout/i });
 }
 
+function historyContent(): HTMLElement {
+  const element = document.getElementById("history-content");
+  if (!element) throw new Error("history content is missing");
+  return element;
+}
+
 async function openManagement() {
   await fireEvent.click(
     await screen.findByRole("button", { name: /manage training plan/i })
@@ -226,7 +232,7 @@ describe("GymView", () => {
     });
   });
 
-  it("shows progress and history on the start screen", async () => {
+  it("keeps history collapsed and loads it on demand", async () => {
     const completed: WorkoutSessionSummary = {
       ...session,
       id: "session-2",
@@ -256,12 +262,54 @@ describe("GymView", () => {
 
     await startScreenReady();
     expect(
-      await screen.findByRole("heading", { name: "Leg Day" })
+      screen.getByRole("heading", { name: "History" })
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /show history/i })
+    ).toHaveAttribute("aria-expanded", "false");
+    expect(
+      screen.getByRole("button", { name: /show history/i })
+    ).toHaveAttribute("aria-controls", "history-content");
+    expect(historyContent()).toHaveAttribute("hidden");
+    expect(
+      screen.queryByRole("heading", { name: "Leg Day" })
+    ).not.toBeInTheDocument();
+    expect(listSessions).not.toHaveBeenCalled();
+
     expect(
       screen.getByRole("heading", { name: "Progress" })
     ).toBeInTheDocument();
     expect(await screen.findByText("5 × 90 kg")).toBeInTheDocument();
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: /show history/i })
+    );
+
+    expect(
+      await screen.findByRole("heading", { name: "Leg Day" })
+    ).toBeInTheDocument();
+    expect(listSessions).toHaveBeenCalledWith({ page: 1, size: 10 });
+    expect(listSessions).toHaveBeenCalledTimes(1);
+    expect(historyContent()).not.toHaveAttribute("hidden");
+    expect(
+      screen.getByRole("button", { name: /hide history/i })
+    ).toHaveAttribute("aria-expanded", "true");
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: /hide history/i })
+    );
+    expect(
+      screen.queryByRole("heading", { name: "Leg Day" })
+    ).not.toBeInTheDocument();
+    expect(historyContent()).toHaveAttribute("hidden");
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: /show history/i })
+    );
+    expect(
+      screen.getByRole("heading", { name: "Leg Day" })
+    ).toBeInTheDocument();
+    expect(listSessions).toHaveBeenCalledTimes(1);
   });
 
   it("opens the alternate workout picker and starts a free workout", async () => {
