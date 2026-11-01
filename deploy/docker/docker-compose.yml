@@ -17,5 +17,45 @@ services:
       timeout: 5s
       retries: 5
 
+  migrate:
+    profiles: ["app"]
+    build:
+      context: ../..
+      dockerfile: apps/api/Dockerfile
+      target: migrate
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    profiles: ["app"]
+    build:
+      context: ../..
+      dockerfile: apps/api/Dockerfile
+      target: runtime
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      GYMOS_USER_EMAIL: ${GYMOS_USER_EMAIL:-demo@gymos.app}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    ports:
+      - "${API_PORT:-3000}:3000"
+
+  web:
+    profiles: ["app"]
+    build:
+      context: ../..
+      dockerfile: apps/web/Dockerfile
+    depends_on:
+      - api
+    ports:
+      - "${WEB_PORT:-8080}:8080"
+
 volumes:
   gymos_postgres_data:
