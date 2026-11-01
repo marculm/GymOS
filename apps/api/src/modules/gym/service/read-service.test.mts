@@ -84,6 +84,9 @@ function createService() {
       async (_userId: string) => null as string | null
     ),
     findWeightSuggestions: vi.fn(async (_userId: string) => ({})),
+    findCompleted: vi.fn(
+      async (_userId: string) => [] as WorkoutSessionDetail[]
+    ),
   };
   const rotationRepository = {
     findByUser: vi.fn(async (_userId: string) => [plan, secondPlan]),
@@ -195,5 +198,157 @@ describe("GymReadService", () => {
     expect(sessionRepository.findWeightSuggestions).toHaveBeenCalledWith(
       "user-1"
     );
+  });
+
+  it("aggregates personal records and volume from completed sessions", async () => {
+    const { service, sessionRepository } = createService();
+    sessionRepository.findCompleted.mockResolvedValueOnce([
+      {
+        id: "session-2",
+        title: "Push A",
+        planId: null,
+        startedAt: "2026-10-27T18:00:00.000Z",
+        completedAt: "2026-10-27T19:00:00.000Z",
+        sets: [
+          {
+            id: "set-1",
+            exerciseId: "exercise-1",
+            exerciseName: "Bench Press",
+            setNumber: 1,
+            reps: 8,
+            weightKg: 80,
+            createdAt: "2026-10-27T18:05:00.000Z",
+          },
+          {
+            id: "set-2",
+            exerciseId: "exercise-1",
+            exerciseName: "Bench Press",
+            setNumber: 2,
+            reps: 3,
+            weightKg: 85,
+            createdAt: "2026-10-27T18:10:00.000Z",
+          },
+          {
+            id: "set-3",
+            exerciseId: "exercise-2",
+            exerciseName: "Squat",
+            setNumber: 1,
+            reps: 5,
+            weightKg: 100,
+            createdAt: "2026-10-27T18:15:00.000Z",
+          },
+        ],
+      },
+      {
+        id: "session-1",
+        title: "Push B",
+        planId: null,
+        startedAt: "2026-10-26T18:00:00.000Z",
+        completedAt: "2026-10-26T19:00:00.000Z",
+        sets: [
+          {
+            id: "set-4",
+            exerciseId: "exercise-1",
+            exerciseName: "Bench Press",
+            setNumber: 1,
+            reps: 5,
+            weightKg: 90,
+            createdAt: "2026-10-26T18:05:00.000Z",
+          },
+          {
+            id: "set-5",
+            exerciseId: "exercise-1",
+            exerciseName: "Bench Press",
+            setNumber: 2,
+            reps: 2,
+            weightKg: 90,
+            createdAt: "2026-10-26T18:10:00.000Z",
+          },
+          {
+            id: "set-6",
+            exerciseId: "exercise-2",
+            exerciseName: "Squat",
+            setNumber: 1,
+            reps: 8,
+            weightKg: 100,
+            createdAt: "2026-10-26T18:15:00.000Z",
+          },
+        ],
+      },
+    ]);
+
+    const progress = await service.getProgress("user-1");
+
+    expect(progress.personalRecords).toEqual([
+      {
+        exerciseId: "exercise-1",
+        exerciseName: "Bench Press",
+        weightKg: 90,
+        reps: 5,
+        achievedAt: "2026-10-26T18:05:00.000Z",
+      },
+      {
+        exerciseId: "exercise-2",
+        exerciseName: "Squat",
+        weightKg: 100,
+        reps: 8,
+        achievedAt: "2026-10-26T18:15:00.000Z",
+      },
+    ]);
+    expect(progress.volume).toEqual([
+      {
+        sessionId: "session-2",
+        title: "Push A",
+        startedAt: "2026-10-27T18:00:00.000Z",
+        totalVolumeKg: 1395,
+      },
+      {
+        sessionId: "session-1",
+        title: "Push B",
+        startedAt: "2026-10-26T18:00:00.000Z",
+        totalVolumeKg: 1430,
+      },
+    ]);
+    expect(sessionRepository.findCompleted).toHaveBeenCalledWith("user-1");
+  });
+
+  it("keeps the newest set when weight and reps tie", async () => {
+    const { service, sessionRepository } = createService();
+    const tiedSet = (id: string, createdAt: string) => ({
+      id,
+      exerciseId: "exercise-1",
+      exerciseName: "Bench Press",
+      setNumber: 1,
+      reps: 8,
+      weightKg: 80,
+      createdAt,
+    });
+    sessionRepository.findCompleted.mockResolvedValueOnce([
+      {
+        ...detail,
+        id: "session-2",
+        sets: [tiedSet("set-1", "2026-10-27T18:05:00.000Z")],
+      },
+      {
+        ...detail,
+        id: "session-1",
+        sets: [tiedSet("set-2", "2026-10-26T18:05:00.000Z")],
+      },
+    ]);
+
+    const progress = await service.getProgress("user-1");
+
+    expect(progress.personalRecords[0]?.achievedAt).toBe(
+      "2026-10-27T18:05:00.000Z"
+    );
+  });
+
+  it("returns empty progress without completed sessions", async () => {
+    const { service } = createService();
+
+    await expect(service.getProgress("user-1")).resolves.toEqual({
+      personalRecords: [],
+      volume: [],
+    });
   });
 });

@@ -1,7 +1,9 @@
 import type {
   Exercise,
+  PersonalRecord,
   WeightSuggestions,
   WorkoutPlan,
+  WorkoutProgress,
   WorkoutRotation,
   WorkoutSessionDetail,
   WorkoutSessionSummary,
@@ -27,6 +29,7 @@ type SessionReader = Pick<
   | "countRecent"
   | "findLastCompletedPlanId"
   | "findWeightSuggestions"
+  | "findCompleted"
 >;
 
 export class GymReadService {
@@ -93,6 +96,45 @@ export class GymReadService {
       this.sessionRepository.countRecent(userId, filters),
     ]);
     return { content, totalElements };
+  }
+
+  async getProgress(userId: string): Promise<WorkoutProgress> {
+    const sessions = await this.sessionRepository.findCompleted(userId);
+    const records = new Map<string, PersonalRecord>();
+
+    for (const session of sessions) {
+      for (const set of session.sets) {
+        const current = records.get(set.exerciseId);
+        const isBetter =
+          current === undefined ||
+          set.weightKg > current.weightKg ||
+          (set.weightKg === current.weightKg && set.reps > current.reps);
+        if (isBetter) {
+          records.set(set.exerciseId, {
+            exerciseId: set.exerciseId,
+            exerciseName: set.exerciseName,
+            weightKg: set.weightKg,
+            reps: set.reps,
+            achievedAt: set.createdAt,
+          });
+        }
+      }
+    }
+
+    return {
+      personalRecords: [...records.values()].sort((a, b) =>
+        a.exerciseName.localeCompare(b.exerciseName)
+      ),
+      volume: sessions.map((session) => ({
+        sessionId: session.id,
+        title: session.title,
+        startedAt: session.startedAt,
+        totalVolumeKg: session.sets.reduce(
+          (total, set) => total + set.reps * set.weightKg,
+          0
+        ),
+      })),
+    };
   }
 
   async getSession(

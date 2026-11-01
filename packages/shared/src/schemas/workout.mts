@@ -141,6 +141,26 @@ export const WorkoutSessionSummarySchema = z.object({
   totalSets: z.number().int().nonnegative(),
 });
 
+export const PersonalRecordSchema = z.object({
+  exerciseId: z.string().uuid(),
+  exerciseName: z.string().min(1),
+  weightKg: z.number().nonnegative(),
+  reps: z.number().int().positive(),
+  achievedAt: z.iso.datetime(),
+});
+
+export const VolumePointSchema = z.object({
+  sessionId: z.string().uuid(),
+  title: z.string().min(1),
+  startedAt: z.iso.datetime(),
+  totalVolumeKg: z.number().nonnegative(),
+});
+
+export const WorkoutProgressSchema = z.object({
+  personalRecords: z.array(PersonalRecordSchema),
+  volume: z.array(VolumePointSchema),
+});
+
 export type Exercise = z.infer<typeof ExerciseSchema>;
 export type CreateExerciseInput = z.infer<typeof CreateExerciseSchema>;
 export type UpdateExerciseInput = z.infer<typeof UpdateExerciseSchema>;
@@ -156,3 +176,6 @@ export type LoggedSet = z.infer<typeof LoggedSetSchema>;
 export type WorkoutSessionDetail = z.infer<typeof WorkoutSessionDetailSchema>;
 export type WorkoutSessionSummary = z.infer<typeof WorkoutSessionSummarySchema>;
 export type WeightSuggestions = z.infer<typeof WeightSuggestionsSchema>;
+export type PersonalRecord = z.infer<typeof PersonalRecordSchema>;
+export type VolumePoint = z.infer<typeof VolumePointSchema>;
+export type WorkoutProgress = z.infer<typeof WorkoutProgressSchema>;

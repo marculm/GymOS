@@ -39,6 +39,11 @@ readRouter.get("/rotation", async (c) => {
   return c.json(rotation);
 });
 
+readRouter.get("/progress", async (c) => {
+  const progress = await readService.getProgress(c.get("user").id);
+  return c.json(progress);
+});
+
 readRouter.get("/sessions", async (c) => {
   const query = SessionListQuerySchema.parse(c.req.query());
   const pageable = createPageable(query);
