@@ -213,7 +213,8 @@ Router responsibilities:
 Services are classes with constructor injection:
 
 - `GymReadService` handles queries: exercises, plans, rotation with its next-plan
-  suggestion, active session, session list, session detail.
+  suggestion, active session, session list, session detail, and progress analytics
+  (personal records and per-session volume).
 - `GymWriteService` handles commands: create, edit, and soft-delete exercises; create,
   edit, and delete plans; set rotation; start session; log set; complete session. It may
   receive the read service for read-side checks.
@@ -413,7 +414,9 @@ apps/web/
     │   ├── ExerciseRegister.test.mts
     │   ├── GymView.svelte
     │   ├── GymView.test.mts
+    │   ├── History.svelte
     │   ├── PlanForm.svelte
+    │   ├── Progress.svelte
     │   ├── SessionView.svelte
     │   ├── SetLogForm.svelte
     │   └── SessionView.test.mts
@@ -437,8 +440,10 @@ apps/web/
   remove, and reorder plans. Free workouts never advance it (ADR-0026).
 - The start screen leads with the suggested next workout and one primary start action.
   Rotation, plan management, and the exercise register sit in a collapsible "My training
-  plan" section; free workouts are a secondary action and history is not shown
-  (ADR-0027).
+  plan" section; free workouts are a secondary action (ADR-0027).
+- A progress section shows personal records and per-workout volume. Below it, history
+  lists completed sessions with plan and date filters and a "Load more" action; opening a
+  session expands its sets, targets, and duration inline (ADR-0032).
 - The secondary action opens a modal picker with every plan and a free workout. Choosing
   a plan counts as a deviation; choosing free never advances the rotation (ADR-0028).
 - Set logging happens inside each exercise card: plan cards show their target and their
@@ -597,3 +602,4 @@ The target architecture deliberately excludes:
 | [0029](adr/0029-inline-set-logging.md) | Inline set logging in exercise cards |
 | [0030](adr/0030-suggested-set-weight.md) | Suggested set weight as a placeholder |
 | [0031](adr/0031-remove-rpe.md) | Remove RPE from set logging |
+| [0032](adr/0032-workout-history-and-progress.md) | Workout history and progress analytics |
