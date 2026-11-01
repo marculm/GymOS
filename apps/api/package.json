@@ -10,6 +10,7 @@
     "typecheck": "bun check",
     "db:generate": "bunx prisma generate",
     "db:migrate": "bunx prisma migrate dev",
+    "db:migrate:deploy": "bunx prisma migrate deploy",
     "db:seed": "bun prisma/seed.mts",
     "db:studio": "bunx prisma studio"
   },
