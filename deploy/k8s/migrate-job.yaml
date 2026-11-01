@@ -1,0 +1,35 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: gymos-migrate
+  namespace: gymos
+spec:
+  backoffLimit: 6
+  template:
+    metadata:
+      labels:
+        app: gymos-migrate
+    spec:
+      restartPolicy: OnFailure
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+      containers:
+        - name: migrate
+          image: __IMAGE_API_MIGRATE__
+          imagePullPolicy: IfNotPresent
+          command: ["bun", "--filter", "@gymos/api", "db:setup"]
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: gymos-secrets
+                  key: DATABASE_URL
+            - name: GYMOS_USER_EMAIL
+              valueFrom:
+                configMapKeyRef:
+                  name: gymos-config
+                  key: GYMOS_USER_EMAIL
+          securityContext:
+            allowPrivilegeEscalation: false
