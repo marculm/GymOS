@@ -6,9 +6,7 @@ published as public GHCR packages (ADR-0035).
 
 ## Pipeline
 
-Pull requests run `checks` and `infra`. A push to `main` runs both and then publishes
-images. The deploy job is part of the same workflow but is skipped for pushes; it runs only
-in a manual CI run with the `deploy` input enabled:
+Pull requests run `checks` and `infra`. A push to `main` runs:
 
 1. `checks` — typecheck, lint, tests against a Postgres service, web build.
 2. `infra` — actionlint, kubeconform, and shellcheck for workflows, manifests, and the
@@ -17,15 +15,11 @@ in a manual CI run with the `deploy` input enabled:
    - `ghcr.io/marculm/gymos-api:sha-<commit>`
    - `ghcr.io/marculm/gymos-web:sha-<commit>`
    - `ghcr.io/marculm/gymos-api-migrate:sha-<commit>`
-4. `deploy` — only in a manual run on `main` with `deploy` enabled: joins the tailnet as an
-   ephemeral `tag:ci` node and runs `/srv/gymos/deploy/k8s/deploy.sh <sha>` on the VM over
-   Tailscale SSH.
+4. `deploy` — joins the tailnet as an ephemeral `tag:ci` node and runs
+   `/srv/gymos/deploy/k8s/deploy.sh <commit>` on the VM over Tailscale SSH.
 
-To deploy, open **Actions → CI → Run workflow**, select `main`, and enable `deploy`. The
-manual run repeats checks, infrastructure lint, and image publishing for the selected ref,
-then deploys its commit SHA. A push to `main` never deploys.
-
-Each image is also tagged `latest`; deployments use the immutable commit tag.
+Deployment runs automatically after a merge. Each image is also tagged `latest`;
+deployments use the immutable commit tag.
 
 ## Local full stack
 
@@ -195,16 +189,20 @@ overwritten. The migration Job seeds this owner idempotently.
 
 ### 7. GHCR visibility and first deploy
 
-The repository is private, so new GHCR packages start private. Merge to `main` and let the
-automatic `images` job finish, then make the packages public:
+The repository is private, so new GHCR packages start private. The first push to `main`
+builds and pushes the images, then the deploy job fails at the migrate Job's image pull
+because the VM has no pull secret. This is expected; the deploy job may wait up to ten
+minutes before the pull failure times out.
+
+After the images job finishes:
 
 1. Open each `gymos-api`, `gymos-web`, and `gymos-api-migrate` package in GitHub →
    Package settings → Change visibility → Public.
-2. Open **Actions → CI → Run workflow**, select `main`, and enable `deploy`.
+2. Re-run the failed deploy job in GitHub Actions (**Re-run failed jobs**), or run
+   `/srv/gymos/deploy/k8s/deploy.sh <commit>` on the VM.
 
-If the deploy starts before the packages are public, the migrate Job fails at the image
-pull. Make the packages public and run the manual workflow again; the migrate pod never
-started, so no database changes occurred.
+The migrate pod never started, so no database changes occurred and the re-run is safe.
+Later merges deploy normally.
 
 ### 8. Tailscale Serve
 
@@ -220,11 +218,7 @@ ACL grant from step 5 is in place. Tailscale terminates TLS; Traefik only sees H
 
 ## Deploy and rollback
 
-Deployment is manual. Open **Actions → CI → Run workflow**, select `main`, and enable
-`deploy`. The run repeats checks, infrastructure lint, and image publishing, then deploys
-the selected ref's commit SHA. The deploy job is serialized by a concurrency group.
-
-To run the deploy on the VM directly:
+The pipeline deploys automatically after a merge to `main`. To deploy manually on the VM:
 
 ```bash
 /srv/gymos/deploy/k8s/deploy.sh <commit-sha>
@@ -232,12 +226,10 @@ To run the deploy on the VM directly:
 
 The script checks that the secret exists, waits for Postgres, runs migrations and the seed
 Job, rolls out the API and web images pinned to that commit, and waits for both
-deployments. It uses `ghcr.io/marculm` by default; the deploy job passes
-`REGISTRY=ghcr.io/<owner>`. Set `REGISTRY` for manual deploys if the repository owner
-differs.
+deployments. It uses `ghcr.io/marculm` by default; CI passes `REGISTRY=ghcr.io/<owner>`.
+Set `REGISTRY` for manual deploys if the repository owner differs.
 
-For rollback, run the script on the VM with an earlier commit (the manual workflow deploys
-the selected ref, not an arbitrary older commit):
+Roll back by running the same script with an earlier commit:
 
 ```bash
 /srv/gymos/deploy/k8s/deploy.sh <previous-sha>
@@ -274,10 +266,8 @@ curl -s http://127.0.0.1/health
 `kubectl -n gymos port-forward svc/api 3000:3000` from the VM.
 
 - **ImagePullBackOff or 403 from GHCR:** the packages are still private, or the `images`
-  job has not published that SHA yet. Make them public (step 7) or wait for CI, then run
-  the manual workflow again.
-- **Deploy is skipped:** the deploy job only runs for a manual `workflow_dispatch` run on
-  `main` with the `deploy` input enabled. A push to `main` never deploys.
+  job has not published that SHA yet. Make them public (step 7) or wait for CI, then
+  re-run the deploy.
 - **Deploy job fails at the Tailscale action:** the OAuth client needs the writable
   `auth_keys` scope and the `tag:ci` tag; check the ACL and the two repository secrets.
 - **Phone cannot open `:8443`:** the ACL needs a grant from the phone's source

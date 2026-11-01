@@ -4,12 +4,6 @@ on:
   push:
     branches: [main]
   pull_request:
-  workflow_dispatch:
-    inputs:
-      deploy:
-        description: "Deploy this ref to the VM"
-        type: boolean
-        default: false
 
 permissions:
   contents: read
@@ -67,7 +61,7 @@ jobs:
 
   images:
     needs: [checks, infra]
-    if: github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -109,7 +103,7 @@ jobs:
 
   deploy:
     needs: [checks, infra, images]
-    if: github.event_name == 'workflow_dispatch' && inputs.deploy == true && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:

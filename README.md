@@ -104,9 +104,8 @@ Nutrition, the AI recipe extractor, authentication, and offline logging are not 
 ## Deployment
 
 Production runs on a private K3s VM reached through Tailscale. GitHub Actions runs the
-checks and publishes `linux/arm64` images to GHCR; deployment is a manual CI run with the
-`deploy` input enabled and runs over Tailscale SSH. See
-[`docs/deployment.md`](docs/deployment.md) for the VM, Tailscale, secret, deploy,
+checks, publishes `linux/arm64` images to GHCR, and deploys to the VM over Tailscale SSH.
+See [`docs/deployment.md`](docs/deployment.md) for the VM, Tailscale, secret, deploy,
 rollback, and backup steps.
 
 For a production-like local stack:

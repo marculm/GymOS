@@ -40,14 +40,13 @@ clean checkout.
 - Pull requests run checks and infrastructure lint: Bun install, Prisma generate,
   `prisma migrate deploy` against a Postgres service container, typecheck, `lint:all`,
   tests, the web build, actionlint, kubeconform, and shellcheck.
-- Pushes to `main` run the same checks, then build and push `linux/arm64` images. They do
-  not deploy.
-- Deployment is a manual `workflow_dispatch` run of the same CI workflow with the `deploy`
-  input enabled, on `main`. The run repeats checks and image publishing for the selected
-  ref, then the deploy job joins the tailnet as an ephemeral `tag:ci` node through the
-  Tailscale GitHub action and authenticates with `tailscale ssh`. No SSH private key is
-  stored in GitHub. Access is granted by a tailnet ACL and revoked by changing the ACL or
-  removing the OAuth client. The deploy job is serialized by a concurrency group.
+- Pushes to `main` run the same checks, build and push `linux/arm64` images, and then
+  deploy. The deploy job runs only on `main`, only after checks and images succeed, and is
+  serialized by a concurrency group.
+- The deploy job joins the tailnet as an ephemeral `tag:ci` node through the Tailscale
+  GitHub action and authenticates with `tailscale ssh`. No SSH private key is stored in
+  GitHub. Access is granted by a tailnet ACL and revoked by changing the ACL or removing
+  the OAuth client.
 - The VM holds a checkout at `/srv/gymos` and runs `deploy/k8s/deploy.sh <sha>`. The script
   checks out the commit, applies the manifests, runs the migration Job to completion (which
   also seeds the configured owner idempotently), rolls out API and web with SHA-pinned
@@ -81,7 +80,6 @@ clean checkout.
 ## Consequences
 
 - The same images build locally and in CI, and every deploy is reproducible by commit SHA.
-- Deployment is an explicit manual run; a merge to `main` only publishes images.
 - No long-lived SSH key exists in GitHub; revocation happens through the tailnet ACL or
   the OAuth client.
 - Public images expose the API TypeScript source and dependency versions. This is accepted
