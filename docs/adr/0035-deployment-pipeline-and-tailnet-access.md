@@ -30,7 +30,7 @@ clean checkout.
   port 8080 with SPA fallback and cache headers.
 - Images are published to public GHCR as `ghcr.io/marculm/gymos-api`,
   `ghcr.io/marculm/gymos-web`, and `ghcr.io/marculm/gymos-api-migrate`, tagged
-  `sha-<short>` and `latest`. Public packages need no pull secret and stay outside the
+  `sha-<commit>` and `latest`. Public packages need no pull secret and stay outside the
   private-package quota. No secret is passed as a build argument or baked into an image.
 - An `app` profile in `deploy/docker/docker-compose.yml` runs Postgres, migrations, API,
   and web locally with the same images. The default `db:up` flow remains Postgres-only.
@@ -47,8 +47,9 @@ clean checkout.
   GitHub. Access is granted by a tailnet ACL and revoked by changing the ACL or removing
   the OAuth client.
 - The VM holds a checkout at `/srv/gymos` and runs `deploy/k8s/deploy.sh <sha>`. The script
-  checks out the commit, applies the manifests, runs the migration Job to completion,
-  rolls out API and web with SHA-pinned images, and waits for the rollout. Manifests are
+  checks out the commit, applies the manifests, runs the migration Job to completion (which
+  also seeds the configured owner idempotently), rolls out API and web with SHA-pinned
+  images, and waits for the rollout. Manifests are
   applied only through this versioned script; no ad-hoc `kubectl` changes.
 - Rollback is the same script with an earlier SHA. Prisma migrations are forward-only, so
   an application rollback is safe only when the schema change is backward compatible.
