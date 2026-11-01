@@ -22,9 +22,10 @@ COPY package.json bun.lock ./
 COPY apps/api/package.json apps/api/
 COPY apps/web/package.json apps/web/
 COPY packages/shared/package.json packages/shared/
-# @prisma/client lists TypeScript as an optional peer; the runtime does not need it.
-RUN bun install --frozen-lockfile --production --linker hoisted --filter @gymos/api \
-    && rm -rf node_modules/typescript
+# @prisma/client lists prisma and TypeScript as optional peers; the runtime needs neither.
+RUN bun install --frozen-lockfile --production --linker hoisted --filter @gymos/api --omit=peer \
+    && test ! -d node_modules/prisma \
+    && test ! -d node_modules/typescript
 
 FROM oven/bun:1.4.4-slim AS runtime
 
@@ -49,4 +50,4 @@ CMD ["bun", "apps/api/src/index.mts"]
 FROM builder AS migrate
 
 WORKDIR /app
-CMD ["bun", "--filter", "@gymos/api", "db:migrate:deploy"]
+CMD ["bun", "--filter", "@gymos/api", "db:setup"]

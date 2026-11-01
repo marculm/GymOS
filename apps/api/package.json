@@ -12,6 +12,7 @@
     "db:migrate": "bunx prisma migrate dev",
     "db:migrate:deploy": "bunx prisma migrate deploy",
     "db:seed": "bun prisma/seed.mts",
+    "db:setup": "bun run db:migrate:deploy && bun run db:seed",
     "db:studio": "bunx prisma studio"
   },
   "dependencies": {
