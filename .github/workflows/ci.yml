@@ -10,11 +10,12 @@ permissions:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   checks:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     services:
       postgres:
         image: postgres:17-alpine
@@ -46,10 +47,23 @@ jobs:
       - run: bun run test
       - run: bun run build
 
+  infra:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lint workflow
+        run: docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:latest -color
+      - name: Validate manifests
+        run: docker run --rm -v "$PWD:/repo" -w /repo ghcr.io/yannh/kubeconform:latest -strict -summary deploy/k8s/*.yaml
+      - name: Lint deploy script
+        run: docker run --rm -v "$PWD:/repo" -w /repo koalaman/shellcheck:stable deploy/k8s/deploy.sh
+
   images:
-    needs: checks
+    needs: [checks, infra]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: read
       packages: write
@@ -88,9 +102,10 @@ jobs:
           cache-to: type=gha,mode=max
 
   deploy:
-    needs: [checks, images]
+    needs: [checks, infra, images]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: read
     concurrency:
@@ -102,4 +117,5 @@ jobs:
           oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
           oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           tags: tag:ci
-      - run: tailscale ssh ${{ vars.DEPLOY_USER }}@${{ vars.DEPLOY_HOST }} "/srv/gymos/deploy/k8s/deploy.sh ${{ github.sha }}"
+          ping: ${{ vars.DEPLOY_HOST }}
+      - run: tailscale ssh ${{ vars.DEPLOY_USER }}@${{ vars.DEPLOY_HOST }} "REGISTRY=ghcr.io/${{ github.repository_owner }} /srv/gymos/deploy/k8s/deploy.sh ${{ github.sha }}"
