@@ -24,6 +24,7 @@ spec:
                 name: api
                 port:
                   number: 3000
+          # /prometheus intentionally falls through to the web app, not the metrics.
           - path: /
             pathType: Prefix
             backend:
