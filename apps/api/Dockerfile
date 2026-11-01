@@ -12,6 +12,7 @@ COPY packages/shared/package.json packages/shared/
 RUN bun install --frozen-lockfile --linker hoisted
 
 COPY apps/api/prisma apps/api/prisma
+COPY apps/api/src/config/env.mts apps/api/src/config/env.mts
 RUN bun --filter @gymos/api db:generate
 
 FROM oven/bun:1.4.4-slim AS prod-deps
