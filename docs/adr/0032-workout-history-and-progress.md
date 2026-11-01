@@ -46,5 +46,5 @@ History and analytics are read-only; no new storage is needed.
 - The progress endpoint loads every completed set of the user per request. That is
   acceptable at single-user scale; SQL aggregation becomes worthwhile if history grows
   considerably.
-- Plans deleted after a workout remain visible on that workout's detail, but a deleted
-  plan can no longer be chosen as a history filter.
+- Deleting a plan clears the plan association of its past sessions (`planId` becomes
+  `null`), so their logged sets remain readable but the plan and its targets are gone.

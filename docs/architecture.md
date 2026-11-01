@@ -10,8 +10,8 @@ is complete.
 ## 1. System Context
 
 GymOS is a single-user gym and nutrition application. The first slice is a gym tracker:
-create a plan, start a workout, log sets, and finish. The history view is being moved
-to the bottom of the Gym page in a follow-up (ADR-0027).
+create a plan, start a workout, log sets, and finish. History and progress views sit at
+the bottom of the Gym page (ADR-0032).
 
 ```text
 ┌──────────────────────────────┐
@@ -533,6 +533,10 @@ Required regression coverage (ADR-0018):
 - Problem-details shape for `404`, `409`, and `422`.
 - Rotation suggestions: wrap-around, deviations, ignored free workouts, missing plans,
   and empty history (ADR-0026).
+- Progress analytics: personal records by weight, then reps, then newest set; per-session
+  volume; active sessions excluded (ADR-0032).
+- History filters by plan and start-date range, and session detail includes sets, targets,
+  and completion time (ADR-0032).
 
 Verification commands:
 

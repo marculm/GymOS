@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/svelte";
+import { fireEvent, render, screen } from "@testing-library/svelte";
 import type { WorkoutProgress } from "@gymos/shared";
 import Progress from "./Progress.svelte";
 import { getProgress } from "../../api/gym.mts";
@@ -52,10 +52,41 @@ describe("Progress", () => {
     render(Progress);
 
     expect(await screen.findByText("Bench Press")).toBeInTheDocument();
-    expect(screen.getByText("90 kg × 5")).toBeInTheDocument();
+    expect(screen.getByText("5 × 90 kg")).toBeInTheDocument();
     expect(screen.getByText("Squat")).toBeInTheDocument();
     expect(screen.getByText("1500 kg")).toBeInTheDocument();
     expect(screen.getByText("1000 kg")).toBeInTheDocument();
+  });
+
+  it("shows at most ten volume points", async () => {
+    vi.mocked(getProgress).mockResolvedValue({
+      personalRecords: [],
+      volume: Array.from({ length: 12 }, (_, index) => ({
+        sessionId: `session-${index}`,
+        title: `Workout ${index}`,
+        startedAt: "2026-10-27T18:00:00.000Z",
+        totalVolumeKg: (index + 1) * 100,
+      })),
+    });
+
+    render(Progress);
+
+    expect(await screen.findAllByText(/^\d+ kg$/)).toHaveLength(10);
+  });
+
+  it("retries after a failed load", async () => {
+    vi.mocked(getProgress)
+      .mockRejectedValueOnce(new Error("Backend unavailable"))
+      .mockResolvedValueOnce(progress);
+
+    render(Progress);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Backend unavailable"
+    );
+    await fireEvent.click(screen.getByRole("button", { name: /retry/i }));
+
+    expect(await screen.findByText("Bench Press")).toBeInTheDocument();
   });
 
   it("shows empty states without history", async () => {

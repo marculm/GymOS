@@ -261,7 +261,7 @@ describe("GymView", () => {
     expect(
       screen.getByRole("heading", { name: "Progress" })
     ).toBeInTheDocument();
-    expect(await screen.findByText("90 kg × 5")).toBeInTheDocument();
+    expect(await screen.findByText("5 × 90 kg")).toBeInTheDocument();
   });
 
   it("opens the alternate workout picker and starts a free workout", async () => {

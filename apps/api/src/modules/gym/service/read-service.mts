@@ -99,6 +99,7 @@ export class GymReadService {
   }
 
   async getProgress(userId: string): Promise<WorkoutProgress> {
+    // shortcut: loads all completed sets in memory; move to SQL if history grows.
     const sessions = await this.sessionRepository.findCompleted(userId);
     const records = new Map<string, PersonalRecord>();
 
@@ -108,7 +109,10 @@ export class GymReadService {
         const isBetter =
           current === undefined ||
           set.weightKg > current.weightKg ||
-          (set.weightKg === current.weightKg && set.reps > current.reps);
+          (set.weightKg === current.weightKg &&
+            (set.reps > current.reps ||
+              (set.reps === current.reps &&
+                Date.parse(set.createdAt) > Date.parse(current.achievedAt))));
         if (isBetter) {
           records.set(set.exerciseId, {
             exerciseId: set.exerciseId,
@@ -129,10 +133,13 @@ export class GymReadService {
         sessionId: session.id,
         title: session.title,
         startedAt: session.startedAt,
-        totalVolumeKg: session.sets.reduce(
-          (total, set) => total + set.reps * set.weightKg,
-          0
-        ),
+        totalVolumeKg:
+          Math.round(
+            session.sets.reduce(
+              (total, set) => total + set.reps * set.weightKg,
+              0
+            ) * 10
+          ) / 10,
       })),
     };
   }

@@ -343,6 +343,58 @@ describe("GymReadService", () => {
     );
   });
 
+  it("keeps the newest set within one session when weight and reps tie", async () => {
+    const { service, sessionRepository } = createService();
+    const tiedSet = (id: string, setNumber: number, createdAt: string) => ({
+      id,
+      exerciseId: "exercise-1",
+      exerciseName: "Bench Press",
+      setNumber,
+      reps: 8,
+      weightKg: 80,
+      createdAt,
+    });
+    sessionRepository.findCompleted.mockResolvedValueOnce([
+      {
+        ...detail,
+        sets: [
+          tiedSet("set-1", 1, "2026-10-27T18:05:00.000Z"),
+          tiedSet("set-2", 2, "2026-10-27T18:10:00.000Z"),
+        ],
+      },
+    ]);
+
+    const progress = await service.getProgress("user-1");
+
+    expect(progress.personalRecords[0]?.achievedAt).toBe(
+      "2026-10-27T18:10:00.000Z"
+    );
+  });
+
+  it("rounds volume to one decimal place", async () => {
+    const { service, sessionRepository } = createService();
+    sessionRepository.findCompleted.mockResolvedValueOnce([
+      {
+        ...detail,
+        sets: [
+          {
+            id: "set-1",
+            exerciseId: "exercise-1",
+            exerciseName: "Bench Press",
+            setNumber: 1,
+            reps: 3,
+            weightKg: 22.3,
+            createdAt: "2026-10-27T18:05:00.000Z",
+          },
+        ],
+      },
+    ]);
+
+    const progress = await service.getProgress("user-1");
+
+    expect(progress.volume[0]?.totalVolumeKg).toBe(66.9);
+  });
+
   it("returns empty progress without completed sessions", async () => {
     const { service } = createService();
 

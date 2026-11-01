@@ -43,6 +43,9 @@
     <p class="muted">Loading progress…</p>
   {:else if error}
     <p class="error" role="alert">{error}</p>
+    <button type="button" class="btn btn-ghost" onclick={() => void load()}>
+      Retry
+    </button>
   {:else if progress}
     <div class="card stack">
       <h3 class="card-title">Personal records</h3>
@@ -52,7 +55,7 @@
         {#each progress.personalRecords as record (record.exerciseId)}
           <div class="row">
             <span class="grow">{record.exerciseName}</span>
-            <span>{record.weightKg} kg × {record.reps}</span>
+            <span>{record.reps} × {record.weightKg} kg</span>
           </div>
         {/each}
       {/if}

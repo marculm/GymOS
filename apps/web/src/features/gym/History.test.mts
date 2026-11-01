@@ -25,6 +25,16 @@ const exercise: Exercise = {
   defaultWeightKg: 80,
 };
 
+const squat: Exercise = {
+  id: "exercise-2",
+  name: "Squat",
+  muscleGroup: "legs",
+  description: null,
+  defaultSets: 3,
+  defaultReps: 5,
+  defaultWeightKg: 100,
+};
+
 const plan: WorkoutPlan = {
   id: "plan-1",
   name: "Push Day",
@@ -39,6 +49,15 @@ const plan: WorkoutPlan = {
       targetWeightKg: 80,
       notes: null,
       exercise,
+    },
+    {
+      id: "plan-exercise-2",
+      position: 1,
+      targetSets: 3,
+      targetReps: 5,
+      targetWeightKg: 100,
+      notes: null,
+      exercise: squat,
     },
   ],
 };
@@ -121,7 +140,9 @@ describe("History", () => {
 
     renderHistory();
 
-    expect(await screen.findByText("Push Day")).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "Push Day" })
+    ).toBeInTheDocument();
     expect(screen.queryByText("Pull Day")).not.toBeInTheDocument();
 
     await fireEvent.click(screen.getByRole("button", { name: /load more/i }));
@@ -146,6 +167,38 @@ describe("History", () => {
     expect(screen.getByText("4 × 8 @ 80 kg")).toBeInTheDocument();
     expect(screen.getByText(/60 min/)).toBeInTheDocument();
     expect(getSession).toHaveBeenCalledWith("session-1");
+  });
+
+  it("lists detail exercises in plan order", async () => {
+    vi.mocked(listSessions).mockResolvedValue(page([pushSession], 0, 1));
+    vi.mocked(getSession).mockResolvedValue({
+      ...detail,
+      sets: [
+        {
+          id: "set-3",
+          exerciseId: squat.id,
+          exerciseName: squat.name,
+          setNumber: 1,
+          reps: 5,
+          weightKg: 100,
+          createdAt: "2026-10-26T18:20:00.000Z",
+        },
+        ...detail.sets,
+      ],
+    });
+
+    renderHistory();
+
+    await fireEvent.click(
+      await screen.findByRole("button", { name: /view push day/i })
+    );
+    await screen.findAllByText("Set 1");
+
+    expect(
+      screen
+        .getAllByRole("heading", { level: 4 })
+        .map((heading) => heading.textContent)
+    ).toEqual(["Bench Press", "Squat"]);
   });
 
   it("filters by plan and date range", async () => {
@@ -192,15 +245,49 @@ describe("History", () => {
     });
   });
 
-  it("shows an error when loading fails", async () => {
-    vi.mocked(listSessions).mockRejectedValueOnce(
-      new Error("Backend unavailable")
-    );
+  it("shows an error without an empty state and retries", async () => {
+    vi.mocked(listSessions)
+      .mockRejectedValueOnce(new Error("Backend unavailable"))
+      .mockResolvedValueOnce(page([pushSession], 0, 1));
 
     renderHistory();
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Backend unavailable"
     );
+    expect(
+      screen.queryByText("No completed workouts yet")
+    ).not.toBeInTheDocument();
+
+    await fireEvent.click(screen.getByRole("button", { name: /retry/i }));
+
+    expect(
+      await screen.findByRole("heading", { name: "Push Day" })
+    ).toBeInTheDocument();
+  });
+
+  it("ignores a stale page after filters change", async () => {
+    let resolveFirst!: (value: Page<WorkoutSessionSummary>) => void;
+    vi.mocked(listSessions)
+      .mockReturnValueOnce(
+        new Promise((resolve) => {
+          resolveFirst = resolve;
+        })
+      )
+      .mockResolvedValueOnce(page([pushSession], 0, 1));
+
+    renderHistory();
+
+    await fireEvent.change(screen.getByLabelText("Plan"), {
+      target: { value: "plan-1" },
+    });
+    expect(
+      await screen.findByRole("heading", { name: "Push Day" })
+    ).toBeInTheDocument();
+
+    resolveFirst(page([pullSession], 0, 1));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(screen.queryByText("Pull Day")).not.toBeInTheDocument();
   });
 });

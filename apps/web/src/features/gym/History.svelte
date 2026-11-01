@@ -96,6 +96,14 @@
     void loadPage(1);
   });
 
+  const detailPlan = $derived(
+    plans.find((plan) => plan.id === detail?.planId) ?? null
+  );
+
+  function firstSetTime(group: { sets: LoggedSet[] }): number {
+    return group.sets[0] ? Date.parse(group.sets[0].createdAt) : 0;
+  }
+
   const groups = $derived.by(() => {
     if (!detail) return [];
     const map = new Map<string, { name: string; sets: LoggedSet[] }>();
@@ -113,15 +121,27 @@
       group.sets.sort((a, b) => a.setNumber - b.setNumber);
     }
 
-    return [...map.entries()].map(([exerciseId, group]) => ({
-      exerciseId,
-      ...group,
-    }));
-  });
+    const planPositions = new Map(
+      (detailPlan?.exercises ?? []).map((entry, index) => [
+        entry.exercise.id,
+        index,
+      ])
+    );
 
-  const detailPlan = $derived(
-    plans.find((plan) => plan.id === detail?.planId) ?? null
-  );
+    return [...map.entries()]
+      .map(([exerciseId, group]) => ({ exerciseId, ...group }))
+      .sort((a, b) => {
+        const aPosition = planPositions.get(a.exerciseId);
+        const bPosition = planPositions.get(b.exerciseId);
+        if (aPosition !== undefined || bPosition !== undefined) {
+          return (
+            (aPosition ?? Number.MAX_SAFE_INTEGER) -
+            (bPosition ?? Number.MAX_SAFE_INTEGER)
+          );
+        }
+        return firstSetTime(a) - firstSetTime(b);
+      });
+  });
 
   const hasFilters = $derived(Boolean(planId || from || to));
 
@@ -196,11 +216,20 @@
 
   {#if error}
     <p class="error" role="alert">{error}</p>
+    {#if sessions.length === 0}
+      <button
+        type="button"
+        class="btn btn-ghost"
+        onclick={() => void loadPage(1)}
+      >
+        Retry
+      </button>
+    {/if}
   {/if}
 
   {#if loading && sessions.length === 0}
     <p class="muted">Loading history…</p>
-  {:else if sessions.length === 0}
+  {:else if sessions.length === 0 && !error}
     <p class="empty">
       {hasFilters ? "No workouts match these filters" : "No completed workouts yet"}
     </p>
@@ -232,8 +261,8 @@
         </button>
       </div>
 
-      {#if expanded}
-        <div class="stack" id={`history-${session.id}`}>
+      <div class="stack" id={`history-${session.id}`} hidden={!expanded}>
+        {#if expanded}
           {#if detailLoading}
             <p class="muted">Loading workout…</p>
           {:else if detail}
@@ -268,8 +297,8 @@
               {/each}
             {/if}
           {/if}
-        </div>
-      {/if}
+        {/if}
+      </div>
     </article>
   {/each}
 
