@@ -37,15 +37,17 @@ clean checkout.
 
 ### CI and deployment
 
-- Pull requests run checks only: Bun install, Prisma generate, `prisma migrate deploy`
-  against a Postgres service container, typecheck, `lint:all`, tests, and the web build.
-- Pushes to `main` run the same checks, build and push `linux/arm64` images, and then
-  deploy. The deploy job runs only on `main`, only after checks and images succeed, and is
-  serialized by a concurrency group.
-- The deploy job joins the tailnet as an ephemeral `tag:ci` node through the Tailscale
-  GitHub action and authenticates with `tailscale ssh`. No SSH private key is stored in
-  GitHub. Access is granted by a tailnet ACL and revoked by changing the ACL or removing
-  the OAuth client.
+- Pull requests run checks and infrastructure lint: Bun install, Prisma generate,
+  `prisma migrate deploy` against a Postgres service container, typecheck, `lint:all`,
+  tests, the web build, actionlint, kubeconform, and shellcheck.
+- Pushes to `main` run the same checks, then build and push `linux/arm64` images. They do
+  not deploy.
+- Deployment is a separate manual workflow (`workflow_dispatch`) started from the GitHub
+  Actions UI with a full commit SHA. It joins the tailnet as an ephemeral `tag:ci` node
+  through the Tailscale GitHub action and authenticates with `tailscale ssh`. No SSH
+  private key is stored in GitHub. Access is granted by a tailnet ACL and revoked by
+  changing the ACL or removing the OAuth client. The workflow is serialized by a
+  concurrency group, and the images for the chosen SHA must already be published.
 - The VM holds a checkout at `/srv/gymos` and runs `deploy/k8s/deploy.sh <sha>`. The script
   checks out the commit, applies the manifests, runs the migration Job to completion (which
   also seeds the configured owner idempotently), rolls out API and web with SHA-pinned
