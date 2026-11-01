@@ -277,6 +277,38 @@ fieldset {
   font-variant-numeric: tabular-nums;
 }
 
+.volume-row {
+  display: grid;
+  grid-template-columns: minmax(90px, 1fr) 2fr auto;
+  gap: 8px;
+  align-items: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.volume-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.85rem;
+}
+
+.volume-track {
+  height: 10px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.volume-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+}
+
+.volume-value {
+  font-size: 0.85rem;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

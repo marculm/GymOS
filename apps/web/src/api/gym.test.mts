@@ -6,7 +6,9 @@ import {
   deleteExercise,
   deletePlan,
   getActiveSession,
+  getProgress,
   getRotation,
+  getSession,
   getWeightSuggestions,
   listAllExercises,
   listExercises,
@@ -259,6 +261,39 @@ describe("gym api client", () => {
     await listSessions({ page: 2, size: 5 });
 
     expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/gym/sessions?page=2&size=5");
+  });
+
+  it("gets a session by id", async () => {
+    const session = {
+      id: "session-1",
+      title: "Push Day",
+      planId: null,
+      startedAt: "2026-10-26T18:00:00.000Z",
+      completedAt: "2026-10-26T19:00:00.000Z",
+      sets: [],
+    };
+    const fetchMock = mockFetch(
+      new Response(JSON.stringify(session), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })
+    );
+
+    await expect(getSession("session-1")).resolves.toEqual(session);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/gym/sessions/session-1");
+  });
+
+  it("gets progress analytics", async () => {
+    const progress = { personalRecords: [], volume: [] };
+    const fetchMock = mockFetch(
+      new Response(JSON.stringify(progress), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })
+    );
+
+    await expect(getProgress()).resolves.toEqual(progress);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/gym/progress");
   });
 
   it("returns null for a missing active session", async () => {

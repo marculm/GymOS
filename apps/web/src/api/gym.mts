@@ -11,6 +11,7 @@ import type {
   UpdateWorkoutRotationInput,
   WeightSuggestions,
   WorkoutPlan,
+  WorkoutProgress,
   WorkoutRotation,
   WorkoutSessionDetail,
   WorkoutSessionSummary,
@@ -132,6 +133,14 @@ export function listSessions(
   params: PageParams & { planId?: string; from?: string; to?: string } = {}
 ): Promise<Page<WorkoutSessionSummary>> {
   return api.get<Page<WorkoutSessionSummary>>(`/gym/sessions${toQuery(params)}`);
+}
+
+export function getSession(id: string): Promise<WorkoutSessionDetail> {
+  return api.get<WorkoutSessionDetail>(`/gym/sessions/${id}`);
+}
+
+export function getProgress(): Promise<WorkoutProgress> {
+  return api.get<WorkoutProgress>("/gym/progress");
 }
 
 export function addSet(

@@ -29,7 +29,9 @@
     updatePlan,
   } from "../../api/gym.mts";
   import ExerciseRegister from "./ExerciseRegister.svelte";
+  import History from "./History.svelte";
   import PlanForm from "./PlanForm.svelte";
+  import Progress from "./Progress.svelte";
   import SessionView from "./SessionView.svelte";
   import WorkoutPicker from "./WorkoutPicker.svelte";
 
@@ -555,6 +557,10 @@
         </div>
       {/if}
     </section>
+
+    <Progress />
+
+    <History plans={plans} />
 
     {#if showPicker}
       <WorkoutPicker
