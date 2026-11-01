@@ -34,6 +34,6 @@ These are known, non-blocking issues. They do not affect the core flow: create a
 
 - **No authentication.** ADR-0009 defines the single-user MVP; the API must not be exposed publicly without an access gate (reverse-proxy auth or an application login).
 - **Tests need a seeded PostgreSQL.** They use a unique test user and clean up; CI provisions and seeds the database in `.github/workflows/ci.yml`.
-- **The first deploy needs public GHCR packages.** The repository is private, so the first push creates private packages and the deploy fails at the image pull until they are made public; see `docs/deployment.md` step 7.
+- **The first deploy needs public GHCR packages and `DEPLOY_ENABLED=true`.** The repository is private, so the first push creates private packages; the deploy job is skipped until the variable is set, and then fails at the image pull until the packages are public. See `docs/deployment.md` steps 7 and 9.
 - **The K3s/Tailscale deploy path is unverified** until the VM is provisioned. The manifests and deploy script are validated statically in CI (`kubeconform`, `actionlint`, `shellcheck`).
 - **The metrics endpoint is not routed** by the ingress; `/prometheus` remains reachable only inside the cluster.

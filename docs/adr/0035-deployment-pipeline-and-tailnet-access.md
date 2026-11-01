@@ -41,8 +41,10 @@ clean checkout.
   `prisma migrate deploy` against a Postgres service container, typecheck, `lint:all`,
   tests, the web build, actionlint, kubeconform, and shellcheck.
 - Pushes to `main` run the same checks, build and push `linux/arm64` images, and then
-  deploy. The deploy job runs only on `main`, only after checks and images succeed, and is
-  serialized by a concurrency group.
+  deploy. The deploy job runs only on `main`, only after checks and images succeed, only
+  when the repository variable `DEPLOY_ENABLED` is `true`, and is serialized by a
+  concurrency group. Without the variable, the deploy job is skipped and the run stays
+  green.
 - The deploy job joins the tailnet as an ephemeral `tag:ci` node through the Tailscale
   GitHub action and authenticates with `tailscale ssh`. No SSH private key is stored in
   GitHub. Access is granted by a tailnet ACL and revoked by changing the ACL or removing
@@ -80,6 +82,7 @@ clean checkout.
 ## Consequences
 
 - The same images build locally and in CI, and every deploy is reproducible by commit SHA.
+- Deployments can be paused with the `DEPLOY_ENABLED` repository variable.
 - No long-lived SSH key exists in GitHub; revocation happens through the tailnet ACL or
   the OAuth client.
 - Public images expose the API TypeScript source and dependency versions. This is accepted

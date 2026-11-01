@@ -15,11 +15,14 @@ Pull requests run `checks` and `infra`. A push to `main` runs:
    - `ghcr.io/marculm/gymos-api:sha-<commit>`
    - `ghcr.io/marculm/gymos-web:sha-<commit>`
    - `ghcr.io/marculm/gymos-api-migrate:sha-<commit>`
-4. `deploy` — joins the tailnet as an ephemeral `tag:ci` node and runs
+4. `deploy` — runs only when the repository variable `DEPLOY_ENABLED` is `true`; joins the
+   tailnet as an ephemeral `tag:ci` node and runs
    `/srv/gymos/deploy/k8s/deploy.sh <commit>` on the VM over Tailscale SSH.
 
-Deployment runs automatically after a merge. Each image is also tagged `latest`;
-deployments use the immutable commit tag.
+A merge publishes images and deploys only when `DEPLOY_ENABLED` is `true`; otherwise the
+deploy job is skipped and the run stays green. Enable it after the VM and Tailscale access
+are ready (step 9). Each image is also tagged `latest`; deployments use the immutable
+commit tag.
 
 ## Local full stack
 
@@ -189,20 +192,17 @@ overwritten. The migration Job seeds this owner idempotently.
 
 ### 7. GHCR visibility and first deploy
 
-The repository is private, so new GHCR packages start private. The first push to `main`
-builds and pushes the images, then the deploy job fails at the migrate Job's image pull
-because the VM has no pull secret. This is expected; the deploy job may wait up to ten
-minutes before the pull failure times out.
-
-After the images job finishes:
+The repository is private, so new GHCR packages start private. The first main run builds
+and pushes the images; the deploy job is skipped while `DEPLOY_ENABLED` is unset. Make the
+packages public:
 
 1. Open each `gymos-api`, `gymos-web`, and `gymos-api-migrate` package in GitHub →
    Package settings → Change visibility → Public.
-2. Re-run the failed deploy job in GitHub Actions (**Re-run failed jobs**), or run
-   `/srv/gymos/deploy/k8s/deploy.sh <commit>` on the VM.
 
-The migrate pod never started, so no database changes occurred and the re-run is safe.
-Later merges deploy normally.
+Then enable deployments (step 9). The next merge deploys. To deploy the current main
+without a new merge, re-run the latest main workflow after enabling the variable. If the
+deploy starts before the packages are public, the migrate Job fails at the image pull; make
+them public and re-run.
 
 ### 8. Tailscale Serve
 
@@ -216,9 +216,30 @@ sudo tailscale serve status
 Open `https://<DEPLOY_HOST>:8443` from any device in the tailnet. This only works when the
 ACL grant from step 5 is in place. Tailscale terminates TLS; Traefik only sees HTTP.
 
+### 9. Enable deployments
+
+Deployments are gated by the repository variable `DEPLOY_ENABLED`. After the VM, Tailscale
+ACL, secrets, and public packages are ready, create the variable:
+
+GitHub → **Settings → Secrets and variables → Actions → Variables** → *New repository
+variable*:
+
+- Name: `DEPLOY_ENABLED`
+- Value: `true`
+
+Or with the CLI:
+
+```bash
+gh variable set DEPLOY_ENABLED --body true --repo marculm/GymOS
+```
+
+The next merge to `main` deploys. To deploy the current main immediately, re-run the latest
+main workflow. Set the variable to `false` to pause deployments.
+
 ## Deploy and rollback
 
-The pipeline deploys automatically after a merge to `main`. To deploy manually on the VM:
+The pipeline deploys automatically after a merge to `main` when `DEPLOY_ENABLED` is
+`true`. To deploy manually on the VM:
 
 ```bash
 /srv/gymos/deploy/k8s/deploy.sh <commit-sha>
@@ -268,6 +289,8 @@ curl -s http://127.0.0.1/health
 - **ImagePullBackOff or 403 from GHCR:** the packages are still private, or the `images`
   job has not published that SHA yet. Make them public (step 7) or wait for CI, then
   re-run the deploy.
+- **Deploy job is skipped:** set the `DEPLOY_ENABLED` repository variable to `true`
+  (step 9).
 - **Deploy job fails at the Tailscale action:** the OAuth client needs the writable
   `auth_keys` scope and the `tag:ci` tag; check the ACL and the two repository secrets.
 - **Phone cannot open `:8443`:** the ACL needs a grant from the phone's source

@@ -108,6 +108,10 @@ checks, publishes `linux/arm64` images to GHCR, and deploys to the VM over Tails
 See [`docs/deployment.md`](docs/deployment.md) for the VM, Tailscale, secret, deploy,
 rollback, and backup steps.
 
+Deployments are gated by the repository variable `DEPLOY_ENABLED`. Set it to `true` after
+the VM and Tailscale access are ready; until then, merges build and publish images but skip
+the deploy job, keeping the run green. Set it to `false` to pause deployments.
+
 For a production-like local stack:
 
 ```bash
