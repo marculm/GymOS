@@ -1,0 +1,105 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: gymos
+          POSTGRES_PASSWORD: gymos
+          POSTGRES_DB: gymos
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U gymos -d gymos"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://gymos:gymos@localhost:5432/gymos?schema=public
+      GYMOS_USER_EMAIL: demo@gymos.app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+      - run: bun install --frozen-lockfile
+      - run: bun --filter @gymos/api db:generate
+      - run: bun --filter @gymos/api db:migrate:deploy
+      - run: bun --filter @gymos/api db:seed
+      - run: bun run typecheck
+      - run: bun run lint:all
+      - run: bun run test
+      - run: bun run build
+
+  images:
+    needs: checks
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        include:
+          - image: gymos-api
+            dockerfile: apps/api/Dockerfile
+            target: runtime
+          - image: gymos-web
+            dockerfile: apps/web/Dockerfile
+            target: runtime
+          - image: gymos-api-migrate
+            dockerfile: apps/api/Dockerfile
+            target: migrate
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          target: ${{ matrix.target }}
+          platforms: linux/arm64
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:sha-${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    needs: [checks, images]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    steps:
+      - uses: tailscale/github-action@v2
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+      - run: tailscale ssh ${{ vars.DEPLOY_USER }}@${{ vars.DEPLOY_HOST }} "/srv/gymos/deploy/k8s/deploy.sh ${{ github.sha }}"
