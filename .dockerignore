@@ -4,6 +4,8 @@
 .superpowers
 .env
 .env.*
+**/.env
+**/.env.*
 .idea
 docs
 deploy
