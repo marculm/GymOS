@@ -44,6 +44,7 @@
   let error = $state<string | null>(null);
   let showManagement = $state(false);
   let showPicker = $state(false);
+  let showHistory = $state(false);
   let showPlanForm = $state(false);
   let editingPlan = $state<WorkoutPlan | null>(null);
   let pending = $state(false);
@@ -560,7 +561,27 @@
 
     <Progress />
 
-    <History plans={plans} />
+    <section class="stack">
+      <div class="row">
+        <h2 class="card-title grow" id="history-heading">History</h2>
+        <button
+          type="button"
+          class="btn btn-ghost"
+          aria-expanded={showHistory}
+          aria-controls="history-content"
+          aria-label={showHistory ? "Hide history" : "Show history"}
+          onclick={() => (showHistory = !showHistory)}
+        >
+          {showHistory ? "Hide" : "Show"}
+        </button>
+      </div>
+
+      <div id="history-content" hidden={!showHistory}>
+        {#if showHistory}
+          <History plans={plans} />
+        {/if}
+      </div>
+    </section>
 
     {#if showPicker}
       <WorkoutPicker

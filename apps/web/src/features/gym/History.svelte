@@ -168,9 +168,7 @@
   }
 </script>
 
-<section class="stack" aria-labelledby="history-heading">
-  <h2 class="card-title" id="history-heading">History</h2>
-
+<div class="stack">
   <div class="row">
     <label class="field grow">
       <span class="label">Plan</span>
@@ -312,4 +310,4 @@
       Load more
     </button>
   {/if}
-</section>
+</div>
