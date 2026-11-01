@@ -460,6 +460,9 @@ apps/web/
   stay readable in history.
 - After a start conflict (`409`), the screen re-reads the active session; if none exists,
   it retries the start once or shows a message (ADR-0019).
+- Plan start actions include the plan name, errors render in `role="alert"` live regions,
+  and starting or finishing a session moves focus to the session or next-workout heading
+  (ADR-0034).
 
 ### 4.4 API Layer
 
@@ -610,3 +613,4 @@ The target architecture deliberately excludes:
 | [0031](adr/0031-remove-rpe.md) | Remove RPE from set logging |
 | [0032](adr/0032-workout-history-and-progress.md) | Workout history and progress analytics |
 | [0033](adr/0033-collapsed-history-section.md) | Collapsed history section |
+| [0034](adr/0034-gym-accessibility-names-alerts-focus.md) | Gym accessibility names, alerts, and focus |
