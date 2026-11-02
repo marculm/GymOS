@@ -16,7 +16,8 @@ The **Gym Tracker** slice is implemented:
 - Create plans with target sets, reps, and optional weight (prefilled from exercise
   defaults)
 - Start free or plan-based workouts
-- Log sets with weight and reps
+- Log sets with weight and reps; weights accept two decimals and display without
+  trailing zeros (ADR-0022)
 - Delete a wrongly logged set during an active workout (ADR-0037)
 - Collapse completed planned exercises into a visible done state, with a manual toggle
   on every card (ADR-0019, ADR-0029)

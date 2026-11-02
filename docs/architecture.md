@@ -461,6 +461,10 @@ apps/web/
   exercise in the most recent completed workout, rounded to 0.5 kg, falling back to the
   exercise default. Reps are not prefilled, and RPE is no longer recorded (ADR-0030,
   ADR-0031).
+- Every weight input accepts two decimals (`step=0.01`). The set form places Reps before
+  Weight in compact side-by-side fields; displayed weights use up to two decimals without
+  trailing zeros across set rows, history, progress, plan targets, and defaults
+  (ADR-0022).
 - The session screen displays every logged set, including exercises that are not part of
   the session's plan (ADR-0019). Logged sets carry `exerciseName`, so deleted exercises
   stay readable in history.
