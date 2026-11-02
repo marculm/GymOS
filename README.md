@@ -17,6 +17,7 @@ The **Gym Tracker** slice is implemented:
   defaults)
 - Start free or plan-based workouts
 - Log sets with weight and reps
+- Keep Finish workout and a rest timer always reachable in a session bar (ADR-0036)
 - Finish workouts and review history (details, filters, load-more) in a collapsible
   section at the bottom of the Gym page, with progress analytics above it (ADR-0032,
   ADR-0033)
