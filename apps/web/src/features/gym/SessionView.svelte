@@ -347,7 +347,7 @@
         {#each REST_PRESETS as preset (preset)}
           <button
             type="button"
-            class="btn btn-ghost grow"
+            class="btn btn-ghost timer-preset"
             aria-pressed={preset === timerPreset}
             onclick={() => selectPreset(preset)}
           >

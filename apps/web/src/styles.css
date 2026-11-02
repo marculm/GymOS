@@ -144,6 +144,10 @@ fieldset {
   font-variant-numeric: tabular-nums;
 }
 
+.timer-preset {
+  flex: 1;
+}
+
 .card {
   background: var(--surface);
   border: 1px solid var(--surface-2);
