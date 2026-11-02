@@ -11,6 +11,11 @@
   ];
 
   let activeTab = $state<Tab>("gym");
+  let sessionActive = $state(false);
+
+  function handleSessionActive(active: boolean) {
+    sessionActive = active;
+  }
 </script>
 
 <div class="app">
@@ -21,7 +26,7 @@
 
   <main class="content">
     {#if activeTab === "gym"}
-      <GymView />
+      <GymView onSessionActiveChange={handleSessionActive} />
     {:else if activeTab === "nutrition"}
       <section class="card">
         <h2 class="card-title">Nutrition & Mealprep</h2>
@@ -35,17 +40,19 @@
     {/if}
   </main>
 
-  <nav class="tab-bar" aria-label="Main navigation">
-    {#each tabs as { id, label, icon: Icon } (id)}
-      <button
-        type="button"
-        class={activeTab === id ? "tab tab-active" : "tab"}
-        aria-pressed={activeTab === id}
-        onclick={() => (activeTab = id)}
-      >
-        <Icon size={20} aria-hidden="true" />
-        {label}
-      </button>
-    {/each}
-  </nav>
+  {#if !sessionActive}
+    <nav class="tab-bar" aria-label="Main navigation">
+      {#each tabs as { id, label, icon: Icon } (id)}
+        <button
+          type="button"
+          class={activeTab === id ? "tab tab-active" : "tab"}
+          aria-pressed={activeTab === id}
+          onclick={() => (activeTab = id)}
+        >
+          <Icon size={20} aria-hidden="true" />
+          {label}
+        </button>
+      {/each}
+    </nav>
+  {/if}
 </div>
