@@ -112,6 +112,70 @@ Deployments are gated by the repository variable `DEPLOY_ENABLED`. Set it to `tr
 the VM and Tailscale access are ready; until then, merges build and publish images but skip
 the deploy job, keeping the run green. Set it to `false` to pause deployments.
 
+### VM operations
+
+Log in over Tailscale (`DEPLOY_USER` is usually `ubuntu`):
+
+```bash
+tailscale ssh <DEPLOY_USER>@<DEPLOY_HOST>
+```
+
+Status and logs:
+
+```bash
+kubectl -n gymos get pods,svc,ingress
+kubectl -n gymos get events --sort-by=.lastTimestamp
+
+kubectl -n gymos logs deploy/gymos-api --tail=50 -f
+kubectl -n gymos logs deploy/gymos-web --tail=50 -f
+kubectl -n gymos logs postgres-0 --tail=50 -f
+```
+
+Tailscale, routing, and health:
+
+```bash
+tailscale status
+sudo tailscale serve status
+curl -s http://127.0.0.1/health
+curl -s http://127.0.0.1/health/readiness
+```
+
+From the phone: `https://<DEPLOY_HOST>:8443`.
+
+Restart the API and web pods, for example after changing the ConfigMap or Secret:
+
+```bash
+kubectl -n gymos rollout restart deployment/gymos-api
+kubectl -n gymos rollout restart deployment/gymos-web
+kubectl -n gymos rollout status deployment/gymos-api --timeout=300s
+kubectl -n gymos rollout status deployment/gymos-web --timeout=300s
+```
+
+Deploy a specific commit (fetches it, applies SHA-pinned images, runs migrations and the
+seed, and waits for the rollout):
+
+```bash
+/srv/gymos/deploy/k8s/deploy.sh <commit-sha>
+```
+
+Enable or pause automatic deployments from your machine:
+
+```bash
+gh variable set DEPLOY_ENABLED --body true --repo marculm/GymOS
+gh variable set DEPLOY_ENABLED --body false --repo marculm/GymOS
+```
+
+Restart K3s only for cluster problems; workloads restart briefly:
+
+```bash
+sudo systemctl restart k3s
+```
+
+Do **not** deploy with `git pull && kubectl apply -f deploy/k8s/`. The manifests contain
+`__IMAGE_API__`/`__IMAGE_WEB__` placeholders and `secret.example.yaml`, and migrations must
+run before the rollout. `deploy.sh` is the supported path; the `/srv/gymos` checkout is
+managed by it.
+
 For a production-like local stack:
 
 ```bash
