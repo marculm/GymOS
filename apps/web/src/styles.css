@@ -311,6 +311,15 @@ fieldset {
   font-size: 0.8rem;
 }
 
+.set-fields {
+  flex-wrap: nowrap;
+  align-items: flex-end;
+}
+
+.set-field {
+  flex: 0 1 120px;
+}
+
 .volume-row {
   display: grid;
   grid-template-columns: minmax(90px, 1fr) 2fr auto;

@@ -30,6 +30,7 @@
     updatePlan,
   } from "../../api/gym.mts";
   import ExerciseRegister from "./ExerciseRegister.svelte";
+  import { formatWeight } from "./format.mts";
   import History from "./History.svelte";
   import PlanForm from "./PlanForm.svelte";
   import Progress from "./Progress.svelte";
@@ -359,7 +360,7 @@
               <span class="grow">{entry.exercise.name}</span>
               <span class="muted">
                 {entry.targetSets} × {entry.targetReps}{entry.targetWeightKg != null
-                  ? ` @ ${entry.targetWeightKg} kg`
+                  ? ` @ ${formatWeight(entry.targetWeightKg)} kg`
                   : ""}
               </span>
             </div>

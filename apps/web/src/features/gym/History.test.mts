@@ -123,8 +123,8 @@ function page(
   };
 }
 
-function renderHistory() {
-  render(History, { props: { plans: [plan] } });
+function renderHistory(plans: WorkoutPlan[] = [plan]) {
+  render(History, { props: { plans } });
 }
 
 beforeEach(() => {
@@ -167,6 +167,36 @@ describe("History", () => {
     expect(screen.getByText("4 × 8 @ 80 kg")).toBeInTheDocument();
     expect(screen.getByText(/60 min/)).toBeInTheDocument();
     expect(getSession).toHaveBeenCalledWith("session-1");
+  });
+
+  it("displays weights with up to two decimals", async () => {
+    vi.mocked(listSessions).mockResolvedValue(page([pushSession], 0, 1));
+    vi.mocked(getSession).mockResolvedValue({
+      ...detail,
+      sets: detail.sets.map((set, index) => ({
+        ...set,
+        weightKg: index === 0 ? 22.25 : 22.5,
+      })),
+    });
+
+    renderHistory([
+      {
+        ...plan,
+        exercises: plan.exercises.map((entry) => ({
+          ...entry,
+          targetWeightKg: 22.25,
+        })),
+      },
+    ]);
+
+    await fireEvent.click(
+      await screen.findByRole("button", { name: /view push day/i })
+    );
+
+    expect(await screen.findByText("8 × 22.25 kg")).toBeInTheDocument();
+    expect(screen.getByText("6 × 22.5 kg")).toBeInTheDocument();
+    expect(screen.getByText("4 × 8 @ 22.25 kg")).toBeInTheDocument();
+    expect(screen.queryByText(/22\.50/)).not.toBeInTheDocument();
   });
 
   it("lists detail exercises in plan order", async () => {

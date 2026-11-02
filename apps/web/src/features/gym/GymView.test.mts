@@ -117,6 +117,12 @@ function historyContent(): HTMLElement {
   return element;
 }
 
+async function clickSubmit(button: HTMLElement) {
+  // happy-dom rejects two-decimal values against step=0.01; browsers accept them.
+  (button.closest("form") as HTMLFormElement | null)?.setAttribute("novalidate", "");
+  await fireEvent.click(button);
+}
+
 async function openManagement() {
   await fireEvent.click(
     await screen.findByRole("button", { name: /manage training plan/i })
@@ -196,6 +202,27 @@ describe("GymView", () => {
     expect(
       screen.queryByRole("heading", { name: "Training rotation" })
     ).not.toBeInTheDocument();
+  });
+
+  it("formats decimal plan targets", async () => {
+    const decimalPlan: WorkoutPlan = {
+      ...plan,
+      exercises: plan.exercises.map((entry) => ({
+        ...entry,
+        targetWeightKg: 22.25,
+      })),
+    };
+    vi.mocked(listAllPlans).mockResolvedValueOnce([decimalPlan]);
+    vi.mocked(getRotation).mockResolvedValueOnce({
+      plans: [decimalPlan],
+      nextPlanId: decimalPlan.id,
+    });
+
+    render(GymView);
+
+    expect(
+      await screen.findByText("4 × 8 @ 22.25 kg")
+    ).toBeInTheDocument();
   });
 
   it("starts the suggested workout", async () => {
@@ -457,7 +484,7 @@ describe("GymView", () => {
     await fireEvent.input(screen.getByLabelText("Reps"), {
       target: { value: "5" },
     });
-    await fireEvent.click(screen.getByRole("button", { name: /save plan/i }));
+    await clickSubmit(screen.getByRole("button", { name: /save plan/i }));
 
     await waitFor(() => {
       expect(createPlan).toHaveBeenCalledWith(
@@ -487,7 +514,7 @@ describe("GymView", () => {
     expect(nameInput).toHaveValue("Push Day");
 
     await fireEvent.input(nameInput, { target: { value: "Push Day A" } });
-    await fireEvent.click(screen.getByRole("button", { name: /save plan/i }));
+    await clickSubmit(screen.getByRole("button", { name: /save plan/i }));
 
     await waitFor(() => {
       expect(updatePlan).toHaveBeenCalledWith(
@@ -571,7 +598,7 @@ describe("GymView", () => {
       target: { value: "Repeated" },
     });
     await fireEvent.click(screen.getByRole("button", { name: /add exercise/i }));
-    await fireEvent.click(screen.getByRole("button", { name: /save plan/i }));
+    await clickSubmit(screen.getByRole("button", { name: /save plan/i }));
 
     expect(
       await screen.findByText("Each exercise can only be added once")
@@ -724,7 +751,7 @@ describe("GymView", () => {
     await fireEvent.input(await screen.findByLabelText("Name"), {
       target: { value: "Push Day A" },
     });
-    await fireEvent.click(screen.getByRole("button", { name: /save plan/i }));
+    await clickSubmit(screen.getByRole("button", { name: /save plan/i }));
 
     await waitFor(() => {
       expect(
@@ -843,7 +870,7 @@ describe("GymView", () => {
     await fireEvent.input(screen.getByLabelText("Reps"), {
       target: { value: "8" },
     });
-    await fireEvent.click(screen.getByRole("button", { name: /add set/i }));
+    await clickSubmit(screen.getByRole("button", { name: /add set/i }));
 
     await waitFor(() => {
       expect(addSet).toHaveBeenCalledWith("session-1", {
@@ -975,7 +1002,7 @@ describe("GymView", () => {
     await fireEvent.input(screen.getByLabelText("Name"), {
       target: { value: "Push Day" },
     });
-    await fireEvent.click(screen.getByRole("button", { name: /save plan/i }));
+    await clickSubmit(screen.getByRole("button", { name: /save plan/i }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "A plan with this name already exists"
@@ -1017,7 +1044,7 @@ describe("GymView", () => {
     await fireEvent.input(screen.getByLabelText("Name"), {
       target: { value: "Default Plan" },
     });
-    await fireEvent.click(screen.getByRole("button", { name: /save plan/i }));
+    await clickSubmit(screen.getByRole("button", { name: /save plan/i }));
 
     await waitFor(() => {
       expect(createPlan).toHaveBeenCalledWith(
@@ -1065,7 +1092,7 @@ describe("GymView", () => {
     await fireEvent.input(screen.getByLabelText("Name"), {
       target: { value: "Cable Fly" },
     });
-    await fireEvent.click(screen.getByRole("button", { name: /save exercise/i }));
+    await clickSubmit(screen.getByRole("button", { name: /save exercise/i }));
 
     await waitFor(() => {
       expect(createExercise).toHaveBeenCalledWith(
@@ -1095,7 +1122,7 @@ describe("GymView", () => {
     await fireEvent.input(screen.getByLabelText("Name"), {
       target: { value: "Bench Press Pro" },
     });
-    await fireEvent.click(screen.getByRole("button", { name: /save exercise/i }));
+    await clickSubmit(screen.getByRole("button", { name: /save exercise/i }));
 
     expect(
       await screen.findAllByText("Bench Press Pro")

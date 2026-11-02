@@ -172,7 +172,10 @@ function renderSession(overrides: Partial<Props> = {}) {
 }
 
 function cardForm(name: string) {
-  return within(screen.getByRole("form", { name: `Add set for ${name}` }));
+  const form = screen.getByRole("form", { name: `Add set for ${name}` });
+  // happy-dom rejects two-decimal values against step=0.01; browsers accept them.
+  (form as HTMLFormElement).noValidate = true;
+  return within(form);
 }
 
 describe("SessionView", () => {
@@ -580,6 +583,27 @@ describe("SessionView", () => {
     expect(
       screen.getByRole("button", { name: "Collapse Cable Fly" })
     ).toHaveAttribute("aria-expanded", "true");
+  });
+
+  it("displays weights with up to two decimals", () => {
+    renderSession({
+      session: {
+        ...session,
+        sets: [
+          { ...benchSet, weightKg: 22.25 },
+          { ...benchSet2, weightKg: 22.5 },
+        ],
+      },
+      plan: {
+        ...plan,
+        exercises: [{ ...planExercise, targetWeightKg: 22.25 }],
+      },
+    });
+
+    expect(screen.getByText("8 × 22.25 kg")).toBeInTheDocument();
+    expect(screen.getByText("6 × 22.5 kg")).toBeInTheDocument();
+    expect(screen.getByText(/@ 22.25 kg/)).toBeInTheDocument();
+    expect(screen.queryByText(/22\.50/)).not.toBeInTheDocument();
   });
 
   it("finishes the workout", async () => {

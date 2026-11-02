@@ -8,6 +8,7 @@
     WorkoutPlan,
     WorkoutSessionDetail,
   } from "@gymos/shared";
+  import { formatWeight } from "./format.mts";
   import SetLogForm from "./SetLogForm.svelte";
 
   let {
@@ -255,7 +256,7 @@
 {#snippet setRow(set: LoggedSet)}
   <div class="set-row">
     <span class="badge">Set {set.setNumber}</span>
-    <span class="grow">{set.reps} × {set.weightKg} kg</span>
+    <span class="grow">{set.reps} × {formatWeight(set.weightKg)} kg</span>
     {#if !completed}
       <button
         type="button"
@@ -332,7 +333,7 @@
             <p class="muted">
               {planExercise.targetSets} × {planExercise.targetReps}
               {planExercise.targetWeightKg != null
-                ? ` @ ${planExercise.targetWeightKg} kg`
+                ? ` @ ${formatWeight(planExercise.targetWeightKg)} kg`
                 : ""}
             </p>
           </div>

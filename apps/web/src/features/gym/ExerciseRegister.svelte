@@ -1,6 +1,7 @@
 <script lang="ts">
   import { MUSCLE_GROUPS } from "@gymos/shared";
   import type { CreateExerciseInput, Exercise } from "@gymos/shared";
+  import { formatWeight } from "./format.mts";
 
   let {
     exercises,
@@ -116,7 +117,7 @@
       <p class="muted">
         Default: {exercise.defaultSets} × {exercise.defaultReps}
         {exercise.defaultWeightKg != null
-          ? ` @ ${exercise.defaultWeightKg} kg`
+          ? ` @ ${formatWeight(exercise.defaultWeightKg)} kg`
           : ""}
       </p>
       <div class="row">
@@ -198,7 +199,7 @@
             class="input"
             type="number"
             min={0}
-            step={0.5}
+            step={0.01}
             value={defaultWeightKg}
             oninput={(event) =>
               (defaultWeightKg =
