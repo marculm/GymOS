@@ -453,13 +453,25 @@ apps/web/
 - Set logging happens inside each exercise card: plan cards show their target and their
   own form; free sessions build cards with an "Add exercise" control. No global set form
   remains (ADR-0029).
+- A planned card auto-collapses when its logged sets reach the target and shows a muted
+  done state with a visible label and summary. Every card has an accessible manual
+  expand/collapse toggle that overrides auto-collapse; free and ad-hoc cards have no
+  target and are manual-only (ADR-0019, ADR-0029).
 - Every weight input shows a suggestion as a placeholder: the average weight of that
   exercise in the most recent completed workout, rounded to 0.5 kg, falling back to the
   exercise default. Reps are not prefilled, and RPE is no longer recorded (ADR-0030,
   ADR-0031).
+- Every weight input accepts two decimals (`step=0.01`). The set form places Reps before
+  Weight in compact side-by-side fields; displayed weights use up to two decimals without
+  trailing zeros across set rows, history, progress, plan targets, and defaults
+  (ADR-0022).
 - The session screen displays every logged set, including exercises that are not part of
   the session's plan (ADR-0019). Logged sets carry `exerciseName`, so deleted exercises
   stay readable in history.
+- While the session is active, each set row offers a confirmed Delete action. The API
+  deletes the set and renumbers the remaining sets of that exercise in one transaction;
+  the client mirrors the renumbering without reloading (ADR-0037). Completed sessions
+  remain read-only.
 - After a start conflict (`409`), the screen re-reads the active session; if none exists,
   it retries the start once or shows a message (ADR-0019).
 - Plan start actions include the plan name, errors render in `role="alert"` live regions,
@@ -625,3 +637,4 @@ The target architecture deliberately excludes:
 | [0034](adr/0034-gym-accessibility-names-alerts-focus.md) | Gym accessibility names, alerts, and focus |
 | [0035](adr/0035-deployment-pipeline-and-tailnet-access.md) | Deployment pipeline and tailnet access |
 | [0036](adr/0036-session-bar-and-rest-timer.md) | Session bar and rest timer |
+| [0037](adr/0037-delete-logged-set.md) | Delete a logged set during an active workout |

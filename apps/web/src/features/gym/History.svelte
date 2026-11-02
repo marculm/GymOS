@@ -7,6 +7,7 @@
     WorkoutSessionSummary,
   } from "@gymos/shared";
   import { getSession, listSessions } from "../../api/gym.mts";
+  import { formatWeight } from "./format.mts";
 
   let { plans }: { plans: WorkoutPlan[] } = $props();
 
@@ -151,7 +152,9 @@
     );
     if (!entry) return null;
     return `${entry.targetSets} × ${entry.targetReps}${
-      entry.targetWeightKg != null ? ` @ ${entry.targetWeightKg} kg` : ""
+      entry.targetWeightKg != null
+        ? ` @ ${formatWeight(entry.targetWeightKg)} kg`
+        : ""
     }`;
   }
 
@@ -288,7 +291,7 @@
                   {#each group.sets as set (set.id)}
                     <p class="set-row">
                       <span class="badge">Set {set.setNumber}</span>
-                      <span>{set.reps} × {set.weightKg} kg</span>
+                      <span>{set.reps} × {formatWeight(set.weightKg)} kg</span>
                     </p>
                   {/each}
                 </div>

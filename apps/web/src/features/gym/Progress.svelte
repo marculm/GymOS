@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import type { WorkoutProgress } from "@gymos/shared";
   import { getProgress } from "../../api/gym.mts";
+  import { formatWeight } from "./format.mts";
 
   let progress = $state<WorkoutProgress | null>(null);
   let loading = $state(true);
@@ -55,7 +56,7 @@
         {#each progress.personalRecords as record (record.exerciseId)}
           <div class="row">
             <span class="grow">{record.exerciseName}</span>
-            <span>{record.reps} × {record.weightKg} kg</span>
+            <span>{record.reps} × {formatWeight(record.weightKg)} kg</span>
           </div>
         {/each}
       {/if}
@@ -78,7 +79,7 @@
               <div class="volume-fill" style={`width: ${point.percent}%`}></div>
             </div>
             <span class="volume-value">
-              {Math.round(point.totalVolumeKg)} kg
+              {formatWeight(point.totalVolumeKg)} kg
             </span>
           </div>
         {/each}

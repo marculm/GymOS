@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/svelte";
+import { fireEvent, render, screen, waitFor } from "@testing-library/svelte";
 import type { Exercise } from "@gymos/shared";
+import { MAX_SET_WEIGHT_KG } from "@gymos/shared/limits";
 import SetLogForm from "./SetLogForm.svelte";
 
 const exercise: Exercise = {
@@ -64,6 +65,38 @@ describe("SetLogForm", () => {
 
     expect(weight).toHaveValue(65);
     expect(reps).not.toHaveFocus();
+  });
+
+  it("orders Reps before Weight and accepts two decimals", () => {
+    const { weight, reps } = renderForm();
+
+    expect(screen.getAllByRole("spinbutton")).toEqual([reps, weight]);
+    expect(weight).toHaveAttribute("step", "0.01");
+    expect(weight).toHaveAttribute("min", "0");
+    expect(weight).toHaveAttribute("max", String(MAX_SET_WEIGHT_KG));
+  });
+
+  it("submits a two-decimal weight exactly", async () => {
+    const { onSubmit, weight, reps } = renderForm();
+
+    await fireEvent.input(reps, { target: { value: "8" } });
+    await fireEvent.input(weight, { target: { value: "22.25" } });
+    await fireEvent.submit(
+      screen.getByRole("form", { name: "Add set for Bench Press" })
+    );
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith({ reps: 8, weightKg: 22.25 });
+    });
+  });
+
+  it("formats the suggestion placeholder", () => {
+    renderForm({ suggestedWeightKg: 22.25 });
+
+    expect(screen.getByLabelText("Weight (kg)")).toHaveAttribute(
+      "placeholder",
+      "22.25"
+    );
   });
 
   it("keeps the form behavior without a suggestion", async () => {

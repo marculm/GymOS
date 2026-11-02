@@ -16,6 +16,7 @@ import {
   createPlan,
   deleteExercise,
   deletePlan,
+  deleteSet,
   getActiveSession,
   getProgress,
   getRotation,
@@ -36,6 +37,7 @@ vi.mock("../../api/gym.mts", () => ({
   createExercise: vi.fn(),
   updateExercise: vi.fn(),
   deleteExercise: vi.fn(),
+  deleteSet: vi.fn(),
   createPlan: vi.fn(),
   updatePlan: vi.fn(),
   deletePlan: vi.fn(),
@@ -115,6 +117,12 @@ function historyContent(): HTMLElement {
   return element;
 }
 
+async function clickSubmit(button: HTMLElement) {
+  // happy-dom rejects two-decimal values against step=0.01; browsers accept them.
+  (button.closest("form") as HTMLFormElement | null)?.setAttribute("novalidate", "");
+  await fireEvent.click(button);
+}
+
 async function openManagement() {
   await fireEvent.click(
     await screen.findByRole("button", { name: /manage training plan/i })
@@ -134,6 +142,7 @@ beforeEach(() => {
   vi.mocked(createPlan).mockResolvedValue(plan);
   vi.mocked(updatePlan).mockResolvedValue(plan);
   vi.mocked(deletePlan).mockResolvedValue(undefined);
+  vi.mocked(deleteSet).mockResolvedValue(undefined);
   vi.mocked(getRotation).mockResolvedValue({ plans: [], nextPlanId: null });
   vi.mocked(getWeightSuggestions).mockResolvedValue({});
   vi.mocked(setRotation).mockImplementation(async ({ planIds }) => {
@@ -193,6 +202,27 @@ describe("GymView", () => {
     expect(
       screen.queryByRole("heading", { name: "Training rotation" })
     ).not.toBeInTheDocument();
+  });
+
+  it("formats decimal plan targets", async () => {
+    const decimalPlan: WorkoutPlan = {
+      ...plan,
+      exercises: plan.exercises.map((entry) => ({
+        ...entry,
+        targetWeightKg: 22.25,
+      })),
+    };
+    vi.mocked(listAllPlans).mockResolvedValueOnce([decimalPlan]);
+    vi.mocked(getRotation).mockResolvedValueOnce({
+      plans: [decimalPlan],
+      nextPlanId: decimalPlan.id,
+    });
+
+    render(GymView);
+
+    expect(
+      await screen.findByText("4 × 8 @ 22.25 kg")
+    ).toBeInTheDocument();
   });
 
   it("starts the suggested workout", async () => {
@@ -454,7 +484,7 @@ describe("GymView", () => {
     await fireEvent.input(screen.getByLabelText("Reps"), {
       target: { value: "5" },
     });
-    await fireEvent.click(screen.getByRole("button", { name: /save plan/i }));
+    await clickSubmit(screen.getByRole("button", { name: /save plan/i }));
 
     await waitFor(() => {
       expect(createPlan).toHaveBeenCalledWith(
@@ -484,7 +514,7 @@ describe("GymView", () => {
     expect(nameInput).toHaveValue("Push Day");
 
     await fireEvent.input(nameInput, { target: { value: "Push Day A" } });
-    await fireEvent.click(screen.getByRole("button", { name: /save plan/i }));
+    await clickSubmit(screen.getByRole("button", { name: /save plan/i }));
 
     await waitFor(() => {
       expect(updatePlan).toHaveBeenCalledWith(
@@ -568,7 +598,7 @@ describe("GymView", () => {
       target: { value: "Repeated" },
     });
     await fireEvent.click(screen.getByRole("button", { name: /add exercise/i }));
-    await fireEvent.click(screen.getByRole("button", { name: /save plan/i }));
+    await clickSubmit(screen.getByRole("button", { name: /save plan/i }));
 
     expect(
       await screen.findByText("Each exercise can only be added once")
@@ -721,7 +751,7 @@ describe("GymView", () => {
     await fireEvent.input(await screen.findByLabelText("Name"), {
       target: { value: "Push Day A" },
     });
-    await fireEvent.click(screen.getByRole("button", { name: /save plan/i }));
+    await clickSubmit(screen.getByRole("button", { name: /save plan/i }));
 
     await waitFor(() => {
       expect(
@@ -840,7 +870,7 @@ describe("GymView", () => {
     await fireEvent.input(screen.getByLabelText("Reps"), {
       target: { value: "8" },
     });
-    await fireEvent.click(screen.getByRole("button", { name: /add set/i }));
+    await clickSubmit(screen.getByRole("button", { name: /add set/i }));
 
     await waitFor(() => {
       expect(addSet).toHaveBeenCalledWith("session-1", {
@@ -856,6 +886,49 @@ describe("GymView", () => {
       expect(completeSession).toHaveBeenCalledWith("session-1");
     });
     expect(await startScreenReady()).toBeInTheDocument();
+  });
+
+  it("removes a deleted set and renumbers the remaining sets", async () => {
+    vi.stubGlobal("confirm", vi.fn(() => true));
+    vi.mocked(getActiveSession).mockResolvedValue({
+      ...session,
+      sets: [
+        {
+          id: "set-1",
+          exerciseId: "exercise-1",
+          exerciseName: "Bench Press",
+          setNumber: 1,
+          reps: 8,
+          weightKg: 80,
+          createdAt: "2026-10-26T18:05:00.000Z",
+        },
+        {
+          id: "set-2",
+          exerciseId: "exercise-1",
+          exerciseName: "Bench Press",
+          setNumber: 2,
+          reps: 6,
+          weightKg: 85,
+          createdAt: "2026-10-26T18:10:00.000Z",
+        },
+      ],
+    });
+
+    render(GymView);
+
+    await screen.findByText("Set 2");
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Delete set 1 for Bench Press" })
+    );
+
+    await waitFor(() => {
+      expect(deleteSet).toHaveBeenCalledWith("session-1", "set-1");
+    });
+    await waitFor(() => {
+      expect(screen.queryByText("Set 2")).not.toBeInTheDocument();
+    });
+    expect(screen.getByText("Set 1")).toBeInTheDocument();
+    expect(screen.getByText("6 × 85 kg")).toBeInTheDocument();
   });
 
   it("retries the start once when the conflict leaves no active session", async () => {
@@ -929,7 +1002,7 @@ describe("GymView", () => {
     await fireEvent.input(screen.getByLabelText("Name"), {
       target: { value: "Push Day" },
     });
-    await fireEvent.click(screen.getByRole("button", { name: /save plan/i }));
+    await clickSubmit(screen.getByRole("button", { name: /save plan/i }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "A plan with this name already exists"
@@ -971,7 +1044,7 @@ describe("GymView", () => {
     await fireEvent.input(screen.getByLabelText("Name"), {
       target: { value: "Default Plan" },
     });
-    await fireEvent.click(screen.getByRole("button", { name: /save plan/i }));
+    await clickSubmit(screen.getByRole("button", { name: /save plan/i }));
 
     await waitFor(() => {
       expect(createPlan).toHaveBeenCalledWith(
@@ -1019,7 +1092,7 @@ describe("GymView", () => {
     await fireEvent.input(screen.getByLabelText("Name"), {
       target: { value: "Cable Fly" },
     });
-    await fireEvent.click(screen.getByRole("button", { name: /save exercise/i }));
+    await clickSubmit(screen.getByRole("button", { name: /save exercise/i }));
 
     await waitFor(() => {
       expect(createExercise).toHaveBeenCalledWith(
@@ -1049,7 +1122,7 @@ describe("GymView", () => {
     await fireEvent.input(screen.getByLabelText("Name"), {
       target: { value: "Bench Press Pro" },
     });
-    await fireEvent.click(screen.getByRole("button", { name: /save exercise/i }));
+    await clickSubmit(screen.getByRole("button", { name: /save exercise/i }));
 
     expect(
       await screen.findAllByText("Bench Press Pro")

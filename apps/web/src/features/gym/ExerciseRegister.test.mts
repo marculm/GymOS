@@ -13,6 +13,12 @@ const exercise: Exercise = {
   defaultWeightKg: 80,
 };
 
+async function submitExerciseForm() {
+  const form = screen.getByLabelText("Name").closest("form");
+  if (!form) throw new Error("exercise form is missing");
+  await fireEvent.submit(form);
+}
+
 function renderRegister() {
   const onCreate = vi.fn().mockResolvedValue(undefined);
   const onUpdate = vi.fn().mockResolvedValue(undefined);
@@ -43,6 +49,26 @@ describe("ExerciseRegister", () => {
     expect(screen.getByText(/@ 80 kg/)).toBeInTheDocument();
   });
 
+  it("displays a two-decimal default and accepts two-decimal input", async () => {
+    render(ExerciseRegister, {
+      props: {
+        exercises: [{ ...exercise, defaultWeightKg: 22.25 }],
+        onCreate: vi.fn(),
+        onUpdate: vi.fn(),
+        onDelete: vi.fn(),
+      },
+    });
+
+    expect(screen.getByText(/@ 22.25 kg/)).toBeInTheDocument();
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: /edit bench press/i })
+    );
+    expect(
+      screen.getByLabelText("Default weight (kg, optional)")
+    ).toHaveAttribute("step", "0.01");
+  });
+
   it("creates an exercise with defaults", async () => {
     const { onCreate } = renderRegister();
 
@@ -62,7 +88,7 @@ describe("ExerciseRegister", () => {
     await fireEvent.input(screen.getByLabelText("Default weight (kg, optional)"), {
       target: { value: "15.5" },
     });
-    await fireEvent.click(screen.getByRole("button", { name: /save exercise/i }));
+    await submitExerciseForm();
 
     await waitFor(() => {
       expect(onCreate).toHaveBeenCalledWith({
@@ -86,7 +112,7 @@ describe("ExerciseRegister", () => {
     await fireEvent.input(screen.getByLabelText("Name"), {
       target: { value: "Incline Bench Press" },
     });
-    await fireEvent.click(screen.getByRole("button", { name: /save exercise/i }));
+    await submitExerciseForm();
 
     await waitFor(() => {
       expect(onUpdate).toHaveBeenCalledWith(

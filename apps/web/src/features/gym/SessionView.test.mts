@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   fireEvent,
   render,
@@ -23,6 +23,7 @@ type Props = {
   exercises: Exercise[];
   weightSuggestions: WeightSuggestions;
   onLogSet: (input: CreateWorkoutSetInput) => Promise<void>;
+  onDeleteSet: (setId: string) => Promise<void>;
   onComplete: () => Promise<void>;
 };
 
@@ -116,6 +117,31 @@ const missingExerciseSet: LoggedSet = {
   exerciseName: "Deleted Press",
 };
 
+const benchSet: LoggedSet = {
+  id: "set-1",
+  exerciseId: "exercise-1",
+  exerciseName: "Bench Press",
+  setNumber: 1,
+  reps: 8,
+  weightKg: 80,
+  createdAt: "2026-10-26T18:05:00.000Z",
+};
+
+const benchSet2: LoggedSet = {
+  ...benchSet,
+  id: "set-2",
+  setNumber: 2,
+  reps: 6,
+};
+
+function loggedSets(base: LoggedSet, count: number): LoggedSet[] {
+  return Array.from({ length: count }, (_, index) => ({
+    ...base,
+    id: `set-${index + 1}`,
+    setNumber: index + 1,
+  }));
+}
+
 function deferred() {
   let resolve!: () => void;
   const promise = new Promise<void>((res) => {
@@ -126,6 +152,7 @@ function deferred() {
 
 function renderSession(overrides: Partial<Props> = {}) {
   const onLogSet = vi.fn().mockResolvedValue(undefined);
+  const onDeleteSet = vi.fn().mockResolvedValue(undefined);
   const onComplete = vi.fn().mockResolvedValue(undefined);
 
   const result = render(SessionView, {
@@ -135,19 +162,27 @@ function renderSession(overrides: Partial<Props> = {}) {
       exercises: [exercise, extraExercise],
       weightSuggestions: {},
       onLogSet,
+      onDeleteSet,
       onComplete,
       ...overrides,
     },
   });
 
-  return { onLogSet, onComplete, rerender: result.rerender };
+  return { onLogSet, onDeleteSet, onComplete, rerender: result.rerender };
 }
 
 function cardForm(name: string) {
-  return within(screen.getByRole("form", { name: `Add set for ${name}` }));
+  const form = screen.getByRole("form", { name: `Add set for ${name}` });
+  // happy-dom rejects two-decimal values against step=0.01; browsers accept them.
+  (form as HTMLFormElement).noValidate = true;
+  return within(form);
 }
 
 describe("SessionView", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it("renders the plan exercise and its target", () => {
     renderSession();
 
@@ -392,6 +427,183 @@ describe("SessionView", () => {
         reps: 5,
       });
     });
+  });
+
+  it("deletes a set after confirmation", async () => {
+    vi.stubGlobal("confirm", vi.fn(() => true));
+    const { onDeleteSet } = renderSession({
+      session: { ...session, sets: [benchSet, benchSet2] },
+    });
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Delete set 2 for Bench Press" })
+    );
+
+    await waitFor(() => {
+      expect(onDeleteSet).toHaveBeenCalledWith("set-2");
+    });
+  });
+
+  it("keeps the set when the confirmation is cancelled", async () => {
+    vi.stubGlobal("confirm", vi.fn(() => false));
+    const { onDeleteSet } = renderSession({
+      session: { ...session, sets: [benchSet] },
+    });
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Delete set 1 for Bench Press" })
+    );
+
+    expect(onDeleteSet).not.toHaveBeenCalled();
+  });
+
+  it("shows a failed delete in the session bar", async () => {
+    vi.stubGlobal("confirm", vi.fn(() => true));
+    renderSession({
+      session: { ...session, sets: [benchSet] },
+      onDeleteSet: vi.fn().mockRejectedValue(new Error("Could not delete")),
+    });
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Delete set 1 for Bench Press" })
+    );
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Could not delete"
+    );
+    expect(screen.getByText("Set 1")).toBeInTheDocument();
+  });
+
+  it("offers no delete action for a completed session", () => {
+    renderSession({
+      session: {
+        ...session,
+        completedAt: "2026-10-26T19:00:00.000Z",
+        sets: [benchSet],
+      },
+    });
+
+    expect(
+      screen.queryByRole("button", { name: /delete set/i })
+    ).not.toBeInTheDocument();
+  });
+
+  it("auto-collapses a planned card once its target sets are logged", () => {
+    renderSession({
+      session: { ...session, sets: loggedSets(benchSet, 4) },
+    });
+
+    expect(
+      screen.queryByRole("form", { name: "Add set for Bench Press" })
+    ).not.toBeInTheDocument();
+    const toggle = screen.getByRole("button", {
+      name: "Expand Bench Press",
+    });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(toggle).toHaveAttribute("aria-controls", "sets-exercise-1");
+    expect(document.getElementById("sets-exercise-1")).toBeInTheDocument();
+    expect(screen.getByText("Done")).toBeInTheDocument();
+    expect(screen.getByText("4 sets logged")).toBeInTheDocument();
+  });
+
+  it("expands a done card manually and keeps the done state", async () => {
+    renderSession({
+      session: { ...session, sets: loggedSets(benchSet, 4) },
+    });
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Expand Bench Press" })
+    );
+
+    expect(
+      screen.getByRole("form", { name: "Add set for Bench Press" })
+    ).toBeInTheDocument();
+    expect(screen.getByText("Done")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Collapse Bench Press" })
+    ).toHaveAttribute("aria-expanded", "true");
+  });
+
+  it("does not re-collapse a manually expanded card after extra sets", async () => {
+    const { rerender } = renderSession({
+      session: { ...session, sets: loggedSets(benchSet, 4) },
+    });
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Expand Bench Press" })
+    );
+    await rerender({ session: { ...session, sets: loggedSets(benchSet, 5) } });
+
+    expect(
+      screen.getByRole("form", { name: "Add set for Bench Press" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Collapse Bench Press" })
+    ).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByText("Done")).toBeInTheDocument();
+  });
+
+  it("collapses and expands a free exercise card manually", async () => {
+    renderSession({
+      session: { ...freeSession, sets: [cableSet] },
+      plan: null,
+    });
+
+    expect(
+      screen.getByRole("form", { name: "Add set for Cable Fly" })
+    ).toBeInTheDocument();
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Collapse Cable Fly" })
+    );
+
+    expect(
+      screen.queryByRole("form", { name: "Add set for Cable Fly" })
+    ).not.toBeInTheDocument();
+    expect(screen.getByText("1 set logged")).toBeInTheDocument();
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Expand Cable Fly" })
+    );
+
+    expect(
+      screen.getByRole("form", { name: "Add set for Cable Fly" })
+    ).toBeInTheDocument();
+  });
+
+  it("never auto-collapses a free exercise without a target", () => {
+    renderSession({
+      session: { ...freeSession, sets: loggedSets(cableSet, 8) },
+      plan: null,
+    });
+
+    expect(
+      screen.getByRole("form", { name: "Add set for Cable Fly" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Collapse Cable Fly" })
+    ).toHaveAttribute("aria-expanded", "true");
+  });
+
+  it("displays weights with up to two decimals", () => {
+    renderSession({
+      session: {
+        ...session,
+        sets: [
+          { ...benchSet, weightKg: 22.25 },
+          { ...benchSet2, weightKg: 22.5 },
+        ],
+      },
+      plan: {
+        ...plan,
+        exercises: [{ ...planExercise, targetWeightKg: 22.25 }],
+      },
+    });
+
+    expect(screen.getByText("8 × 22.25 kg")).toBeInTheDocument();
+    expect(screen.getByText("6 × 22.5 kg")).toBeInTheDocument();
+    expect(screen.getByText(/@ 22.25 kg/)).toBeInTheDocument();
+    expect(screen.queryByText(/22\.50/)).not.toBeInTheDocument();
   });
 
   it("finishes the workout", async () => {

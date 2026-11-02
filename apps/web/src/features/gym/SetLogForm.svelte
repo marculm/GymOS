@@ -1,6 +1,7 @@
 <script lang="ts">
   import { MAX_SET_REPS, MAX_SET_WEIGHT_KG } from "@gymos/shared/limits";
   import type { CreateWorkoutSetInput, Exercise } from "@gymos/shared";
+  import { formatWeight } from "./format.mts";
 
   type SetInput = Omit<CreateWorkoutSetInput, "exerciseId">;
 
@@ -69,22 +70,8 @@
   onsubmit={handleSubmit}
 >
   <fieldset class="stack" disabled={disabled}>
-    <div class="row">
-      <label class="field grow">
-        <span class="label">Weight (kg)</span>
-        <input
-          class="input"
-          type="number"
-          min={0}
-          max={MAX_SET_WEIGHT_KG}
-          step={0.5}
-          required
-          placeholder={weightPlaceholder?.toString()}
-          bind:value={weightKg}
-          onkeydown={acceptSuggestionOnEnter}
-        />
-      </label>
-      <label class="field grow">
+    <div class="row set-fields">
+      <label class="field set-field">
         <span class="label">Reps</span>
         <input
           class="input"
@@ -94,6 +81,24 @@
           required
           bind:value={reps}
           bind:this={repsInput}
+        />
+      </label>
+      <label class="field set-field">
+        <span class="label">Weight (kg)</span>
+        <input
+          class="input"
+          type="number"
+          min={0}
+          max={MAX_SET_WEIGHT_KG}
+          step={0.01}
+          required
+          placeholder={
+            weightPlaceholder == null
+              ? undefined
+              : formatWeight(weightPlaceholder)
+          }
+          bind:value={weightKg}
+          onkeydown={acceptSuggestionOnEnter}
         />
       </label>
     </div>

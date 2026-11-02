@@ -150,6 +150,10 @@ export function addSet(
   return api.post<LoggedSet>(`/gym/sessions/${sessionId}/sets`, input);
 }
 
+export function deleteSet(sessionId: string, setId: string): Promise<void> {
+  return api.delete<void>(`/gym/sessions/${sessionId}/sets/${setId}`);
+}
+
 export function completeSession(
   sessionId: string
 ): Promise<WorkoutSessionDetail> {

@@ -73,6 +73,7 @@ function renderSession() {
       exercises: [exercise],
       weightSuggestions: {} as WeightSuggestions,
       onLogSet: onLogSet as (input: CreateWorkoutSetInput) => Promise<void>,
+      onDeleteSet: vi.fn().mockResolvedValue(undefined),
       onComplete: onComplete as () => Promise<void>,
     },
   });
@@ -89,9 +90,12 @@ function timerButton() {
 }
 
 async function logSet(onLogSet: ReturnType<typeof vi.fn>) {
-  const form = within(
-    screen.getByRole("form", { name: "Add set for Bench Press" })
-  );
+  const formElement = screen.getByRole("form", {
+    name: "Add set for Bench Press",
+  });
+  // happy-dom rejects two-decimal values against step=0.01; browsers accept them.
+  (formElement as HTMLFormElement).noValidate = true;
+  const form = within(formElement);
   await fireEvent.input(form.getByLabelText("Weight (kg)"), {
     target: { value: "80" },
   });

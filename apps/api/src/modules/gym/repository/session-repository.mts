@@ -28,6 +28,11 @@ export type CompleteSessionResult =
   | { kind: "not_found" }
   | { kind: "already_completed" };
 
+export type DeleteSetResult =
+  | { kind: "deleted" }
+  | { kind: "not_found" }
+  | { kind: "completed" };
+
 export class SessionRepository {
   async findActive(userId: string): Promise<WorkoutSessionDetail | null> {
     const session = await prisma.workoutSession.findFirst({
@@ -190,6 +195,46 @@ export class SessionRepository {
       }
       throw error;
     }
+  }
+
+  async deleteSet(
+    userId: string,
+    sessionId: string,
+    setId: string
+  ): Promise<DeleteSetResult> {
+    return withSerializableRetry(async (tx) => {
+      const session = await tx.workoutSession.findFirst({
+        where: { id: sessionId, userId },
+        select: { id: true, completedAt: true },
+      });
+      if (!session) return { kind: "not_found" } as const;
+      if (session.completedAt) return { kind: "completed" } as const;
+
+      const set = await tx.workoutSet.findFirst({
+        where: { id: setId, workoutSessionId: sessionId },
+        select: { id: true, exerciseId: true },
+      });
+      if (!set) return { kind: "not_found" } as const;
+
+      await tx.workoutSet.delete({ where: { id: setId } });
+
+      const remaining = await tx.workoutSet.findMany({
+        where: { workoutSessionId: sessionId, exerciseId: set.exerciseId },
+        orderBy: { setNumber: "asc" },
+        select: { id: true, setNumber: true },
+      });
+      for (const [index, entry] of remaining.entries()) {
+        const setNumber = index + 1;
+        if (entry.setNumber !== setNumber) {
+          await tx.workoutSet.update({
+            where: { id: entry.id },
+            data: { setNumber },
+          });
+        }
+      }
+
+      return { kind: "deleted" } as const;
+    });
   }
 
   async completeIfOpen(

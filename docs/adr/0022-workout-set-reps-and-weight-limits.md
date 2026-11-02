@@ -29,6 +29,23 @@ as `422` problem details before it reaches the repository or the database.
 
 Plan targets keep the ADR-0017 limits (100 target reps) and are unchanged.
 
+The precision rules for weights change:
+
+- Every weight input (logged set, plan target, exercise default) uses `step=0.01` and
+  accepts two decimal places, so values such as `22.25 kg` can be entered.
+- `weightKg` stays a `Float` and the API keeps the `0`–`1000` bound without an extra
+  precision check. A submitted `22.25` is stored as `22.25`; no rounding happens on the
+  way in.
+- The web app formats every displayed weight with up to two decimals and without forced
+  trailing zeros (`22.5`, not `22.50`). The same formatter is used in set rows, history,
+  progress, plan targets, and exercise defaults. Values with more than two decimals are
+  rounded for display only.
+- Weight suggestions remain rounded to the nearest `0.5 kg` (ADR-0030); the precision
+  change applies to input and display, not to the suggestion calculation.
+- The set form orders Reps before Weight in two compact side-by-side fields. Its
+  accessible names stay "Reps" and "Weight (kg)", and the keyboard order is
+  Reps → Weight → Add set.
+
 ## Consequences
 
 - Extreme values can no longer reach Prisma, so an oversized set no longer returns
@@ -38,3 +55,7 @@ Plan targets keep the ADR-0017 limits (100 target reps) and are unchanged.
 - Raising a limit is a one-constant change in `packages/shared`.
 - Sets above 1000 reps or 1000 kg are rejected even though they are not real training
   data.
+- Two-decimal weights such as `22.25 kg` can be entered, stored, and read back exactly,
+  and the UI never shows artificial trailing zeros.
+- A client that sends more than two decimals still passes validation; the extra
+  precision is kept in storage but rounded when displayed.

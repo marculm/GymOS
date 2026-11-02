@@ -58,6 +58,26 @@ describe("Progress", () => {
     expect(screen.getByText("1000 kg")).toBeInTheDocument();
   });
 
+  it("displays weights with up to two decimals", async () => {
+    vi.mocked(getProgress).mockResolvedValue({
+      personalRecords: progress.personalRecords.map((record, index) => ({
+        ...record,
+        weightKg: index === 0 ? 90.25 : 120.5,
+      })),
+      volume: progress.volume.map((entry, index) => ({
+        ...entry,
+        totalVolumeKg: index === 0 ? 1500.75 : 1000.5,
+      })),
+    });
+
+    render(Progress);
+
+    expect(await screen.findByText("5 × 90.25 kg")).toBeInTheDocument();
+    expect(screen.getByText("3 × 120.5 kg")).toBeInTheDocument();
+    expect(screen.getByText("1500.75 kg")).toBeInTheDocument();
+    expect(screen.getByText("1000.5 kg")).toBeInTheDocument();
+  });
+
   it("shows at most ten volume points", async () => {
     vi.mocked(getProgress).mockResolvedValue({
       personalRecords: [],

@@ -9,6 +9,7 @@ import type {
 import type { ReplaceRotationResult } from "../repository/rotation-repository.mts";
 import type {
   CompleteSessionResult,
+  DeleteSetResult,
   LogSetResult,
 } from "../repository/session-repository.mts";
 import {
@@ -99,6 +100,10 @@ function createService() {
     completeIfOpen: vi.fn(
       async (_userId: string, _sessionId: string) =>
         ({ kind: "completed", session }) as CompleteSessionResult
+    ),
+    deleteSet: vi.fn(
+      async (_userId: string, _sessionId: string, _setId: string) =>
+        ({ kind: "deleted" }) as DeleteSetResult
     ),
   };
 
@@ -381,6 +386,33 @@ describe("GymWriteService", () => {
         reps: 10,
         weightKg: 20,
       })
+    ).rejects.toBeInstanceOf(error);
+  });
+
+  it("deletes a logged set", async () => {
+    const { service, sessionRepository } = createService();
+
+    await expect(
+      service.deleteSet("user-1", "session-1", "set-1")
+    ).resolves.toBeUndefined();
+    expect(sessionRepository.deleteSet).toHaveBeenCalledWith(
+      "user-1",
+      "session-1",
+      "set-1"
+    );
+  });
+
+  it.each([
+    ["not_found", NotFoundError],
+    ["completed", SessionCompletedError],
+  ] as const)("maps deleteSet result %s to an error", async (kind, error) => {
+    const { service, sessionRepository } = createService();
+    sessionRepository.deleteSet.mockResolvedValueOnce({
+      kind,
+    } as DeleteSetResult);
+
+    await expect(
+      service.deleteSet("user-1", "session-1", "set-1")
     ).rejects.toBeInstanceOf(error);
   });
 

@@ -16,7 +16,11 @@ The **Gym Tracker** slice is implemented:
 - Create plans with target sets, reps, and optional weight (prefilled from exercise
   defaults)
 - Start free or plan-based workouts
-- Log sets with weight and reps
+- Log sets with weight and reps; weights accept two decimals and display without
+  trailing zeros (ADR-0022)
+- Delete a wrongly logged set during an active workout (ADR-0037)
+- Collapse completed planned exercises into a visible done state, with a manual toggle
+  on every card (ADR-0019, ADR-0029)
 - Keep Finish workout and a rest timer always reachable in a session bar (ADR-0036)
 - Finish workouts and review history (details, filters, load-more) in a collapsible
   section at the bottom of the Gym page, with progress analytics above it (ADR-0032,
@@ -215,6 +219,7 @@ full contract.
 | `GET` | `/api/gym/sessions/:id` | Get a session with its sets |
 | `GET` | `/api/gym/progress` | Personal records per exercise and volume per completed session |
 | `POST` | `/api/gym/sessions/:id/sets` | Log a set (`{ exerciseId, reps, weightKg }`) |
+| `DELETE` | `/api/gym/sessions/:id/sets/:setId` | Delete a set in an active session and renumber the rest |
 | `POST` | `/api/gym/sessions/:id/complete` | Finish a session |
 
 `GET /health/liveness`, `GET /health/readiness`, and `GET /prometheus` are available for

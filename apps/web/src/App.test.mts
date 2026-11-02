@@ -15,6 +15,7 @@ vi.mock("./api/gym.mts", () => {
     startSession: vi.fn(),
     getActiveSession: vi.fn().mockResolvedValue(null),
     addSet: vi.fn(),
+    deleteSet: vi.fn(),
     completeSession: vi.fn(),
   };
 });

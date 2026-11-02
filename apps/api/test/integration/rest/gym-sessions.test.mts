@@ -63,6 +63,18 @@ async function logSet(sessionId: string, overrides: Record<string, unknown> = {}
   });
 }
 
+function deleteSet(sessionId: string, setId: string) {
+  return app.request(`/api/gym/sessions/${sessionId}/sets/${setId}`, {
+    method: "DELETE",
+  });
+}
+
+async function loggedSetId(sessionId: string): Promise<string> {
+  const res = await logSet(sessionId);
+  expect(res.status).toBe(201);
+  return ((await res.json()) as { id: string }).id;
+}
+
 describe("Gym session routes", () => {
   it("starts a free session and sets Location", async () => {
     const res = await postJson("/api/gym/sessions", {});
@@ -120,6 +132,75 @@ describe("Gym session routes", () => {
     const second = await logSet(session.id, { weightKg: 22.5 });
     expect(second.status).toBe(201);
     expect(((await second.json()) as { setNumber: number }).setNumber).toBe(2);
+  });
+
+  it("deletes a set and renumbers the remaining sets", async () => {
+    const session = await startSession();
+    const first = await loggedSetId(session.id);
+    const second = await loggedSetId(session.id);
+    const third = await loggedSetId(session.id);
+
+    const res = await deleteSet(session.id, second);
+    expect(res.status).toBe(204);
+
+    const detail = await app.request(`/api/gym/sessions/${session.id}`);
+    const data = (await detail.json()) as {
+      sets: Array<{ id: string; setNumber: number }>;
+    };
+    expect(data.sets.map((set) => set.id)).toEqual([first, third]);
+    expect(data.sets.map((set) => set.setNumber)).toEqual([1, 2]);
+  });
+
+  it("renumbers later sets after deleting the first set", async () => {
+    const session = await startSession();
+    const first = await loggedSetId(session.id);
+    const second = await loggedSetId(session.id);
+
+    expect((await deleteSet(session.id, first)).status).toBe(204);
+
+    const detail = await app.request(`/api/gym/sessions/${session.id}`);
+    const data = (await detail.json()) as {
+      sets: Array<{ id: string; setNumber: number }>;
+    };
+    expect(data.sets.map((set) => set.id)).toEqual([second]);
+    expect(data.sets[0]?.setNumber).toBe(1);
+  });
+
+  it("rejects deleting a set from a completed session", async () => {
+    const session = await startSession();
+    const setId = await loggedSetId(session.id);
+    await postJson(`/api/gym/sessions/${session.id}/complete`, {});
+
+    const res = await deleteSet(session.id, setId);
+
+    expect(res.status).toBe(409);
+    expect(res.headers.get("content-type")).toContain("application/problem+json");
+    const detail = await app.request(`/api/gym/sessions/${session.id}`);
+    const data = (await detail.json()) as { sets: unknown[] };
+    expect(data.sets).toHaveLength(1);
+  });
+
+  it("returns 404 for a set outside the session", async () => {
+    const first = await startSession();
+    const setId = await loggedSetId(first.id);
+    await postJson(`/api/gym/sessions/${first.id}/complete`, {});
+
+    const second = await startSession();
+    const res = await deleteSet(second.id, setId);
+    expect(res.status).toBe(404);
+    expect(res.headers.get("content-type")).toContain("application/problem+json");
+
+    const missing = await deleteSet(
+      second.id,
+      "00000000-0000-4000-8000-000000000099"
+    );
+    expect(missing.status).toBe(404);
+
+    const unknownSession = await deleteSet(
+      "00000000-0000-4000-8000-000000000098",
+      setId
+    );
+    expect(unknownSession.status).toBe(404);
   });
 
   it("keeps set numbers unique under concurrent posts", async () => {
@@ -501,6 +582,7 @@ describe("Gym session routes", () => {
     const other = await createUser(`other-${crypto.randomUUID()}@gymos.app`);
     await createPlan("Owner Plan");
     const session = await startSession();
+    const setId = await loggedSetId(session.id);
 
     try {
       const plans = await container.readService.listPlans(other.id, {
@@ -525,6 +607,14 @@ describe("Gym session routes", () => {
           weightKg: 20,
         })
       ).rejects.toBeInstanceOf(NotFoundError);
+
+      await expect(
+        container.writeService.deleteSet(other.id, session.id, setId)
+      ).rejects.toBeInstanceOf(NotFoundError);
+
+      const detail = await app.request(`/api/gym/sessions/${session.id}`);
+      const data = (await detail.json()) as { sets: Array<{ id: string }> };
+      expect(data.sets.map((set) => set.id)).toEqual([setId]);
     } finally {
       await deleteUser(other.id);
     }
