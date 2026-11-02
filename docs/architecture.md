@@ -482,7 +482,10 @@ returns `null` for a `404`.
 ### 4.5 PWA
 
 - `vite-plugin-pwa` with `registerType: "autoUpdate"`.
-- Manifest: name, short name, theme color, background color, 192/512 icons.
+- Manifest: name, short name, theme color, background color, 192/512 icons, a maskable
+  icon, and an Apple touch icon (`apps/web/public/`).
+- `src/pwa.test.mts` fails when a manifest icon or the Apple touch icon is missing or
+  has a size that does not match its declaration.
 - The service worker caches the app shell. There is no offline data store, background
   sync, or offline mutation queue (ADR-0012).
 
