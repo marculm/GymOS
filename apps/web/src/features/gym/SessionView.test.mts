@@ -134,6 +134,14 @@ const benchSet2: LoggedSet = {
   reps: 6,
 };
 
+function loggedSets(base: LoggedSet, count: number): LoggedSet[] {
+  return Array.from({ length: count }, (_, index) => ({
+    ...base,
+    id: `set-${index + 1}`,
+    setNumber: index + 1,
+  }));
+}
+
 function deferred() {
   let resolve!: () => void;
   const promise = new Promise<void>((res) => {
@@ -475,6 +483,103 @@ describe("SessionView", () => {
     expect(
       screen.queryByRole("button", { name: /delete set/i })
     ).not.toBeInTheDocument();
+  });
+
+  it("auto-collapses a planned card once its target sets are logged", () => {
+    renderSession({
+      session: { ...session, sets: loggedSets(benchSet, 4) },
+    });
+
+    expect(
+      screen.queryByRole("form", { name: "Add set for Bench Press" })
+    ).not.toBeInTheDocument();
+    const toggle = screen.getByRole("button", {
+      name: "Expand Bench Press",
+    });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(toggle).toHaveAttribute("aria-controls", "sets-exercise-1");
+    expect(document.getElementById("sets-exercise-1")).toBeInTheDocument();
+    expect(screen.getByText("Done")).toBeInTheDocument();
+    expect(screen.getByText("4 sets logged")).toBeInTheDocument();
+  });
+
+  it("expands a done card manually and keeps the done state", async () => {
+    renderSession({
+      session: { ...session, sets: loggedSets(benchSet, 4) },
+    });
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Expand Bench Press" })
+    );
+
+    expect(
+      screen.getByRole("form", { name: "Add set for Bench Press" })
+    ).toBeInTheDocument();
+    expect(screen.getByText("Done")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Collapse Bench Press" })
+    ).toHaveAttribute("aria-expanded", "true");
+  });
+
+  it("does not re-collapse a manually expanded card after extra sets", async () => {
+    const { rerender } = renderSession({
+      session: { ...session, sets: loggedSets(benchSet, 4) },
+    });
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Expand Bench Press" })
+    );
+    await rerender({ session: { ...session, sets: loggedSets(benchSet, 5) } });
+
+    expect(
+      screen.getByRole("form", { name: "Add set for Bench Press" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Collapse Bench Press" })
+    ).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByText("Done")).toBeInTheDocument();
+  });
+
+  it("collapses and expands a free exercise card manually", async () => {
+    renderSession({
+      session: { ...freeSession, sets: [cableSet] },
+      plan: null,
+    });
+
+    expect(
+      screen.getByRole("form", { name: "Add set for Cable Fly" })
+    ).toBeInTheDocument();
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Collapse Cable Fly" })
+    );
+
+    expect(
+      screen.queryByRole("form", { name: "Add set for Cable Fly" })
+    ).not.toBeInTheDocument();
+    expect(screen.getByText("1 set logged")).toBeInTheDocument();
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Expand Cable Fly" })
+    );
+
+    expect(
+      screen.getByRole("form", { name: "Add set for Cable Fly" })
+    ).toBeInTheDocument();
+  });
+
+  it("never auto-collapses a free exercise without a target", () => {
+    renderSession({
+      session: { ...freeSession, sets: loggedSets(cableSet, 8) },
+      plan: null,
+    });
+
+    expect(
+      screen.getByRole("form", { name: "Add set for Cable Fly" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Collapse Cable Fly" })
+    ).toHaveAttribute("aria-expanded", "true");
   });
 
   it("finishes the workout", async () => {

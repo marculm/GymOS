@@ -261,6 +261,10 @@ fieldset {
   border-left: 3px solid var(--accent);
 }
 
+.exercise-done {
+  background: var(--bg);
+}
+
 .plan-exercise {
   border: 1px solid var(--surface-2);
   border-radius: var(--radius-sm);

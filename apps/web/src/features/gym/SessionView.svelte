@@ -33,6 +33,7 @@
   const REST_PRESET_KEY = "gymos.restTimerSeconds";
 
   let freeExercises = $state<Exercise[]>([]);
+  let manualExpanded = $state<Record<string, boolean>>({});
   let exerciseToAdd = $state("");
   let pending = $state(false);
   let error = $state<string | null>(null);
@@ -171,6 +172,14 @@
     )
   );
 
+  function isCardExpanded(exerciseId: string, done: boolean): boolean {
+    return manualExpanded[exerciseId] ?? !done;
+  }
+
+  function toggleCard(exerciseId: string, expanded: boolean) {
+    manualExpanded = { ...manualExpanded, [exerciseId]: !expanded };
+  }
+
   function addExercise() {
     const exercise = addableExercises.find(
       (entry) => entry.id === exerciseToAdd
@@ -261,6 +270,23 @@
   </div>
 {/snippet}
 
+{#snippet cardToggle(
+  exerciseId: string,
+  name: string,
+  expanded: boolean
+)}
+  <button
+    type="button"
+    class="btn btn-ghost"
+    aria-expanded={expanded}
+    aria-controls={`sets-${exerciseId}`}
+    aria-label={`${expanded ? "Collapse" : "Expand"} ${name}`}
+    onclick={() => toggleCard(exerciseId, expanded)}
+  >
+    {expanded ? "Hide" : "Show"}
+  </button>
+{/snippet}
+
 {#snippet setRowsAndForm(
   exerciseId: string,
   sets: LoggedSet[],
@@ -295,30 +321,60 @@
 
   {#if plan}
     {#each plan.exercises as planExercise (planExercise.id)}
-      <section class="card stack">
-        <div>
-          <h3 class="card-title">{planExercise.exercise.name}</h3>
-          <p class="muted">
-            {planExercise.targetSets} × {planExercise.targetReps}
-            {planExercise.targetWeightKg != null
-              ? ` @ ${planExercise.targetWeightKg} kg`
-              : ""}
-          </p>
+      {@const exerciseId = planExercise.exercise.id}
+      {@const sets = setsByExercise.get(exerciseId) ?? []}
+      {@const done = sets.length >= planExercise.targetSets}
+      {@const expanded = isCardExpanded(exerciseId, done)}
+      <section class="card stack" class:exercise-done={done}>
+        <div class="row">
+          <div class="grow">
+            <h3 class="card-title">{planExercise.exercise.name}</h3>
+            <p class="muted">
+              {planExercise.targetSets} × {planExercise.targetReps}
+              {planExercise.targetWeightKg != null
+                ? ` @ ${planExercise.targetWeightKg} kg`
+                : ""}
+            </p>
+          </div>
+          {#if done}
+            <span class="badge">Done</span>
+          {/if}
+          {@render cardToggle(exerciseId, planExercise.exercise.name, expanded)}
         </div>
-        {@render setRowsAndForm(
-          planExercise.exercise.id,
-          setsByExercise.get(planExercise.exercise.id) ?? [],
-          planExercise.exercise
-        )}
+        {#if !expanded}
+          <p class="muted">
+            {done
+              ? `${sets.length} ${sets.length === 1 ? "set" : "sets"} logged`
+              : `${sets.length} of ${planExercise.targetSets} sets logged`}
+          </p>
+        {/if}
+        <div class="stack" id={`sets-${exerciseId}`}>
+          {#if expanded}
+            {@render setRowsAndForm(exerciseId, sets, planExercise.exercise)}
+          {/if}
+        </div>
       </section>
     {/each}
 
     {#each setGroups as group (group.exerciseId)}
+      {@const expanded = isCardExpanded(group.exerciseId, false)}
       <section class="card stack">
-        <h3 class="card-title">{group.name}</h3>
-        {#each group.sets as set (set.id)}
-          {@render setRow(set)}
-        {/each}
+        <div class="row">
+          <h3 class="card-title grow">{group.name}</h3>
+          {@render cardToggle(group.exerciseId, group.name, expanded)}
+        </div>
+        {#if !expanded}
+          <p class="muted">
+            {group.sets.length} {group.sets.length === 1 ? "set" : "sets"} logged
+          </p>
+        {/if}
+        <div class="stack" id={`sets-${group.exerciseId}`}>
+          {#if expanded}
+            {#each group.sets as set (set.id)}
+              {@render setRow(set)}
+            {/each}
+          {/if}
+        </div>
       </section>
     {/each}
   {:else}
@@ -327,9 +383,22 @@
     {/if}
 
     {#each freeCards as card (card.exerciseId)}
+      {@const expanded = isCardExpanded(card.exerciseId, false)}
       <section class="card stack">
-        <h3 class="card-title">{card.name}</h3>
-        {@render setRowsAndForm(card.exerciseId, card.sets, card.exercise)}
+        <div class="row">
+          <h3 class="card-title grow">{card.name}</h3>
+          {@render cardToggle(card.exerciseId, card.name, expanded)}
+        </div>
+        {#if !expanded}
+          <p class="muted">
+            {card.sets.length} {card.sets.length === 1 ? "set" : "sets"} logged
+          </p>
+        {/if}
+        <div class="stack" id={`sets-${card.exerciseId}`}>
+          {#if expanded}
+            {@render setRowsAndForm(card.exerciseId, card.sets, card.exercise)}
+          {/if}
+        </div>
       </section>
     {/each}
 
