@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   fireEvent,
   render,
@@ -23,6 +23,7 @@ type Props = {
   exercises: Exercise[];
   weightSuggestions: WeightSuggestions;
   onLogSet: (input: CreateWorkoutSetInput) => Promise<void>;
+  onDeleteSet: (setId: string) => Promise<void>;
   onComplete: () => Promise<void>;
 };
 
@@ -116,6 +117,23 @@ const missingExerciseSet: LoggedSet = {
   exerciseName: "Deleted Press",
 };
 
+const benchSet: LoggedSet = {
+  id: "set-1",
+  exerciseId: "exercise-1",
+  exerciseName: "Bench Press",
+  setNumber: 1,
+  reps: 8,
+  weightKg: 80,
+  createdAt: "2026-10-26T18:05:00.000Z",
+};
+
+const benchSet2: LoggedSet = {
+  ...benchSet,
+  id: "set-2",
+  setNumber: 2,
+  reps: 6,
+};
+
 function deferred() {
   let resolve!: () => void;
   const promise = new Promise<void>((res) => {
@@ -126,6 +144,7 @@ function deferred() {
 
 function renderSession(overrides: Partial<Props> = {}) {
   const onLogSet = vi.fn().mockResolvedValue(undefined);
+  const onDeleteSet = vi.fn().mockResolvedValue(undefined);
   const onComplete = vi.fn().mockResolvedValue(undefined);
 
   const result = render(SessionView, {
@@ -135,12 +154,13 @@ function renderSession(overrides: Partial<Props> = {}) {
       exercises: [exercise, extraExercise],
       weightSuggestions: {},
       onLogSet,
+      onDeleteSet,
       onComplete,
       ...overrides,
     },
   });
 
-  return { onLogSet, onComplete, rerender: result.rerender };
+  return { onLogSet, onDeleteSet, onComplete, rerender: result.rerender };
 }
 
 function cardForm(name: string) {
@@ -148,6 +168,10 @@ function cardForm(name: string) {
 }
 
 describe("SessionView", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it("renders the plan exercise and its target", () => {
     renderSession();
 
@@ -392,6 +416,65 @@ describe("SessionView", () => {
         reps: 5,
       });
     });
+  });
+
+  it("deletes a set after confirmation", async () => {
+    vi.stubGlobal("confirm", vi.fn(() => true));
+    const { onDeleteSet } = renderSession({
+      session: { ...session, sets: [benchSet, benchSet2] },
+    });
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Delete set 2 for Bench Press" })
+    );
+
+    await waitFor(() => {
+      expect(onDeleteSet).toHaveBeenCalledWith("set-2");
+    });
+  });
+
+  it("keeps the set when the confirmation is cancelled", async () => {
+    vi.stubGlobal("confirm", vi.fn(() => false));
+    const { onDeleteSet } = renderSession({
+      session: { ...session, sets: [benchSet] },
+    });
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Delete set 1 for Bench Press" })
+    );
+
+    expect(onDeleteSet).not.toHaveBeenCalled();
+  });
+
+  it("shows a failed delete in the session bar", async () => {
+    vi.stubGlobal("confirm", vi.fn(() => true));
+    renderSession({
+      session: { ...session, sets: [benchSet] },
+      onDeleteSet: vi.fn().mockRejectedValue(new Error("Could not delete")),
+    });
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Delete set 1 for Bench Press" })
+    );
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Could not delete"
+    );
+    expect(screen.getByText("Set 1")).toBeInTheDocument();
+  });
+
+  it("offers no delete action for a completed session", () => {
+    renderSession({
+      session: {
+        ...session,
+        completedAt: "2026-10-26T19:00:00.000Z",
+        sets: [benchSet],
+      },
+    });
+
+    expect(
+      screen.queryByRole("button", { name: /delete set/i })
+    ).not.toBeInTheDocument();
   });
 
   it("finishes the workout", async () => {

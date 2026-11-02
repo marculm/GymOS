@@ -18,6 +18,7 @@
     createPlan,
     deleteExercise,
     deletePlan,
+    deleteSet,
     getActiveSession,
     getRotation,
     getWeightSuggestions,
@@ -245,6 +246,27 @@
     activeSession = { ...activeSession, sets: [...activeSession.sets, set] };
   }
 
+  async function handleDeleteSet(setId: string) {
+    if (!activeSession) return;
+    const deleted = activeSession.sets.find((set) => set.id === setId);
+    if (!deleted) return;
+
+    await deleteSet(activeSession.id, setId);
+
+    const counters = new Map<string, number>();
+    const sets = activeSession.sets
+      .filter((set) => set.id !== setId)
+      .sort((a, b) => a.setNumber - b.setNumber)
+      .map((set) => {
+        if (set.exerciseId !== deleted.exerciseId) return set;
+        const setNumber = (counters.get(set.exerciseId) ?? 0) + 1;
+        counters.set(set.exerciseId, setNumber);
+        return { ...set, setNumber };
+      });
+
+    activeSession = { ...activeSession, sets };
+  }
+
   async function handleComplete() {
     if (!activeSession) return;
     await completeSession(activeSession.id);
@@ -303,6 +325,7 @@
     exercises={exercises}
     weightSuggestions={weightSuggestions}
     onLogSet={handleLogSet}
+    onDeleteSet={handleDeleteSet}
     onComplete={handleComplete}
   />
 {:else}

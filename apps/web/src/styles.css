@@ -301,6 +301,12 @@ fieldset {
   font-variant-numeric: tabular-nums;
 }
 
+.set-delete {
+  min-height: 32px;
+  padding: 4px 10px;
+  font-size: 0.8rem;
+}
+
 .volume-row {
   display: grid;
   grid-template-columns: minmax(90px, 1fr) 2fr auto;

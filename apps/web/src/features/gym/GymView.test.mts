@@ -16,6 +16,7 @@ import {
   createPlan,
   deleteExercise,
   deletePlan,
+  deleteSet,
   getActiveSession,
   getProgress,
   getRotation,
@@ -36,6 +37,7 @@ vi.mock("../../api/gym.mts", () => ({
   createExercise: vi.fn(),
   updateExercise: vi.fn(),
   deleteExercise: vi.fn(),
+  deleteSet: vi.fn(),
   createPlan: vi.fn(),
   updatePlan: vi.fn(),
   deletePlan: vi.fn(),
@@ -134,6 +136,7 @@ beforeEach(() => {
   vi.mocked(createPlan).mockResolvedValue(plan);
   vi.mocked(updatePlan).mockResolvedValue(plan);
   vi.mocked(deletePlan).mockResolvedValue(undefined);
+  vi.mocked(deleteSet).mockResolvedValue(undefined);
   vi.mocked(getRotation).mockResolvedValue({ plans: [], nextPlanId: null });
   vi.mocked(getWeightSuggestions).mockResolvedValue({});
   vi.mocked(setRotation).mockImplementation(async ({ planIds }) => {
@@ -856,6 +859,49 @@ describe("GymView", () => {
       expect(completeSession).toHaveBeenCalledWith("session-1");
     });
     expect(await startScreenReady()).toBeInTheDocument();
+  });
+
+  it("removes a deleted set and renumbers the remaining sets", async () => {
+    vi.stubGlobal("confirm", vi.fn(() => true));
+    vi.mocked(getActiveSession).mockResolvedValue({
+      ...session,
+      sets: [
+        {
+          id: "set-1",
+          exerciseId: "exercise-1",
+          exerciseName: "Bench Press",
+          setNumber: 1,
+          reps: 8,
+          weightKg: 80,
+          createdAt: "2026-10-26T18:05:00.000Z",
+        },
+        {
+          id: "set-2",
+          exerciseId: "exercise-1",
+          exerciseName: "Bench Press",
+          setNumber: 2,
+          reps: 6,
+          weightKg: 85,
+          createdAt: "2026-10-26T18:10:00.000Z",
+        },
+      ],
+    });
+
+    render(GymView);
+
+    await screen.findByText("Set 2");
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Delete set 1 for Bench Press" })
+    );
+
+    await waitFor(() => {
+      expect(deleteSet).toHaveBeenCalledWith("session-1", "set-1");
+    });
+    await waitFor(() => {
+      expect(screen.queryByText("Set 2")).not.toBeInTheDocument();
+    });
+    expect(screen.getByText("Set 1")).toBeInTheDocument();
+    expect(screen.getByText("6 × 85 kg")).toBeInTheDocument();
   });
 
   it("retries the start once when the conflict leaves no active session", async () => {

@@ -16,6 +16,7 @@
     exercises,
     weightSuggestions = {},
     onLogSet,
+    onDeleteSet,
     onComplete,
   }: {
     session: WorkoutSessionDetail;
@@ -23,6 +24,7 @@
     exercises: Exercise[];
     weightSuggestions?: WeightSuggestions;
     onLogSet: (input: CreateWorkoutSetInput) => Promise<void>;
+    onDeleteSet: (setId: string) => Promise<void>;
     onComplete: () => Promise<void>;
   } = $props();
 
@@ -194,6 +196,27 @@
     }
   }
 
+  async function deleteSet(set: LoggedSet) {
+    if (pending) return;
+    if (!confirm(`Delete set ${set.setNumber} for ${set.exerciseName}?`)) {
+      return;
+    }
+
+    pending = true;
+    error = null;
+
+    try {
+      await onDeleteSet(set.id);
+    } catch (deleteError) {
+      error =
+        deleteError instanceof Error
+          ? deleteError.message
+          : "Could not delete the set";
+    } finally {
+      pending = false;
+    }
+  }
+
   async function handleComplete() {
     if (pending) return;
 
@@ -221,10 +244,21 @@
 </script>
 
 {#snippet setRow(set: LoggedSet)}
-  <p class="set-row">
+  <div class="set-row">
     <span class="badge">Set {set.setNumber}</span>
-    <span>{set.reps} × {set.weightKg} kg</span>
-  </p>
+    <span class="grow">{set.reps} × {set.weightKg} kg</span>
+    {#if !completed}
+      <button
+        type="button"
+        class="btn btn-ghost set-delete"
+        disabled={pending}
+        aria-label={`Delete set ${set.setNumber} for ${set.exerciseName}`}
+        onclick={() => void deleteSet(set)}
+      >
+        Delete
+      </button>
+    {/if}
+  </div>
 {/snippet}
 
 {#snippet setRowsAndForm(
