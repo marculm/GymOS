@@ -26,11 +26,73 @@
     onComplete: () => Promise<void>;
   } = $props();
 
+  const REST_PRESETS: readonly number[] = [120, 150, 180];
+  const DEFAULT_REST_PRESET = 120;
+  const REST_PRESET_KEY = "gymos.restTimerSeconds";
+
   let freeExercises = $state<Exercise[]>([]);
   let exerciseToAdd = $state("");
   let pending = $state(false);
   let error = $state<string | null>(null);
   let finishButton = $state<HTMLButtonElement | null>(null);
+  let timerPreset = $state(loadPreset());
+  let remaining = $state(0);
+  let timerRunning = $state(false);
+  let showTimerOptions = $state(false);
+
+  function formatTime(seconds: number): string {
+    return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+  }
+
+  function presetStorage(): Storage | null {
+    try {
+      return window.localStorage ?? window.sessionStorage;
+    } catch {
+      return null;
+    }
+  }
+
+  function loadPreset(): number {
+    try {
+      const stored = Number(presetStorage()?.getItem(REST_PRESET_KEY));
+      return REST_PRESETS.includes(stored) ? stored : DEFAULT_REST_PRESET;
+    } catch {
+      return DEFAULT_REST_PRESET;
+    }
+  }
+
+  function startTimer() {
+    remaining = timerPreset;
+    timerRunning = true;
+  }
+
+  function selectPreset(preset: number) {
+    timerPreset = preset;
+    try {
+      presetStorage()?.setItem(REST_PRESET_KEY, String(preset));
+    } catch {
+      // Remembering the preset is best-effort; the timer still runs.
+    }
+    startTimer();
+  }
+
+  function toggleTimer() {
+    if (timerRunning) {
+      remaining = 0;
+      timerRunning = false;
+    } else {
+      startTimer();
+    }
+  }
+
+  $effect(() => {
+    if (!timerRunning) return;
+    const id = setInterval(() => {
+      remaining = Math.max(0, remaining - 1);
+      if (remaining === 0) timerRunning = false;
+    }, 1000);
+    return () => clearInterval(id);
+  });
 
   const completed = $derived(session.completedAt !== null);
 
@@ -125,6 +187,7 @@
     pending = true;
     try {
       await onLogSet({ exerciseId, ...input });
+      startTimer();
       return true;
     } finally {
       pending = false;
@@ -194,20 +257,6 @@
         {session.title}
       </h2>
     </div>
-    {#if error}
-      <p class="error" role="alert">{error}</p>
-    {/if}
-    {#if !completed}
-      <button
-        bind:this={finishButton}
-        type="button"
-        class="btn btn-primary"
-        disabled={pending}
-        onclick={() => void handleComplete()}
-      >
-        Finish workout
-      </button>
-    {/if}
   </header>
 
   {#if plan}
@@ -286,3 +335,51 @@
     {/if}
   {/if}
 </div>
+
+{#if !completed}
+  <div class="session-bar" role="region" aria-label="Workout controls">
+    {#if error}
+      <p class="error" role="alert">{error}</p>
+    {/if}
+
+    <div id="rest-timer-options" hidden={!showTimerOptions}>
+      <div class="row">
+        {#each REST_PRESETS as preset (preset)}
+          <button
+            type="button"
+            class="btn btn-ghost grow"
+            aria-pressed={preset === timerPreset}
+            onclick={() => selectPreset(preset)}
+          >
+            {formatTime(preset)}
+          </button>
+        {/each}
+        <button type="button" class="btn btn-ghost" onclick={toggleTimer}>
+          {timerRunning ? "Stop" : "Reset"}
+        </button>
+      </div>
+    </div>
+
+    <div class="row">
+      <button
+        type="button"
+        class="btn btn-ghost session-timer"
+        aria-label={`Rest timer ${formatTime(remaining)}`}
+        aria-expanded={showTimerOptions}
+        aria-controls="rest-timer-options"
+        onclick={() => (showTimerOptions = !showTimerOptions)}
+      >
+        {formatTime(remaining)}
+      </button>
+      <button
+        bind:this={finishButton}
+        type="button"
+        class="btn btn-primary grow"
+        disabled={pending}
+        onclick={() => void handleComplete()}
+      >
+        Finish workout
+      </button>
+    </div>
+  </div>
+{/if}
