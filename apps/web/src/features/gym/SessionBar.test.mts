@@ -17,6 +17,14 @@ import SessionView from "./SessionView.svelte";
 
 const REST_PRESET_KEY = "gymos.restTimerSeconds";
 
+function presetStorage(): Storage | null {
+  try {
+    return window.localStorage ?? window.sessionStorage;
+  } catch {
+    return null;
+  }
+}
+
 const exercise: Exercise = {
   id: "exercise-1",
   name: "Bench Press",
@@ -97,6 +105,11 @@ async function logSet(onLogSet: ReturnType<typeof vi.fn>) {
 describe("SessionBar", () => {
   beforeEach(() => {
     window.sessionStorage.clear();
+    try {
+      window.localStorage.clear();
+    } catch {
+      // localStorage is unavailable in some test environments.
+    }
   });
 
   afterEach(() => {
@@ -134,11 +147,11 @@ describe("SessionBar", () => {
     await fireEvent.click(within(bar()).getByRole("button", { name: "3:00" }));
 
     expect(timerButton()).toHaveTextContent("3:00");
-    expect(window.sessionStorage.getItem(REST_PRESET_KEY)).toBe("180");
+    expect(presetStorage()?.getItem(REST_PRESET_KEY)).toBe("180");
   });
 
   it("restores the stored preset", async () => {
-    window.sessionStorage.setItem(REST_PRESET_KEY, "150");
+    presetStorage()?.setItem(REST_PRESET_KEY, "150");
 
     renderSession();
     await fireEvent.click(timerButton());
