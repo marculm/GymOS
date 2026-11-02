@@ -83,6 +83,15 @@ writeRouter.post("/sessions/:id/sets", async (c) => {
   return c.json(set, statuscode.CREATED);
 });
 
+writeRouter.delete("/sessions/:id/sets/:setId", async (c) => {
+  await writeService.deleteSet(
+    c.get("user").id,
+    c.req.param("id"),
+    c.req.param("setId")
+  );
+  return c.body(null, statuscode.NO_CONTENT);
+});
+
 writeRouter.post("/sessions/:id/complete", async (c) => {
   const session = await writeService.completeSession(
     c.get("user").id,

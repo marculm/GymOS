@@ -37,7 +37,7 @@ type PlanWriter = Pick<
 type RotationWriter = Pick<RotationRepository, "replace">;
 type SessionWriter = Pick<
   SessionRepository,
-  "createIfNoActive" | "logSet" | "completeIfOpen"
+  "createIfNoActive" | "logSet" | "completeIfOpen" | "deleteSet"
 >;
 type RotationReader = Pick<GymReadService, "getRotation">;
 
@@ -188,6 +188,27 @@ export class GymWriteService {
         throw new UnknownExerciseError(`Unknown exercise ID: ${input.exerciseId}`);
       case "duplicate":
         throw new DuplicateSetError("Set was already logged, retry");
+    }
+  }
+
+  async deleteSet(
+    userId: string,
+    sessionId: string,
+    setId: string
+  ): Promise<void> {
+    const result = await this.sessionRepository.deleteSet(
+      userId,
+      sessionId,
+      setId
+    );
+
+    switch (result.kind) {
+      case "deleted":
+        return;
+      case "not_found":
+        throw new NotFoundError("Session or set not found");
+      case "completed":
+        throw new SessionCompletedError("Session is already completed");
     }
   }
 
