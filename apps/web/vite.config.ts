@@ -1,6 +1,7 @@
 import { defineConfig } from "vitest/config";
 import { svelte } from "@sveltejs/vite-plugin-svelte";
 import { VitePWA } from "vite-plugin-pwa";
+import { pwaManifest } from "./src/pwa-manifest.mts";
 
 export default defineConfig({
   resolve: {
@@ -10,26 +11,7 @@ export default defineConfig({
     svelte(),
     VitePWA({
       registerType: "autoUpdate",
-      manifest: {
-        name: "GymOS",
-        short_name: "GymOS",
-        description: "Your all-in-one gym and nutrition operating system",
-        theme_color: "#faf7f2",
-        background_color: "#faf7f2",
-        display: "standalone",
-        icons: [
-          {
-            src: "/pwa-192x192.png",
-            sizes: "192x192",
-            type: "image/png",
-          },
-          {
-            src: "/pwa-512x512.png",
-            sizes: "512x512",
-            type: "image/png",
-          },
-        ],
-      },
+      manifest: pwaManifest,
     }),
   ],
   server: {
