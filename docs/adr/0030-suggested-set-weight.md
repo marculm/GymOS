@@ -29,12 +29,16 @@ its exercise and weight. This ADR replaces the prefill sentence of ADR-0029.
 - The web app loads suggestions with the gym data and refreshes them after a workout is
   completed. Every exercise card, planned or free, passes its own suggestion to the set
   form.
-- The placeholder is a hint only: a set is submitted only with a typed weight.
+- The placeholder is a hint only: it never submits a set by itself, and the form needs
+  weight and reps in its fields before logging.
+- Pressing Enter in the empty weight field accepts the placeholder into the field and moves
+  focus to Reps; the keypress does not submit the set. Typing a weight overrides the
+  suggestion. Without a suggestion, Enter keeps the form's normal behavior.
 
 ## Consequences
 
 - The hint follows real training data and needs no schema change or migration.
-- Logging a set requires typing weight and reps every time; defaults are no longer
+- Logging a set requires filling weight and reps every time; defaults are no longer
   submitted.
 - Suggestions update when a workout is completed, not while it is in progress.
 - The read endpoint returns one entry per exercise with completed history, and its query
