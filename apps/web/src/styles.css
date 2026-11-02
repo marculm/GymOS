@@ -124,6 +124,30 @@ fieldset {
   color: var(--accent);
 }
 
+.session-bar {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 640px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--surface);
+  border-top: 1px solid var(--surface-2);
+  padding: 8px var(--space) calc(8px + env(safe-area-inset-bottom));
+}
+
+.session-timer {
+  min-width: 76px;
+  font-variant-numeric: tabular-nums;
+}
+
+.timer-preset {
+  flex: 1;
+}
+
 .card {
   background: var(--surface);
   border: 1px solid var(--surface-2);

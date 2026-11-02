@@ -52,6 +52,14 @@
   let rotationPending = $state(false);
   let planToAdd = $state("");
 
+  let { onSessionActiveChange }: {
+    onSessionActiveChange?: (active: boolean) => void;
+  } = $props();
+
+  $effect(() => {
+    onSessionActiveChange?.(activeSession !== null);
+  });
+
   function messageOf(value: unknown): string {
     return value instanceof Error ? value.message : "Something went wrong";
   }

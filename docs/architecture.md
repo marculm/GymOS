@@ -465,6 +465,10 @@ apps/web/
 - Plan start actions include the plan name, errors render in `role="alert"` live regions,
   and starting or finishing a session moves focus to the session or next-workout heading
   (ADR-0034).
+- While a session is active, a fixed session bar replaces the main tab bar and makes the
+  Nutrition and AI Extractor tabs unreachable. It keeps Finish workout and a rest timer
+  visible; the timer autostarts after a logged set and offers 120/150/180-second presets
+  persisted locally (ADR-0036).
 
 ### 4.4 API Layer
 
@@ -617,3 +621,4 @@ The target architecture deliberately excludes:
 | [0033](adr/0033-collapsed-history-section.md) | Collapsed history section |
 | [0034](adr/0034-gym-accessibility-names-alerts-focus.md) | Gym accessibility names, alerts, and focus |
 | [0035](adr/0035-deployment-pipeline-and-tailnet-access.md) | Deployment pipeline and tailnet access |
+| [0036](adr/0036-session-bar-and-rest-timer.md) | Session bar and rest timer |
