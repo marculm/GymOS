@@ -17,6 +17,9 @@ The **Gym Tracker** slice is implemented:
   defaults)
 - Start free or plan-based workouts
 - Log sets with weight and reps
+- Delete a wrongly logged set during an active workout (ADR-0037)
+- Collapse completed planned exercises into a visible done state, with a manual toggle
+  on every card (ADR-0019, ADR-0029)
 - Keep Finish workout and a rest timer always reachable in a session bar (ADR-0036)
 - Finish workouts and review history (details, filters, load-more) in a collapsible
   section at the bottom of the Gym page, with progress analytics above it (ADR-0032,

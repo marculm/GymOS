@@ -22,6 +22,11 @@ user scope, and ADR-0019 requires every logged set to stay visible.
   that has a logged set, plus one card per exercise added through an "Add exercise"
   control. Added exercises are view state and are deduplicated against logged sets.
 - Sets for exercises outside the plan stay visible in read-only cards (ADR-0019).
+- A planned card collapses automatically once its logged set count reaches `targetSets`
+  and shows a visible done state; every card has a manual expand/collapse toggle that
+  overrides the automatic behavior. Collapsing hides the set form but never removes the
+  card or its sets (ADR-0019).
+- Free and ad-hoc cards have no target and collapse only when the user toggles them.
 - A single pending flag still disables every set form, the add-exercise control, and the
   finish action. A failed log keeps the typed values and shows the error inside that
   card.

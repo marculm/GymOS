@@ -453,6 +453,10 @@ apps/web/
 - Set logging happens inside each exercise card: plan cards show their target and their
   own form; free sessions build cards with an "Add exercise" control. No global set form
   remains (ADR-0029).
+- A planned card auto-collapses when its logged sets reach the target and shows a muted
+  done state with a visible label and summary. Every card has an accessible manual
+  expand/collapse toggle that overrides auto-collapse; free and ad-hoc cards have no
+  target and are manual-only (ADR-0019, ADR-0029).
 - Every weight input shows a suggestion as a placeholder: the average weight of that
   exercise in the most recent completed workout, rounded to 0.5 kg, falling back to the
   exercise default. Reps are not prefilled, and RPE is no longer recorded (ADR-0030,
