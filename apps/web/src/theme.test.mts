@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { pwaManifest } from "./pwa-manifest.mts";
 
 function read(relativePath: string): string {
   return readFileSync(new URL(relativePath, import.meta.url), "utf8");
@@ -13,8 +14,8 @@ function cssVar(name: string): string {
   return styles.match(new RegExp(`--${name}: (#[0-9a-f]{6});`))?.[1] ?? "";
 }
 
-function manifestColor(key: string): string {
-  return viteConfig.match(new RegExp(`${key}: "(#[0-9a-f]{6})"`))?.[1] ?? "";
+function manifestColor(key: "theme_color" | "background_color"): string {
+  return pwaManifest[key] ?? "";
 }
 
 function luminance(hex: string): number {

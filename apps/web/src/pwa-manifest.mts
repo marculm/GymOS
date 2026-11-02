@@ -1,0 +1,30 @@
+import type { ManifestOptions } from "vite-plugin-pwa";
+
+export const pwaManifest: Partial<ManifestOptions> = {
+  name: "GymOS",
+  short_name: "GymOS",
+  description: "Your all-in-one gym and nutrition operating system",
+  theme_color: "#faf7f2",
+  background_color: "#faf7f2",
+  display: "standalone",
+  icons: [
+    {
+      src: "/pwa-192x192.png",
+      sizes: "192x192",
+      type: "image/png",
+      purpose: "any",
+    },
+    {
+      src: "/pwa-512x512.png",
+      sizes: "512x512",
+      type: "image/png",
+      purpose: "any",
+    },
+    {
+      src: "/pwa-maskable-512x512.png",
+      sizes: "512x512",
+      type: "image/png",
+      purpose: "maskable",
+    },
+  ],
+};
