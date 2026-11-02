@@ -215,6 +215,7 @@ full contract.
 | `GET` | `/api/gym/sessions/:id` | Get a session with its sets |
 | `GET` | `/api/gym/progress` | Personal records per exercise and volume per completed session |
 | `POST` | `/api/gym/sessions/:id/sets` | Log a set (`{ exerciseId, reps, weightKg }`) |
+| `DELETE` | `/api/gym/sessions/:id/sets/:setId` | Delete a set in an active session and renumber the rest |
 | `POST` | `/api/gym/sessions/:id/complete` | Finish a session |
 
 `GET /health/liveness`, `GET /health/readiness`, and `GET /prometheus` are available for
