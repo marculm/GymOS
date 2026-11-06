@@ -13,10 +13,21 @@ import {
 } from "../helpers.mts";
 
 let exerciseId: string;
+let exerciseDefaults: {
+  defaultSets: number;
+  defaultReps: number;
+  defaultWeightKg: number | null;
+};
 
 beforeAll(async () => {
   await createTestUser();
-  exerciseId = (await firstExercise()).id;
+  const exercise = await firstExercise();
+  exerciseId = exercise.id;
+  exerciseDefaults = {
+    defaultSets: exercise.defaultSets,
+    defaultReps: exercise.defaultReps,
+    defaultWeightKg: exercise.defaultWeightKg,
+  };
 });
 
 beforeEach(clearTestUserData);
@@ -225,9 +236,9 @@ describe("Gym plan routes", () => {
     expect(plan.exercises).toHaveLength(1);
     expect(plan.exercises[0]).toMatchObject({
       position: 0,
-      targetSets: 5,
-      targetReps: 5,
-      targetWeightKg: 100,
+      targetSets: exerciseDefaults.defaultSets,
+      targetReps: exerciseDefaults.defaultReps,
+      targetWeightKg: exerciseDefaults.defaultWeightKg,
       exercise: { id: exerciseId },
     });
 
@@ -265,7 +276,7 @@ describe("Gym plan routes", () => {
         name: `Plan Exercise ${crypto.randomUUID()}`,
         muscleGroup: "chest",
       })
-    ).json()) as { id: string };
+    ).json()) as { id: string; defaultSets: number };
 
     try {
       const created = (await (
@@ -297,7 +308,7 @@ describe("Gym plan routes", () => {
       };
       expect(plan.name).toBe("Renamed Deleted Exercise Plan");
       expect(plan.exercises[0]).toMatchObject({
-        targetSets: 4,
+        targetSets: createdExercise.defaultSets,
         exercise: { id: createdExercise.id },
       });
     } finally {
@@ -418,7 +429,7 @@ describe("Gym plan routes", () => {
       await expect(
         container.writeService.updatePlan(other.id, plan.id, {
           name: "Stolen",
-          exercises: [{ exerciseId, targetSets: 3, targetReps: 10 }],
+          exercises: [{ exerciseId }],
         })
       ).rejects.toBeInstanceOf(NotFoundError);
       await expect(
@@ -432,8 +443,6 @@ describe("Gym plan routes", () => {
   it("rejects plans over the input limits", async () => {
     const tooManyExercises = Array.from({ length: 51 }, () => ({
       exerciseId: crypto.randomUUID(),
-      targetSets: 3,
-      targetReps: 10,
     }));
     const tooMany = await postJson({ name: "Too many", exercises: tooManyExercises });
     expect(tooMany.status).toBe(422);
@@ -441,8 +450,79 @@ describe("Gym plan routes", () => {
       detail: Array<{ message: string }>;
     };
     expect(tooManyData.detail.some((issue) => /50/.test(issue.message))).toBe(true);
+  });
 
-    expect((await postJson(planBody("Too many sets", { targetSets: 21 }))).status).toBe(422);
-    expect((await postJson(planBody("Too many reps", { targetReps: 101 }))).status).toBe(422);
+  it("derives plan targets from the current exercise defaults", async () => {
+    const createdExercise = (await (
+      await sendJson("POST", "/api/gym/exercises", {
+        name: `Default Exercise ${crypto.randomUUID()}`,
+        muscleGroup: "chest",
+        defaultSets: 5,
+        defaultReps: 12,
+        defaultWeightKg: 42.5,
+      })
+    ).json()) as { id: string; name: string };
+
+    try {
+      const res = await postJson({
+        name: "Derived Targets",
+        exercises: [
+          {
+            exerciseId: createdExercise.id,
+            targetSets: 3,
+            targetReps: 10,
+            targetWeightKg: 100,
+          },
+        ],
+      });
+      expect(res.status).toBe(201);
+      const plan = (await res.json()) as {
+        id: string;
+        exercises: Array<{
+          targetSets: number;
+          targetReps: number;
+          targetWeightKg: number | null;
+        }>;
+      };
+      expect(plan.exercises[0]).toMatchObject({
+        targetSets: 5,
+        targetReps: 12,
+        targetWeightKg: 42.5,
+      });
+
+      const update = await sendJson(
+        "PUT",
+        `/api/gym/exercises/${createdExercise.id}`,
+        {
+          name: createdExercise.name,
+          muscleGroup: "chest",
+          defaultSets: 4,
+          defaultReps: 10,
+          defaultWeightKg: 50,
+        }
+      );
+      expect(update.status).toBe(200);
+
+      const list = await app.request("/api/gym/plans");
+      const page = (await list.json()) as {
+        content: Array<{
+          id: string;
+          exercises: Array<{
+            targetSets: number;
+            targetReps: number;
+            targetWeightKg: number | null;
+          }>;
+        }>;
+      };
+      const updated = page.content.find((entry) => entry.id === plan.id);
+      expect(updated?.exercises[0]).toMatchObject({
+        targetSets: 4,
+        targetReps: 10,
+        targetWeightKg: 50,
+      });
+    } finally {
+      await prisma.workoutPlan.deleteMany({ where: { name: "Derived Targets" } });
+      await prisma.exercise.deleteMany({ where: { id: createdExercise.id } });
+    }
   });
 });

@@ -490,10 +490,12 @@ describe("GymView", () => {
       expect(createPlan).toHaveBeenCalledWith(
         expect.objectContaining({
           name: "Leg Day",
-          exercises: [expect.objectContaining({ targetSets: 5, targetReps: 5 })],
+          exercises: [expect.objectContaining({ exerciseId: expect.any(String) })],
         })
       );
     });
+    const input = vi.mocked(createPlan).mock.calls.at(-1)?.[0];
+    expect(input?.exercises[0]).not.toHaveProperty("targetSets");
   });
 
   it("edits a plan from the plan list", async () => {
@@ -1049,16 +1051,14 @@ describe("GymView", () => {
     await waitFor(() => {
       expect(createPlan).toHaveBeenCalledWith(
         expect.objectContaining({
-          exercises: [
-            expect.objectContaining({
-              targetSets: 4,
-              targetReps: 8,
-              targetWeightKg: 80,
-            }),
-          ],
+          exercises: [expect.objectContaining({ exerciseId: expect.any(String) })],
         })
       );
     });
+    const input = vi.mocked(createPlan).mock.calls.at(-1)?.[0];
+    expect(input?.exercises[0]).not.toHaveProperty("targetSets");
+    expect(input?.exercises[0]).not.toHaveProperty("targetReps");
+    expect(input?.exercises[0]).not.toHaveProperty("targetWeightKg");
   });
 
   it("prefills changed plan rows from the selected exercise defaults", async () => {

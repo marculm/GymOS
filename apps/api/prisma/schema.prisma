@@ -121,16 +121,13 @@ model WorkoutPlan {
 }
 
 model WorkoutPlanExercise {
-  id             String      @id @default(uuid())
-  planId         String
-  plan           WorkoutPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
-  exerciseId     String
-  exercise       Exercise    @relation(fields: [exerciseId], references: [id], onDelete: Restrict)
-  position       Int
-  targetSets     Int
-  targetReps     Int
-  targetWeightKg Float?
-  notes          String?
+  id         String      @id @default(uuid())
+  planId     String
+  plan       WorkoutPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  exerciseId String
+  exercise   Exercise    @relation(fields: [exerciseId], references: [id], onDelete: Restrict)
+  position   Int
+  notes      String?
 
   @@unique([planId, position])
   @@map("workout_plan_exercises")

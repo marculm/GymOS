@@ -138,13 +138,13 @@ function createService() {
 
 const planInput = {
   name: "Push",
-  exercises: [{ exerciseId, targetSets: 3, targetReps: 10 }],
+  exercises: [{ exerciseId }],
 };
 
 const planUpdate: UpdateWorkoutPlanInput = {
   name: "Push A",
   description: "Heavy",
-  exercises: [{ exerciseId, targetSets: 5, targetReps: 5 }],
+  exercises: [{ exerciseId }],
 };
 
 describe("GymWriteService", () => {

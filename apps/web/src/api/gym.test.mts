@@ -132,8 +132,6 @@ describe("gym api client", () => {
       exercises: [
         {
           exerciseId: "00000000-0000-4000-8000-000000000001",
-          targetSets: 3,
-          targetReps: 8,
         },
       ],
     });
@@ -169,8 +167,6 @@ describe("gym api client", () => {
       exercises: [
         {
           exerciseId: "00000000-0000-4000-8000-000000000001",
-          targetSets: 3,
-          targetReps: 8,
         },
       ],
     });

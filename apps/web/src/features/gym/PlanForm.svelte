@@ -108,12 +108,9 @@
       await onSubmit({
         name: name.trim(),
         description: description.trim() || undefined,
+        // Targets come from the exercise register; the inputs stay until the form simplification.
         exercises: rows.map((row) => ({
           exerciseId: row.exerciseId,
-          targetSets: row.targetSets,
-          targetReps: row.targetReps,
-          targetWeightKg:
-            row.targetWeightKg === "" ? undefined : row.targetWeightKg,
           notes: row.notes,
         })),
       });

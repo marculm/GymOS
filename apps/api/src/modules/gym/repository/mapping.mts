@@ -73,9 +73,9 @@ export function toPlan(plan: PlanWithExercises): WorkoutPlan {
     exercises: plan.exercises.map((entry) => ({
       id: entry.id,
       position: entry.position,
-      targetSets: entry.targetSets,
-      targetReps: entry.targetReps,
-      targetWeightKg: entry.targetWeightKg,
+      targetSets: entry.exercise.defaultSets,
+      targetReps: entry.exercise.defaultReps,
+      targetWeightKg: entry.exercise.defaultWeightKg,
       notes: entry.notes,
       exercise: toExercise(entry.exercise),
     })),
