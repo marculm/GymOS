@@ -178,17 +178,30 @@ function cardForm(name: string) {
   return within(form);
 }
 
+async function expand(name: string) {
+  await fireEvent.click(
+    screen.getByRole("button", { name: `Expand ${name}` })
+  );
+}
+
+async function collapse(name: string) {
+  await fireEvent.click(
+    screen.getByRole("button", { name: `Collapse ${name}` })
+  );
+}
+
 describe("SessionView", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
   });
 
-  it("renders the plan exercise and its target", () => {
+  it("renders the plan exercise and its target", async () => {
     renderSession();
 
     expect(
       screen.getByRole("heading", { name: "Bench Press" })
     ).toBeInTheDocument();
+    await expand("Bench Press");
     expect(screen.getByText(/4\s*×\s*8/)).toBeInTheDocument();
     expect(screen.getByText(/@ 80 kg/)).toBeInTheDocument();
     expect(
@@ -198,8 +211,42 @@ describe("SessionView", () => {
     ).toBeInTheDocument();
   });
 
+  it("starts with every card collapsed", () => {
+    renderSession({
+      plan: twoExercisePlan,
+      session: { ...session, sets: loggedSets(benchSet, 4) },
+    });
+
+    expect(screen.queryAllByRole("form")).toHaveLength(0);
+    expect(
+      screen.getByRole("button", { name: "Expand Bench Press" })
+    ).toHaveAttribute("aria-expanded", "false");
+    expect(
+      screen.getByRole("button", { name: "Expand Cable Fly" })
+    ).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByText(/sets logged/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/4\s*×\s*8/)).not.toBeInTheDocument();
+  });
+
+  it("toggles a card by its name without a show/hide button", async () => {
+    renderSession();
+
+    expect(
+      screen.queryByRole("button", { name: /^(Show|Hide)$/ })
+    ).not.toBeInTheDocument();
+    await expand("Bench Press");
+    expect(
+      screen.getByRole("button", { name: "Collapse Bench Press" })
+    ).toHaveAttribute("aria-expanded", "true");
+    await collapse("Bench Press");
+    expect(
+      screen.getByRole("button", { name: "Expand Bench Press" })
+    ).toHaveAttribute("aria-expanded", "false");
+  });
+
   it("logs a set from the exercise card", async () => {
     const { onLogSet } = renderSession();
+    await expand("Bench Press");
 
     await fireEvent.input(cardForm("Bench Press").getByLabelText("Weight (kg)"), {
       target: { value: "82.5" },
@@ -222,6 +269,7 @@ describe("SessionView", () => {
 
   it("logs each card's set for that card's exercise", async () => {
     const { onLogSet } = renderSession({ plan: twoExercisePlan });
+    await expand("Cable Fly");
 
     await fireEvent.input(cardForm("Cable Fly").getByLabelText("Weight (kg)"), {
       target: { value: "15" },
@@ -257,6 +305,8 @@ describe("SessionView", () => {
       plan: twoExercisePlan,
       onLogSet: vi.fn().mockReturnValue(request.promise),
     });
+    await expand("Bench Press");
+    await expand("Cable Fly");
 
     await fireEvent.input(cardForm("Bench Press").getByLabelText("Weight (kg)"), {
       target: { value: "80" },
@@ -289,6 +339,7 @@ describe("SessionView", () => {
   it("disables the set forms while the workout is being finished", async () => {
     const request = deferred();
     renderSession({ onComplete: vi.fn().mockReturnValue(request.promise) });
+    await expand("Bench Press");
 
     await fireEvent.click(
       screen.getByRole("button", { name: "Finish workout" })
@@ -310,6 +361,8 @@ describe("SessionView", () => {
       plan: twoExercisePlan,
       onLogSet: vi.fn().mockRejectedValue(new Error("Network down")),
     });
+    await expand("Bench Press");
+    await expand("Cable Fly");
 
     await fireEvent.input(cardForm("Bench Press").getByLabelText("Weight (kg)"), {
       target: { value: "82.5" },
@@ -336,8 +389,9 @@ describe("SessionView", () => {
     ).not.toBeDisabled();
   });
 
-  it("caps weight and reps at the API limits", () => {
+  it("caps weight and reps at the API limits", async () => {
     renderSession();
+    await expand("Bench Press");
 
     expect(cardForm("Bench Press").getByLabelText("Weight (kg)")).toHaveAttribute(
       "max",
@@ -349,19 +403,22 @@ describe("SessionView", () => {
     );
   });
 
-  it("has no RPE field", () => {
+  it("has no RPE field", async () => {
     renderSession();
+    await expand("Bench Press");
 
     expect(
       cardForm("Bench Press").queryByLabelText("RPE (optional)")
     ).not.toBeInTheDocument();
   });
 
-  it("shows the suggestion as a placeholder without prefilling inputs", () => {
+  it("shows the suggestion as a placeholder without prefilling inputs", async () => {
     renderSession({
       plan: twoExercisePlan,
       weightSuggestions: { "exercise-1": 82.5 },
     });
+    await expand("Bench Press");
+    await expand("Cable Fly");
 
     const weight = cardForm("Bench Press").getByLabelText("Weight (kg)");
     expect(weight).toHaveAttribute("placeholder", "82.5");
@@ -369,8 +426,10 @@ describe("SessionView", () => {
     expect(cardForm("Bench Press").getByLabelText("Reps")).toHaveValue(null);
   });
 
-  it("falls back to the exercise default weight as the placeholder", () => {
+  it("falls back to the exercise default weight as the placeholder", async () => {
     renderSession({ plan: twoExercisePlan });
+    await expand("Bench Press");
+    await expand("Cable Fly");
 
     expect(cardForm("Bench Press").getByLabelText("Weight (kg)")).toHaveAttribute(
       "placeholder",
@@ -382,7 +441,7 @@ describe("SessionView", () => {
     );
   });
 
-  it("has no weight placeholder without history or a default", () => {
+  it("has no weight placeholder without history or a default", async () => {
     renderSession({
       plan: {
         ...plan,
@@ -394,6 +453,7 @@ describe("SessionView", () => {
         ],
       },
     });
+    await expand("Bench Press");
 
     expect(
       cardForm("Bench Press").getByLabelText("Weight (kg)").getAttribute(
@@ -406,6 +466,7 @@ describe("SessionView", () => {
     const { onLogSet } = renderSession({
       weightSuggestions: { "exercise-1": 82.5 },
     });
+    await expand("Bench Press");
     const form = cardForm("Bench Press");
 
     await fireEvent.click(form.getByRole("button", { name: /add set/i }));
@@ -434,6 +495,7 @@ describe("SessionView", () => {
     const { onDeleteSet } = renderSession({
       session: { ...session, sets: [benchSet, benchSet2] },
     });
+    await expand("Bench Press");
 
     await fireEvent.click(
       screen.getByRole("button", { name: "Delete set 2 for Bench Press" })
@@ -449,6 +511,7 @@ describe("SessionView", () => {
     const { onDeleteSet } = renderSession({
       session: { ...session, sets: [benchSet] },
     });
+    await expand("Bench Press");
 
     await fireEvent.click(
       screen.getByRole("button", { name: "Delete set 1 for Bench Press" })
@@ -463,6 +526,7 @@ describe("SessionView", () => {
       session: { ...session, sets: [benchSet] },
       onDeleteSet: vi.fn().mockRejectedValue(new Error("Could not delete")),
     });
+    await expand("Bench Press");
 
     await fireEvent.click(
       screen.getByRole("button", { name: "Delete set 1 for Bench Press" })
@@ -474,7 +538,7 @@ describe("SessionView", () => {
     expect(screen.getByText("Set 1")).toBeInTheDocument();
   });
 
-  it("offers no delete action for a completed session", () => {
+  it("offers no delete action for a completed session", async () => {
     renderSession({
       session: {
         ...session,
@@ -482,28 +546,47 @@ describe("SessionView", () => {
         sets: [benchSet],
       },
     });
+    await expand("Bench Press");
 
     expect(
       screen.queryByRole("button", { name: /delete set/i })
     ).not.toBeInTheDocument();
   });
 
-  it("auto-collapses a planned card once its target sets are logged", () => {
-    renderSession({
-      session: { ...session, sets: loggedSets(benchSet, 4) },
+  it("auto-collapses a planned card when its target sets are reached", async () => {
+    const { rerender } = renderSession({
+      session: { ...session, sets: loggedSets(benchSet, 3) },
     });
+    await expand("Bench Press");
+
+    await rerender({ session: { ...session, sets: loggedSets(benchSet, 4) } });
 
     expect(
       screen.queryByRole("form", { name: "Add set for Bench Press" })
     ).not.toBeInTheDocument();
-    const toggle = screen.getByRole("button", {
-      name: "Expand Bench Press",
-    });
+    const toggle = screen.getByRole("button", { name: "Expand Bench Press" });
     expect(toggle).toHaveAttribute("aria-expanded", "false");
     expect(toggle).toHaveAttribute("aria-controls", "sets-exercise-1");
     expect(document.getElementById("sets-exercise-1")).toBeInTheDocument();
+    expect(toggle.closest("section")).toHaveClass("exercise-done");
     expect(screen.getByText("Done")).toBeInTheDocument();
-    expect(screen.getByText("4 sets logged")).toBeInTheDocument();
+    expect(screen.queryByText(/sets logged/)).not.toBeInTheDocument();
+  });
+
+  it("keeps a manually expanded card open while it is below its target", async () => {
+    const { rerender } = renderSession({
+      session: { ...session, sets: loggedSets(benchSet, 1) },
+    });
+    await expand("Bench Press");
+
+    await rerender({ session: { ...session, sets: loggedSets(benchSet, 3) } });
+
+    expect(
+      screen.getByRole("form", { name: "Add set for Bench Press" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Collapse Bench Press" })
+    ).toHaveAttribute("aria-expanded", "true");
   });
 
   it("expands a done card manually and keeps the done state", async () => {
@@ -511,9 +594,7 @@ describe("SessionView", () => {
       session: { ...session, sets: loggedSets(benchSet, 4) },
     });
 
-    await fireEvent.click(
-      screen.getByRole("button", { name: "Expand Bench Press" })
-    );
+    await expand("Bench Press");
 
     expect(
       screen.getByRole("form", { name: "Add set for Bench Press" })
@@ -529,9 +610,7 @@ describe("SessionView", () => {
       session: { ...session, sets: loggedSets(benchSet, 4) },
     });
 
-    await fireEvent.click(
-      screen.getByRole("button", { name: "Expand Bench Press" })
-    );
+    await expand("Bench Press");
     await rerender({ session: { ...session, sets: loggedSets(benchSet, 5) } });
 
     expect(
@@ -543,37 +622,39 @@ describe("SessionView", () => {
     expect(screen.getByText("Done")).toBeInTheDocument();
   });
 
-  it("collapses and expands a free exercise card manually", async () => {
+  it("starts a free exercise card collapsed and toggles it manually", async () => {
     renderSession({
       session: { ...freeSession, sets: [cableSet] },
       plan: null,
     });
 
     expect(
+      screen.queryByRole("form", { name: "Add set for Cable Fly" })
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("1 set logged")).not.toBeInTheDocument();
+
+    await expand("Cable Fly");
+
+    expect(
       screen.getByRole("form", { name: "Add set for Cable Fly" })
     ).toBeInTheDocument();
 
-    await fireEvent.click(
-      screen.getByRole("button", { name: "Collapse Cable Fly" })
-    );
+    await collapse("Cable Fly");
 
     expect(
       screen.queryByRole("form", { name: "Add set for Cable Fly" })
     ).not.toBeInTheDocument();
-    expect(screen.getByText("1 set logged")).toBeInTheDocument();
-
-    await fireEvent.click(
-      screen.getByRole("button", { name: "Expand Cable Fly" })
-    );
-
-    expect(
-      screen.getByRole("form", { name: "Add set for Cable Fly" })
-    ).toBeInTheDocument();
   });
 
-  it("never auto-collapses a free exercise without a target", () => {
-    renderSession({
+  it("never auto-collapses a free exercise without a target", async () => {
+    const { rerender } = renderSession({
       session: { ...freeSession, sets: loggedSets(cableSet, 8) },
+      plan: null,
+    });
+    await expand("Cable Fly");
+
+    await rerender({
+      session: { ...freeSession, sets: loggedSets(cableSet, 9) },
       plan: null,
     });
 
@@ -585,7 +666,7 @@ describe("SessionView", () => {
     ).toHaveAttribute("aria-expanded", "true");
   });
 
-  it("displays weights with up to two decimals", () => {
+  it("displays weights with up to two decimals", async () => {
     renderSession({
       session: {
         ...session,
@@ -599,6 +680,7 @@ describe("SessionView", () => {
         exercises: [{ ...planExercise, targetWeightKg: 22.25 }],
       },
     });
+    await expand("Bench Press");
 
     expect(screen.getByText("8 × 22.25 kg")).toBeInTheDocument();
     expect(screen.getByText("6 × 22.5 kg")).toBeInTheDocument();
@@ -647,10 +729,11 @@ describe("SessionView", () => {
     expect(screen.queryByRole("form")).not.toBeInTheDocument();
   });
 
-  it("uses the set's exercise name when the exercise is not in the loaded list", () => {
+  it("uses the set's exercise name when the exercise is not in the loaded list", async () => {
     renderSession({
       session: { ...session, sets: [missingExerciseSet] },
     });
+    await expand("Deleted Press");
 
     expect(
       screen.getByRole("heading", { name: "Deleted Press" })
@@ -661,10 +744,11 @@ describe("SessionView", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("shows sets for exercises outside the plan", () => {
+  it("shows sets for exercises outside the plan", async () => {
     renderSession({
       session: { ...session, sets: [cableSet] },
     });
+    await expand("Cable Fly");
 
     expect(
       screen.getByRole("heading", { name: "Cable Fly" })
@@ -702,6 +786,7 @@ describe("SessionView", () => {
     expect(
       screen.getByRole("heading", { name: "Cable Fly" })
     ).toBeInTheDocument();
+    await expand("Cable Fly");
     expect(
       screen.getByRole("form", { name: "Add set for Cable Fly" })
     ).toBeInTheDocument();
@@ -738,6 +823,7 @@ describe("SessionView", () => {
     await fireEvent.click(
       screen.getByRole("button", { name: "Add exercise" })
     );
+    await expand("Cable Fly");
     await fireEvent.input(cardForm("Cable Fly").getByLabelText("Weight (kg)"), {
       target: { value: "20" },
     });
@@ -791,6 +877,7 @@ describe("SessionView", () => {
     await fireEvent.click(
       screen.getByRole("button", { name: "Add exercise" })
     );
+    await expand("Bench Press");
     await fireEvent.input(cardForm("Bench Press").getByLabelText("Weight (kg)"), {
       target: { value: "80" },
     });
@@ -811,11 +898,12 @@ describe("SessionView", () => {
     request.resolve();
   });
 
-  it("shows a read-only card for an unregistered free-session exercise", () => {
+  it("shows a read-only card for an unregistered free-session exercise", async () => {
     renderSession({
       session: { ...freeSession, sets: [missingExerciseSet] },
       plan: null,
     });
+    await expand("Deleted Press");
 
     expect(
       screen.getByRole("heading", { name: "Deleted Press" })
@@ -826,7 +914,7 @@ describe("SessionView", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("hides adding and logging controls for a completed free session", () => {
+  it("hides adding and logging controls for a completed free session", async () => {
     renderSession({
       session: {
         ...freeSession,
@@ -835,6 +923,7 @@ describe("SessionView", () => {
       },
       plan: null,
     });
+    await expand("Cable Fly");
 
     expect(
       screen.queryByRole("button", { name: "Add exercise" })
