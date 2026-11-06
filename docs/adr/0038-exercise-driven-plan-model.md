@@ -25,4 +25,4 @@ ADR-0010 introduced plan targets as reusable templates. ADR-0025 made plan edits
 - Changing an exercise default changes every plan that uses it; plans cannot override the value.
 - Past sessions and logged sets remain independent (ADR-0010).
 - The response still carries target fields, so the web contract does not change in this step.
-- ADR-0017's plan target limits no longer apply; the exercise defaults keep their existing bounds. ADR-0022's plan-target weight input note becomes obsolete once the plan form is simplified.
+- ADR-0017's plan target limits no longer apply; the exercise defaults keep their existing bounds. ADR-0022 is updated for the derived plan targets.
