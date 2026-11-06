@@ -10,7 +10,7 @@ The gym tracker must show reusable training plans and let the user check off set
 
 ## Decision
 
-- `WorkoutPlan` and `WorkoutPlanExercise` store reusable targets: exercise, position, target sets, target reps, and an optional target weight.
+- `WorkoutPlan` and `WorkoutPlanExercise` store the exercise selection and order (`position`). Working sets, reps, and weight live on `Exercise` (ADR-0038).
 - `WorkoutSession` optionally references a plan (`planId`, `onDelete: SetNull`). Sessions store their own title, start time, and completion time.
 - Logged `WorkoutSet` rows are independent records. Editing or deleting a plan later must never rewrite past sessions.
 - A user has at most one active session (`completedAt IS NULL`).
@@ -20,5 +20,5 @@ The gym tracker must show reusable training plans and let the user check off set
 
 - Workout history is stable without plan versioning.
 - Plan editing and deletion can be added later without touching historical sets.
-- Starting a plan session stores only the plan reference; the frontend reads targets from the current plan.
+- Starting a plan session stores only the plan reference; the frontend reads targets from the current exercise defaults.
 - Only one active session per user keeps the "resume workout" flow unambiguous.

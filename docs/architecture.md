@@ -434,10 +434,11 @@ apps/web/
 - Data fetching and mutations live in `src/api/`; components call that layer and never
   call `fetch` directly.
 - The exercise register creates, edits, and soft-deletes exercises. Exercise defaults
-  prefill new plan rows and the weight placeholder of an exercise without history
-  (ADR-0024, ADR-0030).
+  provide the targets shown in plans and sessions and the weight placeholder of an
+  exercise without history (ADR-0024, ADR-0030, ADR-0038).
 - Plans can be edited and deleted from the plan list. Editing replaces the plan's
-  exercises and targets; past sessions and logged sets are unaffected (ADR-0025).
+  exercise selection and order; targets in responses come from the exercise defaults,
+  and past sessions and logged sets are unaffected (ADR-0025, ADR-0038).
 - The training rotation section shows the next suggested plan and lets the user add,
   remove, and reorder plans. Free workouts never advance it (ADR-0026).
 - The start screen leads with the suggested next workout and one primary start action.

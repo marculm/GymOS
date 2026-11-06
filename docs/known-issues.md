@@ -1,6 +1,6 @@
 # Known Issues and Deferred Work
 
-Last updated: 2026-11-02
+Last updated: 2026-11-06
 Scope: Gym Tracker MVP on `refactor/ponytail`.
 
 These are known, non-blocking issues. They do not affect the core flow: create a plan, start a workout, log sets, finish, and review history.
@@ -9,7 +9,7 @@ These are known, non-blocking issues. They do not affect the core flow: create a
 
 - Nutrition and extractor routes return `501 Not Implemented` instead of fabricated data.
 - Readiness checks the database; production logging no longer loads `pino-pretty`.
-- Plan input is bounded (50 exercises, 20 target sets, 100 target reps) and cannot repeat an exercise.
+- Plan input is bounded to 50 exercises and cannot repeat an exercise; the exercise register owns the working sets, reps, and weight.
 - Regression tests cover set/completion races and two-user isolation.
 - API errors use RFC 9457 problem details; list endpoints are paginated.
 - Missing or malformed JSON bodies return `400` instead of becoming `{}`.

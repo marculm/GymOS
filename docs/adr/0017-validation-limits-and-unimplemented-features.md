@@ -6,11 +6,11 @@ Accepted
 
 ## Context
 
-The gym API currently accepts unbounded plan input: a plan may contain an unlimited
-number of exercises, and target sets and reps have no upper bound. The nutrition and
-extractor modules return fixed demo values from real routes, so a client cannot tell
-that the data is fabricated. The nutrition and recipe contracts and tables exist but are
-not implemented.
+The gym API accepted unbounded plan input: a plan could contain an unlimited number of
+exercises, and target sets and reps had no upper bound. Plans later stopped storing
+target sets and reps (ADR-0038). The nutrition and extractor modules return fixed demo
+values from real routes, so a client cannot tell that the data is fabricated. The
+nutrition and recipe contracts and tables exist but are not implemented.
 
 ## Decision
 
@@ -19,12 +19,13 @@ not implemented.
 The shared workout schemas enforce:
 
 - at most 50 exercises per plan;
-- each exercise at most once per plan;
-- `targetSets` at most 20;
-- `targetReps` at most 100.
+- each exercise at most once per plan.
 
-The plan form enforces the same limits so the UI and API agree. The API remains the
-authority: invalid input is rejected with `422` problem details.
+Plans no longer accept target sets or reps (ADR-0038). Exercise defaults keep their
+bounds: `defaultSets` at most 20 and `defaultReps` at most 100.
+
+The plan and exercise forms enforce the same limits so the UI and API agree. The API
+remains the authority: invalid input is rejected with `422` problem details.
 
 Numeric limits for logged sets (reps and weight) are defined in ADR-0022.
 

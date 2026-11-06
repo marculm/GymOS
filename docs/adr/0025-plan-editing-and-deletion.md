@@ -13,12 +13,14 @@ those changes happen.
 
 ## Decision
 
-- `PUT /api/gym/plans/:id` replaces the whole plan: name, description, and exercises. It
-  uses the same validation as creation, including the exercise-existence check and the
-  unique-name rule.
+- `PUT /api/gym/plans/:id` replaces the whole plan: name, description, and the exercise
+  selection and order. It uses the same validation as creation, including the
+  exercise-existence check and the unique-name rule.
 - Plan exercises are replaced wholesale in one transaction: existing
   `WorkoutPlanExercise` rows are deleted and recreated with new positions. Nothing
   references those rows outside the plan.
+- Plan targets are not stored. Responses derive them from the current exercise defaults
+  (ADR-0038).
 - `DELETE /api/gym/plans/:id` hard-deletes the plan. `WorkoutPlanExercise` rows cascade;
   sessions keep their row and title, and `planId` becomes `NULL` through `onDelete:
   SetNull`. Logged sets are never touched.
@@ -31,6 +33,7 @@ those changes happen.
 
 - Renaming or restructuring a plan never changes past sessions, their titles, or their
   logged sets.
+- Editing a plan cannot change its targets; those follow the exercise register.
 - Plan exercise entry IDs change on every edit; no contract exposes them beyond the plan.
 - Deleting a plan is permanent and has no soft-delete or restore path.
 - A plan session in progress keeps working after its plan is deleted because the session
