@@ -229,7 +229,7 @@ describe("Gym exercise register", () => {
 
     const res = await jsonRequest("/api/gym/plans", "POST", {
       name: "Deleted Exercise Plan",
-      exercises: [{ exerciseId: exercise.id, targetSets: 3, targetReps: 8 }],
+      exercises: [{ exerciseId: exercise.id }],
     });
 
     expect(res.status).toBe(422);
@@ -242,7 +242,7 @@ describe("Gym exercise register", () => {
     const { exercise } = await createExercise();
     const planRes = await jsonRequest("/api/gym/plans", "POST", {
       name: "Existing Plan",
-      exercises: [{ exerciseId: exercise.id, targetSets: 3, targetReps: 8 }],
+      exercises: [{ exerciseId: exercise.id }],
     });
     expect(planRes.status).toBe(201);
 

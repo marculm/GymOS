@@ -25,33 +25,40 @@ describe("toExercise", () => {
   });
 });
 
+function buildPlan(defaultWeightKg: number | null) {
+  const createdAt = new Date("2026-11-06T12:00:00.000Z");
+  const planId = "9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d";
+
+  return {
+    id: planId,
+    userId: "user-1",
+    name: "Push",
+    description: null,
+    createdAt,
+    updatedAt: createdAt,
+    exercises: [
+      {
+        id: "7c5f2a1e-4d3b-4a6f-9e8d-1b2c3d4e5f60",
+        planId,
+        exerciseId: exercise.id,
+        position: 0,
+        notes: null,
+        exercise: {
+          ...exercise,
+          defaultSets: 5,
+          defaultReps: 12,
+          defaultWeightKg,
+          deletedAt: null,
+          createdAt,
+        },
+      },
+    ],
+  };
+}
+
 describe("toPlan", () => {
   it("derives targets from the exercise defaults", () => {
-    const createdAt = new Date("2026-11-06T12:00:00.000Z");
-    const planExercise = {
-      id: "7c5f2a1e-4d3b-4a6f-9e8d-1b2c3d4e5f60",
-      planId: "9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d",
-      exerciseId: exercise.id,
-      position: 0,
-      notes: null,
-      exercise: {
-        ...exercise,
-        defaultSets: 5,
-        defaultReps: 12,
-        defaultWeightKg: 42.5,
-        deletedAt: null,
-        createdAt,
-      },
-    };
-    const plan = {
-      id: "9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d",
-      userId: "user-1",
-      name: "Push",
-      description: null,
-      createdAt,
-      updatedAt: createdAt,
-      exercises: [planExercise],
-    };
+    const plan = buildPlan(42.5);
 
     expect(toPlan(plan)).toMatchObject({
       id: plan.id,
@@ -64,5 +71,9 @@ describe("toPlan", () => {
         },
       ],
     });
+  });
+
+  it("keeps a null target weight", () => {
+    expect(toPlan(buildPlan(null)).exercises[0]?.targetWeightKg).toBeNull();
   });
 });

@@ -49,10 +49,10 @@ function sendJson(method: string, path: string, body: unknown) {
   });
 }
 
-function planBody(name: string, overrides: Record<string, unknown> = {}) {
+function planBody(name: string) {
   return {
     name,
-    exercises: [{ exerciseId, targetSets: 3, targetReps: 10, ...overrides }],
+    exercises: [{ exerciseId }],
   };
 }
 
@@ -169,8 +169,6 @@ describe("Gym plan routes", () => {
       exercises: [
         {
           exerciseId: "00000000-0000-4000-8000-000000000099",
-          targetSets: 3,
-          targetReps: 10,
         },
       ],
     });
@@ -193,10 +191,7 @@ describe("Gym plan routes", () => {
   it("rejects duplicate exercises", async () => {
     const res = await postJson({
       name: "Repeated",
-      exercises: [
-        { exerciseId, targetSets: 3, targetReps: 8 },
-        { exerciseId, targetSets: 4, targetReps: 10 },
-      ],
+      exercises: [{ exerciseId }, { exerciseId }],
     });
 
     expect(res.status).toBe(422);
@@ -255,8 +250,6 @@ describe("Gym plan routes", () => {
       exercises: [
         {
           exerciseId: "00000000-0000-4000-8000-000000000099",
-          targetSets: 3,
-          targetReps: 10,
         },
       ],
     });
@@ -282,9 +275,7 @@ describe("Gym plan routes", () => {
       const created = (await (
         await sendJson("POST", "/api/gym/plans", {
           name: "Deleted Exercise Plan",
-          exercises: [
-            { exerciseId: createdExercise.id, targetSets: 3, targetReps: 10 },
-          ],
+          exercises: [{ exerciseId: createdExercise.id }],
         })
       ).json()) as { id: string };
 
@@ -296,9 +287,7 @@ describe("Gym plan routes", () => {
 
       const res = await sendJson("PUT", `/api/gym/plans/${created.id}`, {
         name: "Renamed Deleted Exercise Plan",
-        exercises: [
-          { exerciseId: createdExercise.id, targetSets: 4, targetReps: 8 },
-        ],
+        exercises: [{ exerciseId: createdExercise.id }],
       });
 
       expect(res.status).toBe(200);
@@ -325,7 +314,7 @@ describe("Gym plan routes", () => {
 
     const res = await sendJson("PUT", `/api/gym/plans/${created.id}`, {
       name: "Taken",
-      exercises: [{ exerciseId, targetSets: 3, targetReps: 10 }],
+      exercises: [{ exerciseId }],
     });
 
     expect(res.status).toBe(409);
@@ -367,9 +356,7 @@ describe("Gym plan routes", () => {
 
     const res = await sendJson("PUT", `/api/gym/plans/${plan.id}`, {
       name: "Edited Plan v2",
-      exercises: [
-        { exerciseId, targetSets: 5, targetReps: 5, targetWeightKg: 70 },
-      ],
+      exercises: [{ exerciseId }],
     });
     expect(res.status).toBe(200);
 

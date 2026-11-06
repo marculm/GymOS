@@ -45,7 +45,7 @@ async function getRotation() {
 async function createPlan(name: string) {
   const res = await sendJson("POST", "/api/gym/plans", {
     name,
-    exercises: [{ exerciseId, targetSets: 3, targetReps: 8 }],
+    exercises: [{ exerciseId }],
   });
   expect(res.status).toBe(201);
   return (await res.json()) as { id: string; name: string };

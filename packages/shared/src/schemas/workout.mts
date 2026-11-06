@@ -61,6 +61,7 @@ export const CreateWorkoutPlanSchema = z.object({
 
 export const UpdateWorkoutPlanSchema = CreateWorkoutPlanSchema;
 
+// Plan responses derive these targets from the referenced exercise; they are not stored on the plan.
 export const WorkoutPlanExerciseSchema = z.object({
   id: z.string().uuid(),
   position: z.number().int().nonnegative(),
