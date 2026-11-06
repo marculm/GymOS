@@ -44,8 +44,8 @@ nothing.
 - A rare two-device race no longer loses a tap without feedback.
 - The session screen remains the single place that groups sets by exercise; the API
   contract does not change.
-- A long session no longer requires scrolling past finished exercises. The manual toggle
-  stays in control after the first user interaction, and the done state remains readable
-  when the card is collapsed.
+- A long session no longer requires scrolling past finished exercises. A manual expansion
+  made after the card is done stays in control while extra sets are logged, and the done
+  state remains readable when the card is collapsed.
 - A session opens as a compact list of exercise names; a set is logged after opening its
   card.
