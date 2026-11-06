@@ -567,6 +567,7 @@ describe("SessionView", () => {
     const toggle = screen.getByRole("button", { name: "Expand Bench Press" });
     expect(toggle).toHaveAttribute("aria-expanded", "false");
     expect(toggle).toHaveAttribute("aria-controls", "sets-exercise-1");
+    expect(toggle).toHaveAccessibleDescription("Done");
     expect(document.getElementById("sets-exercise-1")).toBeInTheDocument();
     expect(toggle.closest("section")).toHaveClass("exercise-done");
     expect(screen.getByText("Done")).toBeInTheDocument();

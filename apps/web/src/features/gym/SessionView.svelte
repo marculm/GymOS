@@ -297,12 +297,13 @@
       class="card-toggle"
       aria-expanded={expanded}
       aria-controls={`sets-${exerciseId}`}
+      aria-describedby={done ? `done-${exerciseId}` : undefined}
       aria-label={`${expanded ? "Collapse" : "Expand"} ${name}`}
       onclick={() => toggleCard(exerciseId, expanded)}
     >
       <span>{name}</span>
       {#if done}
-        <span class="badge">Done</span>
+        <span class="badge" id={`done-${exerciseId}`}>Done</span>
       {/if}
     </button>
   </h3>
