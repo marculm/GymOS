@@ -590,6 +590,23 @@ describe("SessionView", () => {
     ).toHaveAttribute("aria-expanded", "true");
   });
 
+  it("auto-collapses again after a done card drops below its target", async () => {
+    const { rerender } = renderSession({
+      session: { ...session, sets: loggedSets(benchSet, 4) },
+    });
+    await expand("Bench Press");
+
+    await rerender({ session: { ...session, sets: loggedSets(benchSet, 3) } });
+    await rerender({ session: { ...session, sets: loggedSets(benchSet, 4) } });
+
+    expect(
+      screen.queryByRole("form", { name: "Add set for Bench Press" })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Expand Bench Press" })
+    ).toHaveAttribute("aria-expanded", "false");
+  });
+
   it("expands a done card manually and keeps the done state", async () => {
     renderSession({
       session: { ...session, sets: loggedSets(benchSet, 4) },
