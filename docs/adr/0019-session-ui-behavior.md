@@ -22,16 +22,21 @@ nothing.
   retry fails, it shows an error message instead of silently doing nothing.
 - The set form and the controls that trigger a request are disabled while a request is
   pending.
+- Every exercise card starts collapsed. The exercise name is the toggle; there is no
+  separate show/hide control. The toggle is a native button with `aria-expanded` and
+  `aria-controls`, so it works with a keyboard and assistive technology.
+- A collapsed card shows the exercise name and, when it is done, a visible "Done" label.
+  The target line and set summary are hidden, so every collapsed card has the same
+  compact height.
 - A planned exercise card auto-collapses when the number of logged sets reaches its
-  `targetSets`. The collapsed card shows a compact summary and a visible "Done" label in
-  addition to muted styling, so completion does not rely on color alone.
-- Every card, planned or free, has an accessible expand/collapse toggle with
-  `aria-expanded` and `aria-controls`. A manual toggle overrides the automatic behavior
-  for that card: an expanded card stays expanded when more sets are logged, including
-  sets beyond the target, and a manually collapsed card stays collapsed until it is
-  expanded again.
+  target set count (`targetSets`, derived from the exercise's `defaultSets` in the
+  exercise-driven plan model). Re-expanding a done card keeps it expanded while extra
+  sets are logged; only a new transition to done collapses it again.
+- Done cards use a muted background and muted text in addition to the "Done" label, so
+  completion does not rely on color alone.
 - Expanding a done card keeps the done state and its set form, so extra sets can still be
-  logged. Free and ad-hoc exercises have no target and are only manually collapsible.
+  logged. Free and ad-hoc exercises have no target, start collapsed, and are only toggled
+  manually.
 
 ## Consequences
 
@@ -42,3 +47,5 @@ nothing.
 - A long session no longer requires scrolling past finished exercises. The manual toggle
   stays in control after the first user interaction, and the done state remains readable
   when the card is collapsed.
+- A session opens as a compact list of exercise names; a set is logged after opening its
+  card.
