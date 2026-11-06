@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/svelte";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/svelte";
 import type {
   Exercise,
   WorkoutPlan,
@@ -1127,6 +1127,46 @@ describe("GymView", () => {
     expect(
       await screen.findAllByText("Bench Press Pro")
     ).toHaveLength(2);
+  });
+
+  it("updates plan targets after editing exercise defaults", async () => {
+    vi.mocked(getRotation).mockResolvedValueOnce({
+      plans: [plan],
+      nextPlanId: plan.id,
+    });
+    vi.mocked(updateExercise).mockResolvedValueOnce({
+      ...exercise,
+      defaultSets: 5,
+      defaultReps: 10,
+      defaultWeightKg: 85,
+    });
+
+    render(GymView);
+
+    await startScreenReady();
+    await openManagement();
+    await fireEvent.click(
+      screen.getByRole("button", { name: /edit bench press/i })
+    );
+    await fireEvent.input(screen.getByLabelText("Default sets"), {
+      target: { value: "5" },
+    });
+    await fireEvent.input(screen.getByLabelText("Default reps"), {
+      target: { value: "10" },
+    });
+    await fireEvent.input(
+      screen.getByLabelText("Default weight (kg, optional)"),
+      { target: { value: "85" } }
+    );
+    await clickSubmit(screen.getByRole("button", { name: /save exercise/i }));
+
+    const nextWorkoutCard = screen.getByText("Next workout").closest("section");
+    expect(nextWorkoutCard).not.toBeNull();
+    await waitFor(() => {
+      expect(
+        within(nextWorkoutCard as HTMLElement).getByText(/5 × 10 @ 85 kg/)
+      ).toBeInTheDocument();
+    });
   });
 
   it("deletes an exercise from the register", async () => {

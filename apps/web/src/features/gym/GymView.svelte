@@ -231,7 +231,15 @@
     plans = plans.map((plan) => ({
       ...plan,
       exercises: plan.exercises.map((entry) =>
-        entry.exercise.id === id ? { ...entry, exercise: updated } : entry
+        entry.exercise.id === id
+          ? {
+              ...entry,
+              exercise: updated,
+              targetSets: updated.defaultSets,
+              targetReps: updated.defaultReps,
+              targetWeightKg: updated.defaultWeightKg,
+            }
+          : entry
       ),
     }));
   }
