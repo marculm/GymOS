@@ -27,10 +27,11 @@ benefit and risks losing the only path back to Finish.
   `localStorage` (`gymos.restTimerSeconds`) and validated against the presets on load;
   unreadable storage falls back to 120 seconds.
 - A running countdown stores its end timestamp in `localStorage`
-  (`gymos.restTimerEndsAt`). On load the remaining time is recomputed from that
-  timestamp and the countdown resumes if the end is still in the future; an expired or
-  missing timestamp shows `0:00`. Starting, restarting after a logged set, or changing
-  the preset stores a new end timestamp; stopping removes it.
+  (`gymos.restTimerEndsAt`) and derives the remaining time from it on every tick, so it
+  catches up after the page was suspended. On load the countdown resumes if the end is
+  still in the future; an expired or missing timestamp shows `0:00`. Starting,
+  restarting after a logged set, or changing the preset stores a new end timestamp;
+  stopping, reaching zero, or finishing the workout removes it.
 - Logging a set successfully starts or restarts the countdown. Tapping the timer reveals
   the presets and a Stop/Reset control. The countdown stays visible in the bar and never
   plays a sound, vibrates, or sends a notification.
@@ -44,5 +45,3 @@ benefit and risks losing the only path back to Finish.
 - Users cannot switch to Nutrition or the extractor during a workout; finishing restores
   the main tabs.
 - The timer is a view concern in `SessionView`; no API or shared contract changes.
-- After load the countdown ticks locally, so a backgrounded or suspended PWA can fall
-  behind the stored end timestamp.
