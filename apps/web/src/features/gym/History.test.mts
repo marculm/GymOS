@@ -165,6 +165,7 @@ describe("History", () => {
     expect(screen.getByText("8 × 80 kg")).toBeInTheDocument();
     expect(screen.getByText("6 × 85 kg")).toBeInTheDocument();
     expect(screen.queryByText("4 × 8 @ 80 kg")).not.toBeInTheDocument();
+    expect(screen.queryByText(/@ .* kg/)).not.toBeInTheDocument();
     expect(screen.getByText(/60 min/)).toBeInTheDocument();
     expect(getSession).toHaveBeenCalledWith("session-1");
   });
