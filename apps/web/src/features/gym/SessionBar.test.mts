@@ -72,6 +72,7 @@ function renderSession() {
       exercises: [exercise],
       onLogSet: onLogSet as (input: CreateWorkoutSetInput) => Promise<void>,
       onDeleteSet: vi.fn().mockResolvedValue(undefined),
+      onUpdateExercise: vi.fn().mockResolvedValue(undefined),
       onComplete: onComplete as () => Promise<void>,
     },
   });

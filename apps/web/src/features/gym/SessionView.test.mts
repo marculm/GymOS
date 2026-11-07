@@ -8,6 +8,7 @@ import {
 } from "@testing-library/svelte";
 import { MAX_SET_REPS, MAX_SET_WEIGHT_KG } from "@gymos/shared/limits";
 import type {
+  CreateExerciseInput,
   CreateWorkoutSetInput,
   Exercise,
   LoggedSet,
@@ -22,6 +23,7 @@ type Props = {
   exercises: Exercise[];
   onLogSet: (input: CreateWorkoutSetInput) => Promise<void>;
   onDeleteSet: (setId: string) => Promise<void>;
+  onUpdateExercise: (id: string, input: CreateExerciseInput) => Promise<void>;
   onComplete: () => Promise<void>;
 };
 
@@ -151,6 +153,7 @@ function deferred() {
 function renderSession(overrides: Partial<Props> = {}) {
   const onLogSet = vi.fn().mockResolvedValue(undefined);
   const onDeleteSet = vi.fn().mockResolvedValue(undefined);
+  const onUpdateExercise = vi.fn().mockResolvedValue(undefined);
   const onComplete = vi.fn().mockResolvedValue(undefined);
 
   const result = render(SessionView, {
@@ -160,6 +163,7 @@ function renderSession(overrides: Partial<Props> = {}) {
       exercises: [exercise, extraExercise],
       onLogSet,
       onDeleteSet,
+      onUpdateExercise,
       onComplete,
       ...overrides,
     },
@@ -168,10 +172,17 @@ function renderSession(overrides: Partial<Props> = {}) {
   return {
     onLogSet,
     onDeleteSet,
+    onUpdateExercise,
     onComplete,
     rerender: result.rerender,
     unmount: result.unmount,
   };
+}
+
+async function submitExerciseForm() {
+  const form = screen.getByLabelText("Name").closest("form");
+  if (!form) throw new Error("exercise form is missing");
+  await fireEvent.submit(form);
 }
 
 function cardForm(name: string) {
@@ -263,6 +274,330 @@ describe("SessionView", () => {
     expect(
       screen.getByRole("button", { name: "Expand Bench Press" })
     ).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("edits an exercise from its session card", async () => {
+    const { onUpdateExercise } = renderSession();
+    await expand("Bench Press");
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: /edit exercise bench press/i })
+    );
+
+    expect(screen.getByLabelText("Name")).toHaveValue("Bench Press");
+    expect(screen.getByLabelText("Name")).toHaveFocus();
+    expect(
+      screen.getByRole("form", { name: "Edit exercise" })
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Default sets")).toHaveValue(4);
+    expect(screen.getByLabelText("Default reps")).toHaveValue(10);
+    expect(
+      screen.getByLabelText("Default weight (kg, optional)")
+    ).toHaveValue(60);
+
+    await fireEvent.input(screen.getByLabelText("Name"), {
+      target: { value: "Incline Bench Press" },
+    });
+    await fireEvent.change(screen.getByLabelText("Muscle group"), {
+      target: { value: "back" },
+    });
+    await fireEvent.input(screen.getByLabelText("Default sets"), {
+      target: { value: "5" },
+    });
+    await fireEvent.input(screen.getByLabelText("Default reps"), {
+      target: { value: "12" },
+    });
+    await fireEvent.input(screen.getByLabelText("Default weight (kg, optional)"), {
+      target: { value: "85" },
+    });
+    await submitExerciseForm();
+
+    await waitFor(() => {
+      expect(onUpdateExercise).toHaveBeenCalledWith("exercise-1", {
+        name: "Incline Bench Press",
+        muscleGroup: "back",
+        description: null,
+        defaultSets: 5,
+        defaultReps: 12,
+        defaultWeightKg: 85,
+      });
+    });
+    expect(screen.queryByLabelText("Name")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Collapse Bench Press" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /edit exercise bench press/i })
+    ).toHaveFocus();
+  });
+
+  it("returns focus to the edit action after cancel", async () => {
+    renderSession();
+    await expand("Bench Press");
+    await fireEvent.click(
+      screen.getByRole("button", { name: /edit exercise bench press/i })
+    );
+    await fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(screen.queryByLabelText("Name")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /edit exercise bench press/i })
+    ).toHaveFocus();
+  });
+
+  it("keeps a card expanded when saved defaults make it done", async () => {
+    const donePlan: WorkoutPlan = {
+      ...plan,
+      exercises: plan.exercises.map((entry) => ({ ...entry, targetSets: 1 })),
+    };
+    let rerender: ReturnType<typeof renderSession>["rerender"] | undefined;
+    const onUpdateExercise = vi.fn(async () => {
+      await rerender?.({ plan: donePlan });
+    });
+    const rendered = renderSession({
+      session: { ...session, sets: [benchSet] },
+      onUpdateExercise,
+    });
+    rerender = rendered.rerender;
+
+    await expand("Bench Press");
+    await fireEvent.click(
+      screen.getByRole("button", { name: /edit exercise bench press/i })
+    );
+    await fireEvent.input(screen.getByLabelText("Default sets"), {
+      target: { value: "1" },
+    });
+    await submitExerciseForm();
+
+    await waitFor(() => {
+      expect(onUpdateExercise).toHaveBeenCalled();
+    });
+    expect(
+      screen.getByRole("button", { name: "Collapse Bench Press" })
+    ).toBeInTheDocument();
+    expect(screen.getByText(/1\s*×\s*8/)).toBeInTheDocument();
+  });
+
+  it("does not reopen a card collapsed while saving", async () => {
+    const request = deferred();
+    const onUpdateExercise = vi.fn().mockReturnValue(request.promise);
+    renderSession({ onUpdateExercise });
+    await expand("Bench Press");
+    await fireEvent.click(
+      screen.getByRole("button", { name: /edit exercise bench press/i })
+    );
+    await fireEvent.input(screen.getByLabelText("Default sets"), {
+      target: { value: "1" },
+    });
+    await submitExerciseForm();
+    expect(onUpdateExercise).toHaveBeenCalled();
+    await collapse("Bench Press");
+
+    request.resolve();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(
+      screen.getByRole("button", { name: "Expand Bench Press" })
+    ).toBeInTheDocument();
+  });
+
+  it("disables cancel while an exercise save is pending", async () => {
+    const request = deferred();
+    renderSession({
+      onUpdateExercise: vi.fn().mockReturnValue(request.promise),
+    });
+    await expand("Bench Press");
+    await fireEvent.click(
+      screen.getByRole("button", { name: /edit exercise bench press/i })
+    );
+    await submitExerciseForm();
+
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
+
+    request.resolve();
+  });
+
+  it("keeps an open edit when another card is collapsed", async () => {
+    renderSession({ plan: twoExercisePlan });
+    await expand("Bench Press");
+    await expand("Cable Fly");
+    await fireEvent.click(
+      screen.getByRole("button", { name: /edit exercise bench press/i })
+    );
+    await collapse("Cable Fly");
+
+    expect(screen.getByLabelText("Name")).toHaveValue("Bench Press");
+  });
+
+  it("keeps the active edit when another save finishes", async () => {
+    const request = deferred();
+    renderSession({
+      plan: twoExercisePlan,
+      onUpdateExercise: vi.fn().mockReturnValue(request.promise),
+    });
+    await expand("Bench Press");
+    await expand("Cable Fly");
+    await fireEvent.click(
+      screen.getByRole("button", { name: /edit exercise bench press/i })
+    );
+    await submitExerciseForm();
+    await fireEvent.click(
+      screen.getByRole("button", { name: /edit exercise cable fly/i })
+    );
+
+    request.resolve();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(screen.getByLabelText("Name")).toHaveValue("Cable Fly");
+  });
+
+  it("shows a failed save after the card is collapsed", async () => {
+    let reject!: (error: Error) => void;
+    const request = new Promise<void>((_, rejectPromise) => {
+      reject = rejectPromise;
+    });
+    renderSession({
+      onUpdateExercise: vi.fn().mockReturnValue(request),
+    });
+    await expand("Bench Press");
+    await fireEvent.click(
+      screen.getByRole("button", { name: /edit exercise bench press/i })
+    );
+    await submitExerciseForm();
+    await collapse("Bench Press");
+
+    reject(new Error("Name already exists"));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Name already exists"
+    );
+  });
+
+  it("keeps the exercise form open when a save fails", async () => {
+    renderSession({
+      onUpdateExercise: vi
+        .fn()
+        .mockRejectedValue(new Error("Name already exists")),
+    });
+    await expand("Bench Press");
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: /edit exercise bench press/i })
+    );
+    await fireEvent.input(screen.getByLabelText("Name"), {
+      target: { value: "Incline Bench Press" },
+    });
+    await submitExerciseForm();
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Name already exists"
+    );
+    expect(screen.getByLabelText("Name")).toHaveValue("Incline Bench Press");
+  });
+
+  it("edits an exercise logged outside the plan", async () => {
+    const { onUpdateExercise, rerender } = renderSession({
+      session: { ...session, sets: [cableSet] },
+    });
+    await expand("Cable Fly");
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: /edit exercise cable fly/i })
+    );
+    await fireEvent.input(screen.getByLabelText("Name"), {
+      target: { value: "Cable Fly Pro" },
+    });
+    await submitExerciseForm();
+
+    await waitFor(() => {
+      expect(onUpdateExercise).toHaveBeenCalledWith(
+        "exercise-2",
+        expect.objectContaining({ name: "Cable Fly Pro" })
+      );
+    });
+
+    await rerender({
+      exercises: [exercise, { ...extraExercise, name: "Cable Fly Pro" }],
+    });
+    expect(
+      screen.getByRole("button", { name: "Collapse Cable Fly Pro" })
+    ).toBeInTheDocument();
+  });
+
+  it("edits an exercise logged in a free session", async () => {
+    const { onUpdateExercise, rerender } = renderSession({
+      session: { ...freeSession, sets: [cableSet] },
+      plan: null,
+    });
+    await expand("Cable Fly");
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: /edit exercise cable fly/i })
+    );
+    await fireEvent.input(screen.getByLabelText("Name"), {
+      target: { value: "Cable Fly Pro" },
+    });
+    await submitExerciseForm();
+
+    await waitFor(() => {
+      expect(onUpdateExercise).toHaveBeenCalledWith(
+        "exercise-2",
+        expect.objectContaining({ name: "Cable Fly Pro" })
+      );
+    });
+
+    await rerender({
+      exercises: [exercise, { ...extraExercise, name: "Cable Fly Pro" }],
+    });
+    expect(
+      screen.getByRole("button", { name: "Collapse Cable Fly Pro" })
+    ).toBeInTheDocument();
+  });
+
+  it("shows saved values on an added free-session card", async () => {
+    const { onUpdateExercise, rerender } = renderSession({
+      session: freeSession,
+      plan: null,
+    });
+    await fireEvent.change(screen.getByLabelText("Exercise"), {
+      target: { value: "exercise-2" },
+    });
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Add exercise" })
+    );
+    await expand("Cable Fly");
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: /edit exercise cable fly/i })
+    );
+    await fireEvent.input(screen.getByLabelText("Name"), {
+      target: { value: "Cable Fly Pro" },
+    });
+    await submitExerciseForm();
+
+    await waitFor(() => {
+      expect(onUpdateExercise).toHaveBeenCalledWith(
+        "exercise-2",
+        expect.objectContaining({ name: "Cable Fly Pro" })
+      );
+    });
+
+    await rerender({
+      exercises: [exercise, { ...extraExercise, name: "Cable Fly Pro" }],
+    });
+    expect(
+      screen.getByRole("button", { name: "Collapse Cable Fly Pro" })
+    ).toBeInTheDocument();
+  });
+
+  it("offers no edit action for an exercise that is not loaded", async () => {
+    renderSession({ session: { ...session, sets: [missingExerciseSet] } });
+    await expand("Deleted Press");
+
+    expect(
+      screen.queryByRole("button", { name: /edit exercise/i })
+    ).not.toBeInTheDocument();
   });
 
   it("logs a set from the exercise card", async () => {
@@ -940,16 +1275,20 @@ describe("SessionView", () => {
     await waitFor(() => expect(finish).toHaveFocus());
   });
 
-  it("hides logging controls for a completed session", () => {
+  it("hides logging controls for a completed session", async () => {
     renderSession({
       session: { ...session, completedAt: "2026-10-26T19:00:00.000Z" },
     });
+    await expand("Bench Press");
 
     expect(
       screen.queryByRole("button", { name: "Finish workout" })
     ).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: /add set/i })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /edit exercise/i })
     ).not.toBeInTheDocument();
     expect(screen.queryByRole("form")).not.toBeInTheDocument();
   });

@@ -28,6 +28,10 @@ a rename may change historical display.
   because the exercise identity is stable and a snapshot would add a column without a
   requirement to preserve old wording.
 - Exercise names remain globally unique, including deleted rows.
+- The register form is the shared `ExerciseForm` component. Session cards reuse it to edit
+  an exercise inline; both paths apply the same validation, surface errors in the form,
+  and save through `PUT /api/gym/exercises/:id`. Inline editing never creates exercises;
+  creation stays in the register.
 
 ## Consequences
 
@@ -37,3 +41,5 @@ a rename may change historical display.
 - There is no restore action; a deleted exercise stays hidden and its name stays
   reserved by the unique constraint (tracked in `docs/known-issues.md`).
 - Renames are visible retroactively in workout history.
+- The register and the session share one exercise form, so validation, pending state, and
+  error messages cannot drift between them.

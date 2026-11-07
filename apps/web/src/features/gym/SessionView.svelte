@@ -1,12 +1,14 @@
 <script lang="ts">
   import { onDestroy, tick } from "svelte";
   import type {
+    CreateExerciseInput,
     CreateWorkoutSetInput,
     Exercise,
     LoggedSet,
     WorkoutPlan,
     WorkoutSessionDetail,
   } from "@gymos/shared";
+  import ExerciseForm from "./ExerciseForm.svelte";
   import { formatWeight } from "./format.mts";
   import SetLogForm from "./SetLogForm.svelte";
 
@@ -16,6 +18,7 @@
     exercises,
     onLogSet,
     onDeleteSet,
+    onUpdateExercise,
     onComplete,
   }: {
     session: WorkoutSessionDetail;
@@ -23,6 +26,7 @@
     exercises: Exercise[];
     onLogSet: (input: CreateWorkoutSetInput) => Promise<void>;
     onDeleteSet: (setId: string) => Promise<void>;
+    onUpdateExercise: (id: string, input: CreateExerciseInput) => Promise<void>;
     onComplete: () => Promise<void>;
   } = $props();
 
@@ -35,6 +39,7 @@
   let freeExercises = $state<Exercise[]>([]);
   let manualExpanded = $state<Record<string, boolean>>({});
   let exerciseToAdd = $state("");
+  let editingExerciseId = $state<string | null>(null);
   let pending = $state(false);
   let error = $state<string | null>(null);
   let finishButton = $state<HTMLButtonElement | null>(null);
@@ -153,7 +158,8 @@
       }
     >();
 
-    for (const exercise of freeExercises) {
+    for (const freeExercise of freeExercises) {
+      const exercise = byId.get(freeExercise.id) ?? freeExercise;
       cards.set(exercise.id, {
         exerciseId: exercise.id,
         name: exercise.name,
@@ -166,7 +172,7 @@
       if (cards.has(group.exerciseId)) continue;
       cards.set(group.exerciseId, {
         exerciseId: group.exerciseId,
-        name: group.name,
+        name: byId.get(group.exerciseId)?.name ?? group.name,
         sets: group.sets,
         exercise: byId.get(group.exerciseId) ?? null,
       });
@@ -187,6 +193,42 @@
 
   function toggleCard(exerciseId: string, expanded: boolean) {
     manualExpanded = { ...manualExpanded, [exerciseId]: !expanded };
+    if (expanded && editingExerciseId === exerciseId) {
+      editingExerciseId = null;
+    }
+  }
+
+  function startEditing(exerciseId: string) {
+    editingExerciseId = exerciseId;
+  }
+
+  async function closeExerciseEdit(exerciseId: string) {
+    editingExerciseId = null;
+    await tick();
+    document.getElementById(`edit-exercise-${exerciseId}`)?.focus();
+  }
+
+  async function saveExercise(
+    exerciseId: string,
+    input: CreateExerciseInput
+  ): Promise<void> {
+    try {
+      await onUpdateExercise(exerciseId, input);
+    } catch (saveError) {
+      if (editingExerciseId !== exerciseId) {
+        error =
+          saveError instanceof Error
+            ? saveError.message
+            : "Could not save the exercise";
+      }
+      throw saveError;
+    }
+    if (editingExerciseId !== exerciseId) return;
+    editingExerciseId = null;
+    await tick();
+    manualExpanded = { ...manualExpanded, [exerciseId]: true };
+    await tick();
+    document.getElementById(`edit-exercise-${exerciseId}`)?.focus();
   }
 
   const doneState = new Map<string, boolean>();
@@ -409,6 +451,27 @@
   </h3>
 {/snippet}
 
+{#snippet exerciseEdit(exerciseId: string, exercise: Exercise)}
+  {#if editingExerciseId === exerciseId}
+    <ExerciseForm
+      exercise={exercise}
+      onSubmit={(input) => saveExercise(exerciseId, input)}
+      onCancel={() => void closeExerciseEdit(exerciseId)}
+    />
+  {:else}
+    <button
+      id={`edit-exercise-${exerciseId}`}
+      type="button"
+      class="btn btn-ghost"
+      disabled={pending}
+      aria-label={`Edit exercise ${exercise.name}`}
+      onclick={() => startEditing(exerciseId)}
+    >
+      Edit exercise
+    </button>
+  {/if}
+{/snippet}
+
 {#snippet setRowsAndForm(
   exerciseId: string,
   sets: LoggedSet[],
@@ -422,11 +485,14 @@
     {/each}
   {/if}
   {#if !completed && exercise}
-    <SetLogForm
-      exercise={exercise}
-      disabled={pending}
-      onSubmit={(input) => logSet(exerciseId, input)}
-    />
+    {#if editingExerciseId !== exerciseId}
+      <SetLogForm
+        exercise={exercise}
+        disabled={pending}
+        onSubmit={(input) => logSet(exerciseId, input)}
+      />
+    {/if}
+    {@render exerciseEdit(exerciseId, exercise)}
   {/if}
 {/snippet}
 
@@ -469,13 +535,23 @@
 
     {#each setGroups as group (group.exerciseId)}
       {@const expanded = isCardExpanded(group.exerciseId)}
+      {@const exercise =
+        exercises.find((entry) => entry.id === group.exerciseId) ?? null}
       <section class="card stack">
-        {@render cardHeader(group.exerciseId, group.name, expanded, false)}
+        {@render cardHeader(
+          group.exerciseId,
+          exercise?.name ?? group.name,
+          expanded,
+          false
+        )}
         <div class="stack" id={`sets-${group.exerciseId}`}>
           {#if expanded}
             {#each visibleSets(group.sets) as set (set.id)}
               {@render setRow(set)}
             {/each}
+            {#if !completed && exercise}
+              {@render exerciseEdit(group.exerciseId, exercise)}
+            {/if}
           {/if}
         </div>
       </section>

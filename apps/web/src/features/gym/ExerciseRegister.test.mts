@@ -122,6 +122,24 @@ describe("ExerciseRegister", () => {
     });
   });
 
+  it("keeps the form open and announces a failed save", async () => {
+    const { onUpdate } = renderRegister();
+    onUpdate.mockRejectedValueOnce(new Error("Name already exists"));
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: /edit bench press/i })
+    );
+    await fireEvent.input(screen.getByLabelText("Name"), {
+      target: { value: "Incline Bench Press" },
+    });
+    await submitExerciseForm();
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Name already exists"
+    );
+    expect(screen.getByLabelText("Name")).toHaveValue("Incline Bench Press");
+  });
+
   it("announces a failed delete", async () => {
     vi.stubGlobal("confirm", vi.fn(() => true));
     const { onDelete } = renderRegister();

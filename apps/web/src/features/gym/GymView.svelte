@@ -349,6 +349,7 @@
     exercises={exercises}
     onLogSet={handleLogSet}
     onDeleteSet={handleDeleteSet}
+    onUpdateExercise={handleUpdateExercise}
     onComplete={handleComplete}
   />
 {:else}

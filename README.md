@@ -12,6 +12,8 @@ The **Gym Tracker** slice is implemented:
 
 - Manage the exercise register: create, edit, and soft-delete exercises with default
   sets, reps, and weight
+- Edit an exercise's defaults from its session card without leaving the workout
+  (ADR-0019, ADR-0024)
 - Browse exercises and training plans
 - Create plans by selecting exercises and their order; targets come from the exercise
   defaults
