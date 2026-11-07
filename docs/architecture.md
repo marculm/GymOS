@@ -490,8 +490,8 @@ apps/web/
   (ADR-0034).
 - While a session is active, a fixed session bar replaces the main tab bar and makes the
   Nutrition and AI Extractor tabs unreachable. It keeps Finish workout and a rest timer
-  visible; the timer autostarts after a logged set and offers 120/150/180-second presets
-  persisted locally (ADR-0036).
+  visible; the timer autostarts after a logged set, offers 120/150/180-second presets,
+  and resumes a running countdown from local storage after a reload (ADR-0036).
 
 ### 4.4 API Layer
 

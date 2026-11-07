@@ -15,6 +15,7 @@ import type {
 import SessionView from "./SessionView.svelte";
 
 const REST_PRESET_KEY = "gymos.restTimerSeconds";
+const REST_END_KEY = "gymos.restTimerEndsAt";
 
 function presetStorage(): Storage | null {
   try {
@@ -65,7 +66,7 @@ function renderSession() {
   const onLogSet = vi.fn().mockResolvedValue(undefined);
   const onComplete = vi.fn().mockResolvedValue(undefined);
 
-  render(SessionView, {
+  const view = render(SessionView, {
     props: {
       session,
       plan,
@@ -77,7 +78,7 @@ function renderSession() {
     },
   });
 
-  return { onLogSet, onComplete };
+  return { onLogSet, onComplete, unmount: view.unmount };
 }
 
 function bar() {
@@ -165,6 +166,125 @@ describe("SessionBar", () => {
     expect(
       within(bar()).getByRole("button", { name: "2:30" })
     ).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("keeps the countdown across a remount", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-11-07T10:00:00.000Z"));
+
+    const { onLogSet, unmount } = renderSession();
+    await logSet(onLogSet);
+    await vi.advanceTimersByTimeAsync(0);
+
+    unmount();
+    vi.setSystemTime(new Date("2026-11-07T10:00:30.000Z"));
+    renderSession();
+
+    expect(timerButton()).toHaveTextContent("1:30");
+  });
+
+  it("resumes the countdown from the stored end timestamp", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-11-07T10:00:00.000Z"));
+    presetStorage()?.setItem(REST_END_KEY, String(Date.now() + 90_000));
+
+    renderSession();
+    expect(timerButton()).toHaveTextContent("1:30");
+
+    await vi.advanceTimersByTimeAsync(3000);
+    expect(timerButton()).toHaveTextContent("1:27");
+  });
+
+  it("shows zero when the stored end timestamp has passed", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-11-07T10:00:00.000Z"));
+    presetStorage()?.setItem(REST_END_KEY, String(Date.now() - 5_000));
+
+    renderSession();
+
+    expect(timerButton()).toHaveTextContent("0:00");
+  });
+
+  it("clears the stored countdown when the workout finishes", async () => {
+    vi.useFakeTimers();
+
+    const { onLogSet, onComplete } = renderSession();
+    await logSet(onLogSet);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(presetStorage()?.getItem(REST_END_KEY)).not.toBeNull();
+
+    await fireEvent.click(
+      within(bar()).getByRole("button", { name: "Finish workout" })
+    );
+    await waitFor(() => expect(onComplete).toHaveBeenCalled());
+
+    expect(presetStorage()?.getItem(REST_END_KEY)).toBeNull();
+  });
+
+  it("clears the end timestamp when the countdown reaches zero", async () => {
+    vi.useFakeTimers();
+
+    renderSession();
+    await fireEvent.click(timerButton());
+    await fireEvent.click(within(bar()).getByRole("button", { name: "Reset" }));
+    expect(presetStorage()?.getItem(REST_END_KEY)).not.toBeNull();
+
+    await vi.advanceTimersByTimeAsync(120_000);
+
+    expect(timerButton()).toHaveTextContent("0:00");
+    expect(presetStorage()?.getItem(REST_END_KEY)).toBeNull();
+  });
+
+  it("catches up with the stored end after the page was suspended", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-11-07T10:00:00.000Z"));
+
+    const { onLogSet } = renderSession();
+    await logSet(onLogSet);
+    await vi.advanceTimersByTimeAsync(0);
+
+    vi.setSystemTime(new Date("2026-11-07T10:00:30.000Z"));
+    await vi.advanceTimersByTimeAsync(1000);
+
+    expect(timerButton()).toHaveTextContent("1:29");
+  });
+
+  it("stores the end timestamp when a logged set starts the countdown", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-11-07T10:00:00.000Z"));
+
+    const { onLogSet } = renderSession();
+    await logSet(onLogSet);
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(presetStorage()?.getItem(REST_END_KEY)).toBe(
+      String(Date.now() + 120_000)
+    );
+  });
+
+  it("updates the end timestamp when the preset changes", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-11-07T10:00:00.000Z"));
+
+    renderSession();
+    await fireEvent.click(timerButton());
+    await fireEvent.click(within(bar()).getByRole("button", { name: "3:00" }));
+
+    expect(presetStorage()?.getItem(REST_END_KEY)).toBe(
+      String(Date.now() + 180_000)
+    );
+  });
+
+  it("clears the end timestamp when the timer stops", async () => {
+    vi.useFakeTimers();
+
+    renderSession();
+    await fireEvent.click(timerButton());
+    await fireEvent.click(within(bar()).getByRole("button", { name: "Reset" }));
+    expect(presetStorage()?.getItem(REST_END_KEY)).not.toBeNull();
+
+    await fireEvent.click(within(bar()).getByRole("button", { name: "Stop" }));
+    expect(presetStorage()?.getItem(REST_END_KEY)).toBeNull();
   });
 
   it("stops and resets the countdown", async () => {
