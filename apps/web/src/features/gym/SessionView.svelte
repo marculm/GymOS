@@ -202,6 +202,12 @@
     editingExerciseId = exerciseId;
   }
 
+  async function closeExerciseEdit(exerciseId: string) {
+    editingExerciseId = null;
+    await tick();
+    document.getElementById(`edit-exercise-${exerciseId}`)?.focus();
+  }
+
   async function saveExercise(
     exerciseId: string,
     input: CreateExerciseInput
@@ -221,6 +227,8 @@
     editingExerciseId = null;
     await tick();
     manualExpanded = { ...manualExpanded, [exerciseId]: true };
+    await tick();
+    document.getElementById(`edit-exercise-${exerciseId}`)?.focus();
   }
 
   const doneState = new Map<string, boolean>();
@@ -448,10 +456,11 @@
     <ExerciseForm
       exercise={exercise}
       onSubmit={(input) => saveExercise(exerciseId, input)}
-      onCancel={() => (editingExerciseId = null)}
+      onCancel={() => void closeExerciseEdit(exerciseId)}
     />
   {:else}
     <button
+      id={`edit-exercise-${exerciseId}`}
       type="button"
       class="btn btn-ghost"
       disabled={pending}

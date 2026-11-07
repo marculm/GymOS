@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { untrack } from "svelte";
+  import { onMount, untrack } from "svelte";
   import { MUSCLE_GROUPS } from "@gymos/shared";
   import type { CreateExerciseInput, Exercise } from "@gymos/shared";
 
@@ -13,6 +13,7 @@
     onCancel: () => void;
   } = $props();
 
+  // Reads the exercise once; callers remount the form when it changes.
   let name = $state(untrack(() => exercise?.name ?? ""));
   let muscleGroup = $state<Exercise["muscleGroup"]>(
     untrack(() => exercise?.muscleGroup ?? "chest")
@@ -29,6 +30,9 @@
   );
   let pending = $state(false);
   let error = $state<string | null>(null);
+  let nameInput = $state<HTMLInputElement | null>(null);
+
+  onMount(() => nameInput?.focus());
 
   async function handleSubmit(event: SubmitEvent) {
     event.preventDefault();
@@ -60,14 +64,24 @@
   }
 </script>
 
-<form class="stack" onsubmit={handleSubmit}>
+<form
+  class="stack"
+  aria-label={exercise ? "Edit exercise" : "New exercise"}
+  onsubmit={handleSubmit}
+>
   <h3 class="card-title">
     {exercise ? "Edit exercise" : "New exercise"}
   </h3>
 
   <label class="field">
     <span class="label">Name</span>
-    <input class="input" required maxlength={100} bind:value={name} />
+    <input
+      class="input"
+      required
+      maxlength={100}
+      bind:this={nameInput}
+      bind:value={name}
+    />
   </label>
 
   <label class="field">

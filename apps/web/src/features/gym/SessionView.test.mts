@@ -285,6 +285,10 @@ describe("SessionView", () => {
     );
 
     expect(screen.getByLabelText("Name")).toHaveValue("Bench Press");
+    expect(screen.getByLabelText("Name")).toHaveFocus();
+    expect(
+      screen.getByRole("form", { name: "Edit exercise" })
+    ).toBeInTheDocument();
     expect(screen.getByLabelText("Default sets")).toHaveValue(4);
     expect(screen.getByLabelText("Default reps")).toHaveValue(10);
     expect(
@@ -322,6 +326,23 @@ describe("SessionView", () => {
     expect(
       screen.getByRole("button", { name: "Collapse Bench Press" })
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /edit exercise bench press/i })
+    ).toHaveFocus();
+  });
+
+  it("returns focus to the edit action after cancel", async () => {
+    renderSession();
+    await expand("Bench Press");
+    await fireEvent.click(
+      screen.getByRole("button", { name: /edit exercise bench press/i })
+    );
+    await fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(screen.queryByLabelText("Name")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /edit exercise bench press/i })
+    ).toHaveFocus();
   });
 
   it("keeps a card expanded when saved defaults make it done", async () => {
