@@ -35,16 +35,22 @@
   import SessionView from "./SessionView.svelte";
   import WorkoutPicker from "./WorkoutPicker.svelte";
 
+  const tabs = [
+    { id: "exercises", label: "Exercises" },
+    { id: "plans", label: "Plans" },
+    { id: "workouts", label: "Workouts" },
+  ] as const;
+
+  type TabId = (typeof tabs)[number]["id"];
+
   let exercises = $state<Exercise[]>([]);
   let plans = $state<WorkoutPlan[]>([]);
   let rotation = $state<WorkoutRotation>({ plans: [], nextPlanId: null });
   let activeSession = $state<WorkoutSessionDetail | null>(null);
   let loading = $state(true);
   let error = $state<string | null>(null);
-  let showManagement = $state(false);
+  let activeTab = $state<TabId>("exercises");
   let showPicker = $state(false);
-  let showHistory = $state(false);
-  let historyOpened = $state(false);
   let showPlanForm = $state(false);
   let editingPlan = $state<WorkoutPlan | null>(null);
   let pending = $state(false);
@@ -194,15 +200,25 @@
     );
   }
 
-  async function revealManagement() {
-    showManagement = true;
+  async function revealPlans() {
+    activeTab = "plans";
     await tick();
-    document.getElementById("training-plan-heading")?.focus();
+    document.getElementById("gallery-tab-plans")?.focus();
   }
 
-  function toggleHistory() {
-    showHistory = !showHistory;
-    if (showHistory) historyOpened = true;
+  function handleTabKeydown(event: KeyboardEvent, index: number) {
+    let next = -1;
+    if (event.key === "ArrowRight") next = (index + 1) % tabs.length;
+    else if (event.key === "ArrowLeft") next = (index - 1 + tabs.length) % tabs.length;
+    else if (event.key === "Home") next = 0;
+    else if (event.key === "End") next = tabs.length - 1;
+    if (next < 0) return;
+
+    event.preventDefault();
+    const tab = tabs[next];
+    if (!tab) return;
+    activeTab = tab.id;
+    document.getElementById(`gallery-tab-${tab.id}`)?.focus();
   }
 
   function addRotationPlan() {
@@ -337,7 +353,7 @@
   />
 {:else}
   <div class="stack">
-    {#if error && !showManagement && !showPicker}
+    {#if error && !showPicker}
       <p class="error" role="alert">{error}</p>
     {/if}
 
@@ -390,15 +406,13 @@
         <p class="muted">
           Add plans to your rotation and the next workout shows up here.
         </p>
-        {#if !showManagement}
-          <button
-            type="button"
-            class="btn btn-primary"
-            onclick={() => void revealManagement()}
-          >
-            Set up training plan
-          </button>
-        {/if}
+        <button
+          type="button"
+          class="btn btn-primary"
+          onclick={() => void revealPlans()}
+        >
+          Set up training plan
+        </button>
       </section>
     {/if}
 
@@ -416,35 +430,45 @@
       </button>
     </div>
 
-    <section class="stack">
-      <div class="row">
-        <h2
-          class="card-title grow"
-          id="training-plan-heading"
-          tabindex="-1"
-        >
-          My training plan
-        </h2>
+    <div class="gallery-tabs" role="tablist" aria-label="Gym sections">
+      {#each tabs as tab, index (tab.id)}
         <button
           type="button"
-          class="btn btn-ghost"
-          aria-expanded={showManagement}
-          aria-controls="training-plan-management"
-          aria-label={showManagement
-            ? "Hide training plan"
-            : "Manage training plan"}
-          onclick={() => (showManagement = !showManagement)}
+          role="tab"
+          class="gallery-tab"
+          id={`gallery-tab-${tab.id}`}
+          aria-selected={activeTab === tab.id}
+          aria-controls={`gallery-panel-${tab.id}`}
+          tabindex={activeTab === tab.id ? 0 : -1}
+          onclick={() => (activeTab = tab.id)}
+          onkeydown={(event) => handleTabKeydown(event, index)}
         >
-          {showManagement ? "Hide" : "Manage"}
+          {tab.label}
         </button>
+      {/each}
+    </div>
+
+    {#if activeTab === "exercises"}
+      <div
+        class="stack"
+        role="tabpanel"
+        id="gallery-panel-exercises"
+        aria-labelledby="gallery-tab-exercises"
+      >
+        <ExerciseRegister
+          exercises={exercises}
+          onCreate={handleCreateExercise}
+          onUpdate={handleUpdateExercise}
+          onDelete={handleDeleteExercise}
+        />
       </div>
-
-      {#if showManagement}
-        <div class="stack" id="training-plan-management">
-          {#if error && !showPicker}
-            <p class="error" role="alert">{error}</p>
-          {/if}
-
+    {:else if activeTab === "plans"}
+      <div
+        class="stack"
+        role="tabpanel"
+        id="gallery-panel-plans"
+        aria-labelledby="gallery-tab-plans"
+      >
         <section class="card stack">
           <h3 class="card-title">Training rotation</h3>
 
@@ -532,51 +556,53 @@
           {#if plans.length === 0}
             <p class="empty">No plans yet</p>
           {:else}
-            {#each plans as plan (plan.id)}
-              <article class="card plan-card stack">
-                <div>
-                  <h4 class="card-title">{plan.name}</h4>
-                  {#if plan.description}
-                    <p class="muted">{plan.description}</p>
-                  {/if}
-                </div>
-                <div class="row">
-                  <span class="badge">
-                    {plan.exercises.length}
-                    {plan.exercises.length === 1 ? "exercise" : "exercises"}
-                  </span>
-                  <button
-                    type="button"
-                    class="btn btn-primary"
-                    disabled={pending}
-                    onclick={() => void start({ planId: plan.id })}
-                  >
-                    Start {plan.name}
-                  </button>
-                </div>
-                <div class="row">
-                  <button
-                    type="button"
-                    class="btn btn-ghost"
-                    aria-label={`Edit ${plan.name}`}
-                    onclick={() => {
-                      showPlanForm = false;
-                      editingPlan = plan;
-                    }}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    class="btn btn-ghost"
-                    aria-label={`Delete ${plan.name}`}
-                    onclick={() => void handleDeletePlan(plan)}
-                  >
-                    Delete
-                  </button>
-                </div>
-              </article>
-            {/each}
+            <div class="card-grid">
+              {#each plans as plan (plan.id)}
+                <article class="card plan-card stack">
+                  <div>
+                    <h4 class="card-title">{plan.name}</h4>
+                    {#if plan.description}
+                      <p class="muted">{plan.description}</p>
+                    {/if}
+                  </div>
+                  <div class="row">
+                    <span class="badge">
+                      {plan.exercises.length}
+                      {plan.exercises.length === 1 ? "exercise" : "exercises"}
+                    </span>
+                    <button
+                      type="button"
+                      class="btn btn-primary"
+                      disabled={pending}
+                      onclick={() => void start({ planId: plan.id })}
+                    >
+                      Start {plan.name}
+                    </button>
+                  </div>
+                  <div class="row">
+                    <button
+                      type="button"
+                      class="btn btn-ghost"
+                      aria-label={`Edit ${plan.name}`}
+                      onclick={() => {
+                        showPlanForm = false;
+                        editingPlan = plan;
+                      }}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn-ghost"
+                      aria-label={`Delete ${plan.name}`}
+                      onclick={() => void handleDeletePlan(plan)}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </article>
+              {/each}
+            </div>
           {/if}
 
           <button
@@ -590,7 +616,7 @@
               showPlanForm = !showPlanForm;
             }}
           >
-            {showPlanForm || editingPlan ? "Cancel" : "Create plan"}
+            {showPlanForm || editingPlan ? "Cancel" : "New plan"}
           </button>
 
           {#if showPlanForm}
@@ -605,43 +631,18 @@
             {/key}
           {/if}
         </section>
-
-        <section class="stack">
-          <h3 class="card-title">Exercise register</h3>
-          <ExerciseRegister
-            exercises={exercises}
-            onCreate={handleCreateExercise}
-            onUpdate={handleUpdateExercise}
-            onDelete={handleDeleteExercise}
-          />
-        </section>
-        </div>
-      {/if}
-    </section>
-
-    <Progress />
-
-    <section class="stack" aria-labelledby="history-heading">
-      <div class="row">
-        <h2 class="card-title grow" id="history-heading">History</h2>
-        <button
-          type="button"
-          class="btn btn-ghost"
-          aria-expanded={showHistory}
-          aria-controls="history-content"
-          aria-label={showHistory ? "Hide history" : "Show history"}
-          onclick={toggleHistory}
-        >
-          {showHistory ? "Hide" : "Show"}
-        </button>
       </div>
-
-      <div id="history-content" hidden={!showHistory}>
-        {#if historyOpened}
-          <History plans={plans} />
-        {/if}
+    {:else}
+      <div
+        class="stack"
+        role="tabpanel"
+        id="gallery-panel-workouts"
+        aria-labelledby="gallery-tab-workouts"
+      >
+        <Progress />
+        <History plans={plans} />
       </div>
-    </section>
+    {/if}
 
     {#if showPicker}
       <WorkoutPicker
