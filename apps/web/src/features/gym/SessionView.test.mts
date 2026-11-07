@@ -1275,16 +1275,20 @@ describe("SessionView", () => {
     await waitFor(() => expect(finish).toHaveFocus());
   });
 
-  it("hides logging controls for a completed session", () => {
+  it("hides logging controls for a completed session", async () => {
     renderSession({
       session: { ...session, completedAt: "2026-10-26T19:00:00.000Z" },
     });
+    await expand("Bench Press");
 
     expect(
       screen.queryByRole("button", { name: "Finish workout" })
     ).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: /add set/i })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /edit exercise/i })
     ).not.toBeInTheDocument();
     expect(screen.queryByRole("form")).not.toBeInTheDocument();
   });
