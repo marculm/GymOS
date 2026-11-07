@@ -205,9 +205,8 @@
     input: CreateExerciseInput
   ): Promise<void> {
     await onUpdateExercise(exerciseId, input);
-    const stillEditing = editingExerciseId === exerciseId;
+    if (editingExerciseId !== exerciseId) return;
     editingExerciseId = null;
-    if (!stillEditing) return;
     await tick();
     manualExpanded = { ...manualExpanded, [exerciseId]: true };
   }

@@ -397,6 +397,28 @@ describe("SessionView", () => {
     request.resolve();
   });
 
+  it("keeps the active edit when another save finishes", async () => {
+    const request = deferred();
+    renderSession({
+      plan: twoExercisePlan,
+      onUpdateExercise: vi.fn().mockReturnValue(request.promise),
+    });
+    await expand("Bench Press");
+    await expand("Cable Fly");
+    await fireEvent.click(
+      screen.getByRole("button", { name: /edit exercise bench press/i })
+    );
+    await submitExerciseForm();
+    await fireEvent.click(
+      screen.getByRole("button", { name: /edit exercise cable fly/i })
+    );
+
+    request.resolve();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(screen.getByLabelText("Name")).toHaveValue("Cable Fly");
+  });
+
   it("keeps the exercise form open when a save fails", async () => {
     renderSession({
       onUpdateExercise: vi
