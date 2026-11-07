@@ -21,9 +21,11 @@ card while keeping the primary start action prominent.
   `aria-selected`, `aria-controls`, and a roving tabindex. Left and Right arrows move
   and activate the next tab with wrap-around; Home and End jump to the first and last
   tab.
-- Panels mount when selected. Switching away discards their transient state, so the
-  history and progress requests only run while the Workouts tab is open and reopening
-  it loads the first page again.
+- Panel content mounts when selected; the three panel containers stay in the DOM so
+  every tab's `aria-controls` always resolves. Switching away discards the panel's
+  transient state, including unsaved create/edit form input, so the history and
+  progress requests only run while the Workouts tab is open and reopening it loads the
+  first page again.
 - Exercises shows a card grid with name, muscle group, defaults, and edit/delete actions,
   with "New exercise" at the bottom.
 - Plans shows the rotation order controls, plan cards with name, exercise count, and
@@ -40,5 +42,7 @@ card while keeping the primary start action prominent.
 - History and progress requests are lazy and repeat when the Workouts tab is reopened.
 - The active session still replaces the whole start screen until it is completed.
 - ADR-0033's collapsed history section is superseded by the Workouts tab, and the
-  collapsible management section in ADR-0027 is replaced by the gallery tabs.
+  collapsible management section in ADR-0027 is replaced by the gallery tabs. This
+  refines ADR-0032's placement: history moves into the Workouts tab, while its content
+  and analytics decisions still apply.
 - The API, shared contracts, and database do not change.
