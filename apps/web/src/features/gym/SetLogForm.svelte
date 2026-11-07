@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { tick } from "svelte";
   import { MAX_SET_REPS, MAX_SET_WEIGHT_KG } from "@gymos/shared/limits";
   import type { CreateWorkoutSetInput, Exercise } from "@gymos/shared";
   import { formatWeight } from "./format.mts";
@@ -19,7 +20,6 @@
   let reps = $state<string | number | null>("");
   let submitting = $state(false);
   let error = $state<string | null>(null);
-  let repsInput = $state<HTMLInputElement>();
 
   const weightPlaceholder = $derived(exercise.defaultWeightKg ?? undefined);
 
@@ -27,17 +27,18 @@
     return value === "" || value == null;
   }
 
-  function acceptSuggestionOnEnter(event: KeyboardEvent) {
-    if (event.key !== "Enter" || !isEmpty(weightKg) || weightPlaceholder == null) {
-      return;
-    }
+  async function submitOnEnter(event: KeyboardEvent) {
+    if (event.key !== "Enter") return;
     event.preventDefault();
-    weightKg = weightPlaceholder;
-    repsInput?.focus();
+    const form = (event.currentTarget as HTMLInputElement).form;
+    if (isEmpty(weightKg) && weightPlaceholder != null) {
+      weightKg = weightPlaceholder;
+      await tick();
+    }
+    form?.requestSubmit();
   }
 
-  async function handleSubmit(event: SubmitEvent) {
-    event.preventDefault();
+  async function submitSet() {
     if (disabled || submitting || isEmpty(weightKg) || isEmpty(reps)) return;
 
     submitting = true;
@@ -58,6 +59,11 @@
       submitting = false;
     }
   }
+
+  async function handleSubmit(event: SubmitEvent) {
+    event.preventDefault();
+    await submitSet();
+  }
 </script>
 
 <form
@@ -76,7 +82,6 @@
           max={MAX_SET_REPS}
           required
           bind:value={reps}
-          bind:this={repsInput}
         />
       </label>
       <label class="field set-field">
@@ -94,7 +99,7 @@
               : formatWeight(weightPlaceholder)
           }
           bind:value={weightKg}
-          onkeydown={acceptSuggestionOnEnter}
+          onkeydown={submitOnEnter}
         />
       </label>
     </div>

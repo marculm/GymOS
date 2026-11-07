@@ -33,30 +33,60 @@ function renderForm(overrides: { exercise?: Exercise } = {}) {
 }
 
 describe("SetLogForm", () => {
-  it("accepts the default weight with Enter and focuses Reps", async () => {
+  it("submits the set with the default weight on Enter", async () => {
     const { onSubmit, weight, reps } = renderForm({
       exercise: { ...exercise, defaultWeightKg: 82.5 },
     });
 
+    await fireEvent.input(reps, { target: { value: "8" } });
     weight.focus();
     await fireEvent.keyDown(weight, { key: "Enter" });
 
-    expect(weight).toHaveValue(82.5);
-    expect(reps).toHaveFocus();
-    expect(onSubmit).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith({ reps: 8, weightKg: 82.5 });
+    });
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expect(weight).toHaveFocus();
+    expect(reps).not.toHaveFocus();
   });
 
-  it("keeps a typed weight instead of the default", async () => {
-    const { weight, reps } = renderForm({
+  it("does not submit when Reps is empty", async () => {
+    const { onSubmit, weight } = renderForm({
       exercise: { ...exercise, defaultWeightKg: 82.5 },
     });
 
+    weight.focus();
+    await fireEvent.keyDown(weight, { key: "Enter" });
+
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it("submits a typed weight on Enter instead of the default", async () => {
+    const { onSubmit, weight, reps } = renderForm({
+      exercise: { ...exercise, defaultWeightKg: 82.5 },
+    });
+
+    await fireEvent.input(reps, { target: { value: "8" } });
     await fireEvent.input(weight, { target: { value: "65" } });
     weight.focus();
     await fireEvent.keyDown(weight, { key: "Enter" });
 
-    expect(weight).toHaveValue(65);
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith({ reps: 8, weightKg: 65 });
+    });
+    expect(onSubmit).toHaveBeenCalledTimes(1);
     expect(reps).not.toHaveFocus();
+  });
+
+  it("blocks a three-decimal weight on Enter", async () => {
+    const { onSubmit, weight, reps } = renderForm();
+
+    await fireEvent.input(reps, { target: { value: "8" } });
+    await fireEvent.input(weight, { target: { value: "22.255" } });
+    weight.focus();
+    await fireEvent.keyDown(weight, { key: "Enter" });
+
+    expect(onSubmit).not.toHaveBeenCalled();
   });
 
   it("orders Reps before Weight and accepts two decimals", () => {
@@ -91,15 +121,14 @@ describe("SetLogForm", () => {
     );
   });
 
-  it("keeps the form behavior without a default weight", async () => {
+  it("does not submit an empty weight without a default", async () => {
     const { onSubmit, weight, reps } = renderForm();
 
+    await fireEvent.input(reps, { target: { value: "8" } });
     weight.focus();
     await fireEvent.keyDown(weight, { key: "Enter" });
 
     expect(weight).toHaveValue(null);
-    expect(weight).toHaveFocus();
-    expect(reps).not.toHaveFocus();
     expect(onSubmit).not.toHaveBeenCalled();
   });
 });

@@ -242,8 +242,10 @@ fieldset {
   color: white;
 }
 
-.btn-primary:hover:not(:disabled) {
-  background: var(--accent-strong);
+@media (hover: hover) and (pointer: fine) {
+  .btn-primary:hover:not(:disabled) {
+    background: var(--accent-strong);
+  }
 }
 
 .btn-ghost {
