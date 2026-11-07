@@ -190,6 +190,20 @@ describe("SessionBar", () => {
     expect(timerButton()).toHaveTextContent("0:00");
   });
 
+  it("catches up with the stored end after the page was suspended", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-11-07T10:00:00.000Z"));
+
+    const { onLogSet } = renderSession();
+    await logSet(onLogSet);
+    await vi.advanceTimersByTimeAsync(0);
+
+    vi.setSystemTime(new Date("2026-11-07T10:00:30.000Z"));
+    await vi.advanceTimersByTimeAsync(1000);
+
+    expect(timerButton()).toHaveTextContent("1:29");
+  });
+
   it("stores the end timestamp when a logged set starts the countdown", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-11-07T10:00:00.000Z"));

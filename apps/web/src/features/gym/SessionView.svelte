@@ -45,7 +45,9 @@
   let error = $state<string | null>(null);
   let finishButton = $state<HTMLButtonElement | null>(null);
   let timerPreset = $state(loadPreset());
-  const initialRemaining = remainingFrom(loadEnd());
+  const initialEnd = loadEnd();
+  const initialRemaining = remainingFrom(initialEnd);
+  let endsAt = initialEnd;
   let remaining = $state(initialRemaining);
   let timerRunning = $state(initialRemaining > 0);
   let showTimerOptions = $state(false);
@@ -106,9 +108,10 @@
   }
 
   function startTimer() {
+    endsAt = Date.now() + timerPreset * 1000;
     remaining = timerPreset;
     timerRunning = true;
-    storeEnd(Date.now() + timerPreset * 1000);
+    storeEnd(endsAt);
   }
 
   function selectPreset(preset: number) {
@@ -125,6 +128,7 @@
     if (timerRunning) {
       remaining = 0;
       timerRunning = false;
+      endsAt = null;
       storeEnd(null);
     } else {
       startTimer();
@@ -134,7 +138,7 @@
   $effect(() => {
     if (!timerRunning) return;
     const id = setInterval(() => {
-      remaining = Math.max(0, remaining - 1);
+      remaining = remainingFrom(endsAt);
       if (remaining === 0) timerRunning = false;
     }, 1000);
     return () => clearInterval(id);
