@@ -497,6 +497,54 @@ describe("GymView", () => {
     });
     const input = vi.mocked(createPlan).mock.calls.at(-1)?.[0];
     expect(input?.exercises[0]).not.toHaveProperty("targetSets");
+    expect(input?.exercises[0]).not.toHaveProperty("targetReps");
+    expect(input?.exercises[0]).not.toHaveProperty("targetWeightKg");
+  });
+
+  it("removes a plan row", async () => {
+    vi.mocked(listAllExercises).mockResolvedValueOnce([exercise, extraExercise]);
+    vi.mocked(createPlan).mockResolvedValueOnce({
+      ...plan,
+      id: "plan-2",
+      name: "Leg Day",
+    });
+
+    render(GymView);
+
+    await startScreenReady();
+    await openManagement();
+    await fireEvent.click(screen.getByRole("button", { name: /create plan/i }));
+
+    expect(
+      screen.getByRole("button", { name: "Remove Bench Press" })
+    ).toBeDisabled();
+
+    await fireEvent.click(screen.getByRole("button", { name: /add exercise/i }));
+    const removeButtons = screen.getAllByRole("button", {
+      name: "Remove Bench Press",
+    });
+    const secondRow = removeButtons[1];
+    if (!secondRow) throw new Error("second plan row is missing");
+    await fireEvent.click(secondRow);
+
+    expect(
+      screen.getAllByRole("button", { name: "Remove Bench Press" })
+    ).toHaveLength(1);
+
+    await fireEvent.input(screen.getByLabelText("Name"), {
+      target: { value: "Leg Day" },
+    });
+    await clickSubmit(screen.getByRole("button", { name: /save plan/i }));
+
+    await waitFor(() => {
+      expect(createPlan).toHaveBeenCalledWith(
+        expect.objectContaining({
+          exercises: [expect.objectContaining({ exerciseId: exercise.id })],
+        })
+      );
+    });
+    const input = vi.mocked(createPlan).mock.calls.at(-1)?.[0];
+    expect(input?.exercises).toHaveLength(1);
   });
 
   it("edits a plan from the plan list", async () => {
