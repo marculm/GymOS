@@ -146,18 +146,6 @@
 
   const hasFilters = $derived(Boolean(planId || from || to));
 
-  function targetFor(exerciseId: string): string | null {
-    const entry = detailPlan?.exercises.find(
-      (item) => item.exercise.id === exerciseId
-    );
-    if (!entry) return null;
-    return `${entry.targetSets} × ${entry.targetReps}${
-      entry.targetWeightKg != null
-        ? ` @ ${formatWeight(entry.targetWeightKg)} kg`
-        : ""
-    }`;
-  }
-
   function durationMinutes(session: WorkoutSessionDetail): number | null {
     if (!session.completedAt) return null;
     return Math.max(
@@ -280,14 +268,8 @@
               <p class="muted">No sets logged</p>
             {:else}
               {#each groups as group (group.exerciseId)}
-                {@const target = targetFor(group.exerciseId)}
                 <div class="stack">
-                  <div>
-                    <h4 class="card-title">{group.name}</h4>
-                    {#if target}
-                      <p class="muted">{target}</p>
-                    {/if}
-                  </div>
+                  <h4 class="card-title">{group.name}</h4>
                   {#each group.sets as set (set.id)}
                     <p class="set-row">
                       <span class="badge">Set {set.setNumber}</span>

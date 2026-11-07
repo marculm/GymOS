@@ -151,7 +151,7 @@ describe("History", () => {
     expect(listSessions).toHaveBeenLastCalledWith({ page: 2, size: 10 });
   });
 
-  it("opens a session with its sets, targets, and duration", async () => {
+  it("opens a session with its sets and duration", async () => {
     vi.mocked(listSessions).mockResolvedValue(page([pushSession], 0, 1));
     vi.mocked(getSession).mockResolvedValue(detail);
 
@@ -164,7 +164,7 @@ describe("History", () => {
     expect(await screen.findByText("Set 1")).toBeInTheDocument();
     expect(screen.getByText("8 × 80 kg")).toBeInTheDocument();
     expect(screen.getByText("6 × 85 kg")).toBeInTheDocument();
-    expect(screen.getByText("4 × 8 @ 80 kg")).toBeInTheDocument();
+    expect(screen.queryByText("4 × 8 @ 80 kg")).not.toBeInTheDocument();
     expect(screen.getByText(/60 min/)).toBeInTheDocument();
     expect(getSession).toHaveBeenCalledWith("session-1");
   });
@@ -179,15 +179,7 @@ describe("History", () => {
       })),
     });
 
-    renderHistory([
-      {
-        ...plan,
-        exercises: plan.exercises.map((entry) => ({
-          ...entry,
-          targetWeightKg: 22.25,
-        })),
-      },
-    ]);
+    renderHistory();
 
     await fireEvent.click(
       await screen.findByRole("button", { name: /view push day/i })
@@ -195,7 +187,6 @@ describe("History", () => {
 
     expect(await screen.findByText("8 × 22.25 kg")).toBeInTheDocument();
     expect(screen.getByText("6 × 22.5 kg")).toBeInTheDocument();
-    expect(screen.getByText("4 × 8 @ 22.25 kg")).toBeInTheDocument();
     expect(screen.queryByText(/22\.50/)).not.toBeInTheDocument();
   });
 
