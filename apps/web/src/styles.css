@@ -124,6 +124,31 @@ fieldset {
   color: var(--accent);
 }
 
+.gallery-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+
+.gallery-tab {
+  flex: 1;
+  min-height: 44px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.gallery-tab[aria-selected="true"] {
+  background: var(--surface);
+  color: var(--text);
+}
+
 .session-bar {
   position: fixed;
   bottom: 0;
@@ -183,6 +208,12 @@ fieldset {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.card-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
 }
 
 .row {

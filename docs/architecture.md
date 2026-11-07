@@ -10,8 +10,8 @@ is complete.
 ## 1. System Context
 
 GymOS is a single-user gym and nutrition application. The first slice is a gym tracker:
-create a plan, start a workout, log sets, and finish. History and progress views sit at
-the bottom of the Gym page (ADR-0032).
+create a plan, start a workout, log sets, and finish. History and progress views live in
+the Workouts gallery tab (ADR-0032, ADR-0040).
 
 ```text
 ┌──────────────────────────────┐
@@ -441,14 +441,19 @@ apps/web/
   and past sessions and logged sets are unaffected (ADR-0025, ADR-0038).
 - The training rotation section shows the next suggested plan and lets the user add,
   remove, and reorder plans. Free workouts never advance it (ADR-0026).
-- The start screen leads with the suggested next workout and one primary start action.
-  Rotation, plan management, and the exercise register sit in a collapsible "My training
-  plan" section; free workouts are a secondary action (ADR-0027).
-- A progress section shows personal records and per-workout volume. Below it, history
-  lists completed sessions with plan and date filters and a "Load more" action; opening a
-  session expands its sets and duration inline (ADR-0032).
-- History is collapsed by default behind a Show/Hide toggle at the bottom of the screen,
-  and its list loads only after it is opened (ADR-0033).
+- The start screen leads with the suggested next workout and one primary start action;
+  free workouts are a secondary action (ADR-0027).
+- Below the next workout, three gallery tabs browse the Exercises, Plans, and Workouts
+  areas with WAI-ARIA tab semantics and arrow-key navigation. A panel mounts when its
+  tab is selected and reloads when opened again (ADR-0040).
+- The Exercises tab shows a card grid of exercises with their defaults and edit/delete
+  actions, with "New exercise" at the bottom. The Plans tab shows the rotation controls
+  and plan cards with their start/edit/delete actions, with "New plan" at the bottom
+  (ADR-0040).
+- The Workouts tab shows a progress section with personal records and per-workout
+  volume, then history cards with date, plan, duration, and set count, plan and date
+  filters, and a "Load more" action; opening a session expands its sets and duration
+  inline (ADR-0032, ADR-0040).
 - The secondary action opens a modal picker with every plan and a free workout. Choosing
   a plan counts as a deviation; choosing free never advances the rotation (ADR-0028).
 - Set logging happens inside each exercise card: plan cards show their target and their
@@ -643,3 +648,4 @@ The target architecture deliberately excludes:
 | [0037](adr/0037-delete-logged-set.md) | Delete a logged set during an active workout |
 | [0038](adr/0038-exercise-driven-plan-model.md) | Exercise-driven plan model |
 | [0039](adr/0039-exercise-defaults-from-workouts.md) | Exercise defaults from recent workouts |
+| [0040](adr/0040-tabbed-gym-gallery.md) | Tabbed Gym gallery |

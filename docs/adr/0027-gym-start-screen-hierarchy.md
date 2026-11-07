@@ -21,11 +21,10 @@ section in a separate issue, and the alternate-workout picker is not built yet.
 - Free workouts stay reachable through a small secondary "Other workout" action. It
   opens the alternate-workout picker (ADR-0028), which offers every plan and a free
   session.
-- Rotation management, plan management, and the exercise register live in a collapsible
-  "My training plan" section below the primary card. It is collapsed by default and
-  stays on the Gym page; no new bottom tab.
-- Recent workouts are not shown on the start screen. A separate issue adds history at
-  the bottom of the Gym page.
+- Rotation management, plan management, and the exercise register are browsable below
+  the primary card in gallery tabs (ADR-0040); no new bottom tab.
+- Recent workouts live in the Workouts gallery tab rather than in the primary card
+  area (ADR-0032, ADR-0040).
 - An active session still replaces the start screen until it is completed.
 - The screen keeps the warm light theme and the existing single-column, mobile-first
   layout.
@@ -33,6 +32,7 @@ section in a separate issue, and the alternate-workout picker is not built yet.
 ## Consequences
 
 - The start screen has one obvious action: start the suggested workout.
-- Setup and maintenance remain one tap away without leaving the Gym flow.
+- Setup and maintenance remain one tap away in the Plans and Exercises tabs without
+  leaving the Gym flow.
 - Ad-hoc workouts remain possible but visually secondary.
-- History is temporarily unavailable in the UI until the follow-up issue lands.
+- History is available in the Workouts tab (ADR-0032, ADR-0040).

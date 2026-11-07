@@ -109,22 +109,18 @@ async function startScreenReady() {
   return screen.findByRole("button", { name: /other workout/i });
 }
 
-function historyContent(): HTMLElement {
-  const element = document.getElementById("history-content");
-  if (!element) throw new Error("history content is missing");
-  return element;
-}
-
 async function clickSubmit(button: HTMLElement) {
   // happy-dom rejects two-decimal values against step=0.01; browsers accept them.
   (button.closest("form") as HTMLFormElement | null)?.setAttribute("novalidate", "");
   await fireEvent.click(button);
 }
 
-async function openManagement() {
-  await fireEvent.click(
-    await screen.findByRole("button", { name: /manage training plan/i })
-  );
+function galleryTab(name: string) {
+  return screen.getByRole("tab", { name });
+}
+
+async function openTab(name: string) {
+  await fireEvent.click(galleryTab(name));
 }
 
 afterEach(() => {
@@ -264,7 +260,7 @@ describe("GymView", () => {
     });
   });
 
-  it("keeps history collapsed and loads it on demand", async () => {
+  it("loads progress and history only when the Workouts tab opens", async () => {
     const completed: WorkoutSessionSummary = {
       ...session,
       id: "session-2",
@@ -273,7 +269,7 @@ describe("GymView", () => {
       completedAt: "2026-10-26T19:00:00.000Z",
       totalSets: 3,
     };
-    vi.mocked(listSessions).mockResolvedValueOnce({
+    vi.mocked(listSessions).mockResolvedValue({
       content: [completed],
       page: { size: 10, number: 0, totalElements: 1, totalPages: 1 },
     });
@@ -293,55 +289,37 @@ describe("GymView", () => {
     render(GymView);
 
     await startScreenReady();
+    expect(listSessions).not.toHaveBeenCalled();
+    expect(getProgress).not.toHaveBeenCalled();
     expect(
-      screen.getByRole("heading", { name: "History" })
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /show history/i })
-    ).toHaveAttribute("aria-expanded", "false");
-    expect(
-      screen.getByRole("button", { name: /show history/i })
-    ).toHaveAttribute("aria-controls", "history-content");
-    expect(historyContent()).toHaveAttribute("hidden");
+      screen.queryByRole("heading", { name: "Progress" })
+    ).not.toBeInTheDocument();
     expect(
       screen.queryByRole("heading", { name: "Leg Day" })
     ).not.toBeInTheDocument();
-    expect(listSessions).not.toHaveBeenCalled();
+
+    await openTab("Workouts");
 
     expect(
-      screen.getByRole("heading", { name: "Progress" })
+      await screen.findByRole("heading", { name: "Progress" })
     ).toBeInTheDocument();
     expect(await screen.findByText("5 × 90 kg")).toBeInTheDocument();
-
-    await fireEvent.click(
-      screen.getByRole("button", { name: /show history/i })
-    );
-
     expect(
       await screen.findByRole("heading", { name: "Leg Day" })
     ).toBeInTheDocument();
     expect(listSessions).toHaveBeenCalledWith({ page: 1, size: 10 });
     expect(listSessions).toHaveBeenCalledTimes(1);
-    expect(historyContent()).not.toHaveAttribute("hidden");
-    expect(
-      screen.getByRole("button", { name: /hide history/i })
-    ).toHaveAttribute("aria-expanded", "true");
 
-    await fireEvent.click(
-      screen.getByRole("button", { name: /hide history/i })
-    );
+    await openTab("Exercises");
     expect(
       screen.queryByRole("heading", { name: "Leg Day" })
     ).not.toBeInTheDocument();
-    expect(historyContent()).toHaveAttribute("hidden");
 
-    await fireEvent.click(
-      screen.getByRole("button", { name: /show history/i })
-    );
+    await openTab("Workouts");
     expect(
-      screen.getByRole("heading", { name: "Leg Day" })
+      await screen.findByRole("heading", { name: "Leg Day" })
     ).toBeInTheDocument();
-    expect(listSessions).toHaveBeenCalledTimes(1);
+    expect(listSessions).toHaveBeenCalledTimes(2);
   });
 
   it("opens the alternate workout picker and starts a free workout", async () => {
@@ -412,7 +390,7 @@ describe("GymView", () => {
     await waitFor(() => expect(freeWorkout).toHaveFocus());
   });
 
-  it("opens management from the empty state", async () => {
+  it("opens the Plans tab from the empty state", async () => {
     render(GymView);
 
     expect(
@@ -422,42 +400,103 @@ describe("GymView", () => {
       screen.getByRole("button", { name: /set up training plan/i })
     );
 
+    expect(galleryTab("Plans")).toHaveAttribute("aria-selected", "true");
     expect(
       await screen.findByRole("heading", { name: "Training rotation" })
     ).toBeInTheDocument();
     expect(
       screen.getByRole("heading", { name: "Push Day" })
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", { name: "My training plan" })
-    ).toHaveFocus();
+    await waitFor(() => expect(galleryTab("Plans")).toHaveFocus());
   });
 
-  it("keeps management hidden until requested", async () => {
+  it("browses the gallery areas through tabs", async () => {
     render(GymView);
 
     await startScreenReady();
+    const tablist = screen.getByRole("tablist", { name: /gym sections/i });
     expect(
-      screen.queryByRole("heading", { name: "Push Day" })
+      within(tablist)
+        .getAllByRole("tab")
+        .map((tab) => tab.textContent?.trim())
+    ).toEqual(["Exercises", "Plans", "Workouts"]);
+    expect(galleryTab("Exercises")).toHaveAttribute("aria-selected", "true");
+    expect(galleryTab("Exercises")).toHaveAttribute(
+      "aria-controls",
+      "gallery-panel-exercises"
+    );
+    expect(galleryTab("Plans")).toHaveAttribute("aria-selected", "false");
+    expect(galleryTab("Plans")).toHaveAttribute("tabindex", "-1");
+    for (const tab of within(tablist).getAllByRole("tab")) {
+      const controls = tab.getAttribute("aria-controls");
+      expect(controls).not.toBeNull();
+      expect(document.getElementById(controls as string)).not.toBeNull();
+    }
+
+    const exercisesPanel = screen.getByRole("tabpanel", { name: "Exercises" });
+    expect(within(exercisesPanel).getByText("Bench Press")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "Training rotation" })
     ).not.toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /manage training plan/i })
-    ).toHaveAttribute("aria-expanded", "false");
+      screen.queryByRole("button", { name: /manage training plan/i })
+    ).not.toBeInTheDocument();
 
-    await openManagement();
+    await openTab("Plans");
+    const plansPanel = screen.getByRole("tabpanel", { name: "Plans" });
+    expect(galleryTab("Plans")).toHaveAttribute("aria-selected", "true");
+    expect(galleryTab("Plans")).toHaveAttribute("tabindex", "0");
     expect(
-      await screen.findByRole("heading", { name: "Push Day" })
+      within(plansPanel).getByRole("heading", { name: "Training rotation" })
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /hide training plan/i })
-    ).toHaveAttribute("aria-expanded", "true");
-
-    await fireEvent.click(
-      screen.getByRole("button", { name: /hide training plan/i })
-    );
+      within(plansPanel).getByRole("heading", { name: "Push Day" })
+    ).toBeInTheDocument();
     expect(
-      screen.queryByRole("heading", { name: "Push Day" })
+      screen.queryByRole("tabpanel", { name: "Exercises" })
     ).not.toBeInTheDocument();
+
+    await openTab("Workouts");
+    expect(
+      screen.getByRole("tabpanel", { name: "Workouts" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Progress" })
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /show history/i })
+    ).not.toBeInTheDocument();
+  });
+
+  it("moves between tabs with the arrow keys", async () => {
+    render(GymView);
+
+    await startScreenReady();
+    const exercisesTab = galleryTab("Exercises");
+    exercisesTab.focus();
+    await fireEvent.keyDown(exercisesTab, { key: "ArrowRight" });
+    expect(galleryTab("Plans")).toHaveAttribute("aria-selected", "true");
+    expect(galleryTab("Plans")).toHaveFocus();
+
+    await fireEvent.keyDown(galleryTab("Plans"), { key: "ArrowRight" });
+    expect(galleryTab("Workouts")).toHaveAttribute("aria-selected", "true");
+    expect(galleryTab("Workouts")).toHaveFocus();
+
+    await fireEvent.keyDown(galleryTab("Workouts"), { key: "ArrowRight" });
+    expect(galleryTab("Exercises")).toHaveAttribute("aria-selected", "true");
+    expect(galleryTab("Exercises")).toHaveFocus();
+
+    await fireEvent.keyDown(galleryTab("Exercises"), { key: "ArrowLeft" });
+    expect(galleryTab("Workouts")).toHaveAttribute("aria-selected", "true");
+    expect(galleryTab("Workouts")).toHaveFocus();
+
+    await fireEvent.keyDown(galleryTab("Workouts"), { key: "Home" });
+    expect(galleryTab("Exercises")).toHaveAttribute("aria-selected", "true");
+    expect(galleryTab("Exercises")).toHaveFocus();
+
+    await fireEvent.keyDown(galleryTab("Exercises"), { key: "End" });
+    expect(galleryTab("Workouts")).toHaveAttribute("aria-selected", "true");
+    expect(galleryTab("Workouts")).toHaveFocus();
   });
 
   it("creates a plan from the form", async () => {
@@ -470,8 +509,8 @@ describe("GymView", () => {
     render(GymView);
 
     await startScreenReady();
-    await openManagement();
-    await fireEvent.click(screen.getByRole("button", { name: /create plan/i }));
+    await openTab("Plans");
+    await fireEvent.click(screen.getByRole("button", { name: /new plan/i }));
 
     expect(screen.queryByLabelText("Sets")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Reps")).not.toBeInTheDocument();
@@ -509,8 +548,8 @@ describe("GymView", () => {
     render(GymView);
 
     await startScreenReady();
-    await openManagement();
-    await fireEvent.click(screen.getByRole("button", { name: /create plan/i }));
+    await openTab("Plans");
+    await fireEvent.click(screen.getByRole("button", { name: /new plan/i }));
 
     expect(
       screen.getByRole("button", { name: "Remove Bench Press" })
@@ -550,7 +589,7 @@ describe("GymView", () => {
     render(GymView);
 
     await startScreenReady();
-    await openManagement();
+    await openTab("Plans");
     await fireEvent.click(
       screen.getByRole("button", { name: /edit push day/i })
     );
@@ -582,7 +621,7 @@ describe("GymView", () => {
     render(GymView);
 
     await startScreenReady();
-    await openManagement();
+    await openTab("Plans");
     await fireEvent.click(
       screen.getByRole("button", { name: /edit push day/i })
     );
@@ -599,7 +638,7 @@ describe("GymView", () => {
     render(GymView);
 
     await startScreenReady();
-    await openManagement();
+    await openTab("Plans");
     await fireEvent.click(
       screen.getByRole("button", { name: /edit push day/i })
     );
@@ -621,7 +660,7 @@ describe("GymView", () => {
     render(GymView);
 
     await startScreenReady();
-    await openManagement();
+    await openTab("Plans");
     await fireEvent.click(
       screen.getByRole("button", { name: /delete push day/i })
     );
@@ -640,8 +679,8 @@ describe("GymView", () => {
     render(GymView);
 
     await startScreenReady();
-    await openManagement();
-    await fireEvent.click(screen.getByRole("button", { name: /create plan/i }));
+    await openTab("Plans");
+    await fireEvent.click(screen.getByRole("button", { name: /new plan/i }));
     await fireEvent.input(screen.getByLabelText("Name"), {
       target: { value: "Repeated" },
     });
@@ -664,7 +703,7 @@ describe("GymView", () => {
     render(GymView);
 
     await startScreenReady();
-    await openManagement();
+    await openTab("Plans");
     await fireEvent.change(
       await screen.findByLabelText("Add plan to rotation"),
       { target: { value: extraPlan.id } }
@@ -689,7 +728,7 @@ describe("GymView", () => {
     render(GymView);
 
     await startScreenReady();
-    await openManagement();
+    await openTab("Plans");
     await fireEvent.click(
       await screen.findByRole("button", { name: /move pull day up/i })
     );
@@ -724,7 +763,7 @@ describe("GymView", () => {
     render(GymView);
 
     await startScreenReady();
-    await openManagement();
+    await openTab("Plans");
     await fireEvent.click(
       await screen.findByRole("button", { name: /move pull day up/i })
     );
@@ -753,7 +792,7 @@ describe("GymView", () => {
     render(GymView);
 
     await startScreenReady();
-    await openManagement();
+    await openTab("Plans");
     await fireEvent.click(
       await screen.findByRole("button", { name: /remove push day/i })
     );
@@ -772,7 +811,7 @@ describe("GymView", () => {
     render(GymView);
 
     await startScreenReady();
-    await openManagement();
+    await openTab("Plans");
     await fireEvent.click(
       await screen.findByRole("button", { name: /delete push day/i })
     );
@@ -792,7 +831,7 @@ describe("GymView", () => {
     render(GymView);
 
     await startScreenReady();
-    await openManagement();
+    await openTab("Plans");
     await fireEvent.click(
       await screen.findByRole("button", { name: /edit push day/i })
     );
@@ -851,7 +890,7 @@ describe("GymView", () => {
     render(GymView);
 
     await startScreenReady();
-    await openManagement();
+    await openTab("Plans");
 
     expect(
       await screen.findByRole("button", { name: "Start Push Day" })
@@ -1052,8 +1091,8 @@ describe("GymView", () => {
     render(GymView);
 
     await startScreenReady();
-    await openManagement();
-    await fireEvent.click(screen.getByRole("button", { name: /create plan/i }));
+    await openTab("Plans");
+    await fireEvent.click(screen.getByRole("button", { name: /new plan/i }));
 
     const addButton = screen.getByRole("button", { name: /add exercise/i });
     for (let index = 0; index < 49; index += 1) {
@@ -1086,8 +1125,8 @@ describe("GymView", () => {
     render(GymView);
 
     await startScreenReady();
-    await openManagement();
-    await fireEvent.click(screen.getByRole("button", { name: /create plan/i }));
+    await openTab("Plans");
+    await fireEvent.click(screen.getByRole("button", { name: /new plan/i }));
     await fireEvent.input(screen.getByLabelText("Name"), {
       target: { value: "Push Day" },
     });
@@ -1121,8 +1160,8 @@ describe("GymView", () => {
     render(GymView);
 
     await startScreenReady();
-    await openManagement();
-    await fireEvent.click(screen.getByRole("button", { name: /create plan/i }));
+    await openTab("Plans");
+    await fireEvent.click(screen.getByRole("button", { name: /new plan/i }));
 
     await fireEvent.change(screen.getByLabelText("Exercise"), {
       target: { value: extraExercise.id },
@@ -1150,7 +1189,6 @@ describe("GymView", () => {
     render(GymView);
 
     await startScreenReady();
-    await openManagement();
     await fireEvent.click(screen.getByRole("button", { name: /new exercise/i }));
     await fireEvent.input(screen.getByLabelText("Name"), {
       target: { value: "Cable Fly" },
@@ -1178,7 +1216,6 @@ describe("GymView", () => {
     render(GymView);
 
     await startScreenReady();
-    await openManagement();
     await fireEvent.click(
       screen.getByRole("button", { name: /edit bench press/i })
     );
@@ -1207,7 +1244,6 @@ describe("GymView", () => {
     render(GymView);
 
     await startScreenReady();
-    await openManagement();
     await fireEvent.click(
       screen.getByRole("button", { name: /edit bench press/i })
     );
@@ -1238,7 +1274,6 @@ describe("GymView", () => {
     render(GymView);
 
     await startScreenReady();
-    await openManagement();
     await fireEvent.click(
       screen.getByRole("button", { name: /delete bench press/i })
     );

@@ -146,13 +146,15 @@
 
   const hasFilters = $derived(Boolean(planId || from || to));
 
-  function durationMinutes(session: WorkoutSessionDetail): number | null {
-    if (!session.completedAt) return null;
+  function durationMinutes(
+    startedAt: string,
+    completedAt: string | null
+  ): number | null {
+    if (!completedAt) return null;
     return Math.max(
       0,
       Math.round(
-        (new Date(session.completedAt).getTime() -
-          new Date(session.startedAt).getTime()) /
+        (new Date(completedAt).getTime() - new Date(startedAt).getTime()) /
           60_000
       )
     );
@@ -226,12 +228,19 @@
 
   {#each sessions as session (session.id)}
     {@const expanded = expandedId === session.id}
+    {@const duration = durationMinutes(
+      session.startedAt,
+      session.completedAt
+    )}
     <article class="card stack">
       <div class="row">
         <div class="grow">
           <p class="muted">
-            {new Date(session.startedAt).toLocaleDateString()} ·
-            {session.totalSets}
+            {new Date(session.startedAt).toLocaleDateString()}
+            {#if duration !== null}
+              · {duration} min
+            {/if}
+            · {session.totalSets}
             {session.totalSets === 1 ? "set" : "sets"}
           </p>
           <h3 class="card-title">{session.title}</h3>
@@ -255,12 +264,16 @@
           {#if detailLoading}
             <p class="muted">Loading workout…</p>
           {:else if detail}
+            {@const detailDuration = durationMinutes(
+              detail.startedAt,
+              detail.completedAt
+            )}
             <p class="muted">
               {new Date(detail.startedAt).toLocaleString()} – {detail.completedAt
                 ? new Date(detail.completedAt).toLocaleString()
                 : "in progress"}
-              {#if durationMinutes(detail) !== null}
-                · {durationMinutes(detail)} min
+              {#if detailDuration !== null}
+                · {detailDuration} min
               {/if}
             </p>
 
