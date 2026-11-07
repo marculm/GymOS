@@ -33,6 +33,7 @@
   const REST_PRESETS: readonly number[] = [120, 150, 180];
   const DEFAULT_REST_PRESET = 120;
   const REST_PRESET_KEY = "gymos.restTimerSeconds";
+  const REST_END_KEY = "gymos.restTimerEndsAt";
   const SWIPE_DELETE_THRESHOLD = 60;
   const UNDO_WINDOW_MS = 5000;
 
@@ -44,8 +45,11 @@
   let error = $state<string | null>(null);
   let finishButton = $state<HTMLButtonElement | null>(null);
   let timerPreset = $state(loadPreset());
-  let remaining = $state(0);
-  let timerRunning = $state(false);
+  const initialEnd = loadEnd();
+  const initialRemaining = remainingFrom(initialEnd);
+  let endsAt = initialEnd;
+  let remaining = $state(initialRemaining);
+  let timerRunning = $state(initialRemaining > 0);
   let showTimerOptions = $state(false);
   let hiddenSetIds = $state<Set<string>>(new Set());
   let pendingUndos = $state<LoggedSet[]>([]);
@@ -78,9 +82,36 @@
     }
   }
 
+  function loadEnd(): number | null {
+    try {
+      const stored = presetStorage()?.getItem(REST_END_KEY);
+      const end = Number(stored);
+      return stored != null && Number.isFinite(end) && end > 0 ? end : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function remainingFrom(end: number | null): number {
+    return end === null
+      ? 0
+      : Math.max(0, Math.ceil((end - Date.now()) / 1000));
+  }
+
+  function storeEnd(end: number | null) {
+    try {
+      if (end === null) presetStorage()?.removeItem(REST_END_KEY);
+      else presetStorage()?.setItem(REST_END_KEY, String(end));
+    } catch {
+      // Restoring the timer is best-effort; the countdown still runs.
+    }
+  }
+
   function startTimer() {
+    endsAt = Date.now() + timerPreset * 1000;
     remaining = timerPreset;
     timerRunning = true;
+    storeEnd(endsAt);
   }
 
   function selectPreset(preset: number) {
@@ -93,20 +124,23 @@
     startTimer();
   }
 
+  function stopTimer() {
+    remaining = 0;
+    timerRunning = false;
+    endsAt = null;
+    storeEnd(null);
+  }
+
   function toggleTimer() {
-    if (timerRunning) {
-      remaining = 0;
-      timerRunning = false;
-    } else {
-      startTimer();
-    }
+    if (timerRunning) stopTimer();
+    else startTimer();
   }
 
   $effect(() => {
     if (!timerRunning) return;
     const id = setInterval(() => {
-      remaining = Math.max(0, remaining - 1);
-      if (remaining === 0) timerRunning = false;
+      remaining = remainingFrom(endsAt);
+      if (remaining === 0) stopTimer();
     }, 1000);
     return () => clearInterval(id);
   });
@@ -383,6 +417,7 @@
     try {
       if (await flushPendingDeletes()) {
         await onComplete();
+        stopTimer();
       } else {
         failed = true;
       }
