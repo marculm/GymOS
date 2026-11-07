@@ -190,6 +190,20 @@ describe("SessionBar", () => {
     expect(timerButton()).toHaveTextContent("0:00");
   });
 
+  it("clears the end timestamp when the countdown reaches zero", async () => {
+    vi.useFakeTimers();
+
+    renderSession();
+    await fireEvent.click(timerButton());
+    await fireEvent.click(within(bar()).getByRole("button", { name: "Reset" }));
+    expect(presetStorage()?.getItem(REST_END_KEY)).not.toBeNull();
+
+    await vi.advanceTimersByTimeAsync(120_000);
+
+    expect(timerButton()).toHaveTextContent("0:00");
+    expect(presetStorage()?.getItem(REST_END_KEY)).toBeNull();
+  });
+
   it("catches up with the stored end after the page was suspended", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-11-07T10:00:00.000Z"));

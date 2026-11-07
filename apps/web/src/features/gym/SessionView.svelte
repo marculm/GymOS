@@ -124,22 +124,23 @@
     startTimer();
   }
 
+  function stopTimer() {
+    remaining = 0;
+    timerRunning = false;
+    endsAt = null;
+    storeEnd(null);
+  }
+
   function toggleTimer() {
-    if (timerRunning) {
-      remaining = 0;
-      timerRunning = false;
-      endsAt = null;
-      storeEnd(null);
-    } else {
-      startTimer();
-    }
+    if (timerRunning) stopTimer();
+    else startTimer();
   }
 
   $effect(() => {
     if (!timerRunning) return;
     const id = setInterval(() => {
       remaining = remainingFrom(endsAt);
-      if (remaining === 0) timerRunning = false;
+      if (remaining === 0) stopTimer();
     }, 1000);
     return () => clearInterval(id);
   });
