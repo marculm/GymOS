@@ -18,18 +18,12 @@
 
   type ExerciseRow = {
     exerciseId: string;
-    targetSets: number;
-    targetReps: number;
-    targetWeightKg: number | "";
     notes?: string;
   };
 
   function planRows(source: WorkoutPlan): ExerciseRow[] {
     return source.exercises.map((entry) => ({
       exerciseId: entry.exercise.id,
-      targetSets: entry.targetSets,
-      targetReps: entry.targetReps,
-      targetWeightKg: entry.targetWeightKg ?? "",
       notes: entry.notes ?? undefined,
     }));
   }
@@ -38,9 +32,6 @@
     const exercise = list[0];
     return {
       exerciseId: exercise?.id ?? "",
-      targetSets: exercise?.defaultSets ?? 3,
-      targetReps: exercise?.defaultReps ?? 8,
-      targetWeightKg: exercise?.defaultWeightKg ?? "",
     };
   }
 
@@ -69,15 +60,8 @@
   }
 
   function selectExercise(index: number, exerciseId: string) {
-    const exercise = available.find((entry) => entry.id === exerciseId);
     const notes = rows[index]?.exerciseId === exerciseId ? rows[index]?.notes : undefined;
-    updateRow(index, {
-      exerciseId,
-      targetSets: exercise?.defaultSets ?? 3,
-      targetReps: exercise?.defaultReps ?? 8,
-      targetWeightKg: exercise?.defaultWeightKg ?? "",
-      notes,
-    });
+    updateRow(index, { exerciseId, notes });
   }
 
   const MAX_PLAN_EXERCISES = 50;
@@ -108,7 +92,6 @@
       await onSubmit({
         name: name.trim(),
         description: description.trim() || undefined,
-        // Targets come from the exercise register; the inputs stay until the form simplification.
         exercises: rows.map((row) => ({
           exerciseId: row.exerciseId,
           notes: row.notes,
@@ -178,48 +161,6 @@
             >
               Remove
             </button>
-          </div>
-
-          <div class="row">
-            <label class="field grow">
-              <span class="label">Sets</span>
-              <input
-                class="input"
-                type="number"
-                min={1}
-                max={20}
-                required
-                bind:value={row.targetSets}
-              />
-            </label>
-            <label class="field grow">
-              <span class="label">Reps</span>
-              <input
-                class="input"
-                type="number"
-                min={1}
-                max={100}
-                required
-                bind:value={row.targetReps}
-              />
-            </label>
-            <label class="field grow">
-              <span class="label">Weight (kg, optional)</span>
-              <input
-                class="input"
-                type="number"
-                min={0}
-                step={0.01}
-                value={row.targetWeightKg}
-                oninput={(event) =>
-                  updateRow(index, {
-                    targetWeightKg:
-                      event.currentTarget.value === ""
-                        ? ""
-                        : Number(event.currentTarget.value),
-                  })}
-              />
-            </label>
           </div>
         </div>
       {/each}
