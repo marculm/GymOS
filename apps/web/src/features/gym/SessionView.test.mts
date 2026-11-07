@@ -8,6 +8,7 @@ import {
 } from "@testing-library/svelte";
 import { MAX_SET_REPS, MAX_SET_WEIGHT_KG } from "@gymos/shared/limits";
 import type {
+  CreateExerciseInput,
   CreateWorkoutSetInput,
   Exercise,
   LoggedSet,
@@ -22,6 +23,7 @@ type Props = {
   exercises: Exercise[];
   onLogSet: (input: CreateWorkoutSetInput) => Promise<void>;
   onDeleteSet: (setId: string) => Promise<void>;
+  onUpdateExercise: (id: string, input: CreateExerciseInput) => Promise<void>;
   onComplete: () => Promise<void>;
 };
 
@@ -151,6 +153,7 @@ function deferred() {
 function renderSession(overrides: Partial<Props> = {}) {
   const onLogSet = vi.fn().mockResolvedValue(undefined);
   const onDeleteSet = vi.fn().mockResolvedValue(undefined);
+  const onUpdateExercise = vi.fn().mockResolvedValue(undefined);
   const onComplete = vi.fn().mockResolvedValue(undefined);
 
   const result = render(SessionView, {
@@ -160,6 +163,7 @@ function renderSession(overrides: Partial<Props> = {}) {
       exercises: [exercise, extraExercise],
       onLogSet,
       onDeleteSet,
+      onUpdateExercise,
       onComplete,
       ...overrides,
     },
@@ -168,10 +172,17 @@ function renderSession(overrides: Partial<Props> = {}) {
   return {
     onLogSet,
     onDeleteSet,
+    onUpdateExercise,
     onComplete,
     rerender: result.rerender,
     unmount: result.unmount,
   };
+}
+
+async function submitExerciseForm() {
+  const form = screen.getByLabelText("Name").closest("form");
+  if (!form) throw new Error("exercise form is missing");
+  await fireEvent.submit(form);
 }
 
 function cardForm(name: string) {
@@ -263,6 +274,76 @@ describe("SessionView", () => {
     expect(
       screen.getByRole("button", { name: "Expand Bench Press" })
     ).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("edits an exercise from its session card", async () => {
+    const { onUpdateExercise } = renderSession();
+    await expand("Bench Press");
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: /edit exercise bench press/i })
+    );
+
+    expect(screen.getByLabelText("Name")).toHaveValue("Bench Press");
+    expect(screen.getByLabelText("Default sets")).toHaveValue(4);
+    expect(screen.getByLabelText("Default reps")).toHaveValue(10);
+    expect(
+      screen.getByLabelText("Default weight (kg, optional)")
+    ).toHaveValue(60);
+
+    await fireEvent.input(screen.getByLabelText("Name"), {
+      target: { value: "Incline Bench Press" },
+    });
+    await fireEvent.change(screen.getByLabelText("Muscle group"), {
+      target: { value: "back" },
+    });
+    await fireEvent.input(screen.getByLabelText("Default sets"), {
+      target: { value: "5" },
+    });
+    await fireEvent.input(screen.getByLabelText("Default reps"), {
+      target: { value: "12" },
+    });
+    await fireEvent.input(screen.getByLabelText("Default weight (kg, optional)"), {
+      target: { value: "85" },
+    });
+    await submitExerciseForm();
+
+    await waitFor(() => {
+      expect(onUpdateExercise).toHaveBeenCalledWith("exercise-1", {
+        name: "Incline Bench Press",
+        muscleGroup: "back",
+        description: null,
+        defaultSets: 5,
+        defaultReps: 12,
+        defaultWeightKg: 85,
+      });
+    });
+    expect(screen.queryByLabelText("Name")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Collapse Bench Press" })
+    ).toBeInTheDocument();
+  });
+
+  it("keeps the exercise form open when a save fails", async () => {
+    renderSession({
+      onUpdateExercise: vi
+        .fn()
+        .mockRejectedValue(new Error("Name already exists")),
+    });
+    await expand("Bench Press");
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: /edit exercise bench press/i })
+    );
+    await fireEvent.input(screen.getByLabelText("Name"), {
+      target: { value: "Incline Bench Press" },
+    });
+    await submitExerciseForm();
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Name already exists"
+    );
+    expect(screen.getByLabelText("Name")).toHaveValue("Incline Bench Press");
   });
 
   it("logs a set from the exercise card", async () => {

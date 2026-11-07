@@ -1,12 +1,14 @@
 <script lang="ts">
   import { onDestroy, tick } from "svelte";
   import type {
+    CreateExerciseInput,
     CreateWorkoutSetInput,
     Exercise,
     LoggedSet,
     WorkoutPlan,
     WorkoutSessionDetail,
   } from "@gymos/shared";
+  import ExerciseForm from "./ExerciseForm.svelte";
   import { formatWeight } from "./format.mts";
   import SetLogForm from "./SetLogForm.svelte";
 
@@ -16,6 +18,7 @@
     exercises,
     onLogSet,
     onDeleteSet,
+    onUpdateExercise,
     onComplete,
   }: {
     session: WorkoutSessionDetail;
@@ -23,6 +26,7 @@
     exercises: Exercise[];
     onLogSet: (input: CreateWorkoutSetInput) => Promise<void>;
     onDeleteSet: (setId: string) => Promise<void>;
+    onUpdateExercise: (id: string, input: CreateExerciseInput) => Promise<void>;
     onComplete: () => Promise<void>;
   } = $props();
 
@@ -35,6 +39,7 @@
   let freeExercises = $state<Exercise[]>([]);
   let manualExpanded = $state<Record<string, boolean>>({});
   let exerciseToAdd = $state("");
+  let editingExerciseId = $state<string | null>(null);
   let pending = $state(false);
   let error = $state<string | null>(null);
   let finishButton = $state<HTMLButtonElement | null>(null);
@@ -187,6 +192,19 @@
 
   function toggleCard(exerciseId: string, expanded: boolean) {
     manualExpanded = { ...manualExpanded, [exerciseId]: !expanded };
+    if (expanded) editingExerciseId = null;
+  }
+
+  function startEditing(exerciseId: string) {
+    editingExerciseId = exerciseId;
+  }
+
+  async function saveExercise(
+    exerciseId: string,
+    input: CreateExerciseInput
+  ): Promise<void> {
+    await onUpdateExercise(exerciseId, input);
+    editingExerciseId = null;
   }
 
   const doneState = new Map<string, boolean>();
@@ -409,6 +427,26 @@
   </h3>
 {/snippet}
 
+{#snippet exerciseEdit(exerciseId: string, exercise: Exercise)}
+  {#if editingExerciseId === exerciseId}
+    <ExerciseForm
+      exercise={exercise}
+      onSubmit={(input) => saveExercise(exerciseId, input)}
+      onCancel={() => (editingExerciseId = null)}
+    />
+  {:else}
+    <button
+      type="button"
+      class="btn btn-ghost"
+      disabled={pending}
+      aria-label={`Edit exercise ${exercise.name}`}
+      onclick={() => startEditing(exerciseId)}
+    >
+      Edit exercise
+    </button>
+  {/if}
+{/snippet}
+
 {#snippet setRowsAndForm(
   exerciseId: string,
   sets: LoggedSet[],
@@ -422,11 +460,14 @@
     {/each}
   {/if}
   {#if !completed && exercise}
-    <SetLogForm
-      exercise={exercise}
-      disabled={pending}
-      onSubmit={(input) => logSet(exerciseId, input)}
-    />
+    {#if editingExerciseId !== exerciseId}
+      <SetLogForm
+        exercise={exercise}
+        disabled={pending}
+        onSubmit={(input) => logSet(exerciseId, input)}
+      />
+    {/if}
+    {@render exerciseEdit(exerciseId, exercise)}
   {/if}
 {/snippet}
 
