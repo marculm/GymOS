@@ -193,7 +193,9 @@
 
   function toggleCard(exerciseId: string, expanded: boolean) {
     manualExpanded = { ...manualExpanded, [exerciseId]: !expanded };
-    if (expanded) editingExerciseId = null;
+    if (expanded && editingExerciseId === exerciseId) {
+      editingExerciseId = null;
+    }
   }
 
   function startEditing(exerciseId: string) {

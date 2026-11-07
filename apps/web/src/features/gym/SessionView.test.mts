@@ -170,10 +170,10 @@ function renderSession(overrides: Partial<Props> = {}) {
   });
 
   return {
-    onLogSet: overrides.onLogSet ?? onLogSet,
-    onDeleteSet: overrides.onDeleteSet ?? onDeleteSet,
-    onUpdateExercise: overrides.onUpdateExercise ?? onUpdateExercise,
-    onComplete: overrides.onComplete ?? onComplete,
+    onLogSet,
+    onDeleteSet,
+    onUpdateExercise,
+    onComplete,
     rerender: result.rerender,
     unmount: result.unmount,
   };
@@ -359,9 +359,8 @@ describe("SessionView", () => {
 
   it("does not reopen a card collapsed while saving", async () => {
     const request = deferred();
-    const { onUpdateExercise } = renderSession({
-      onUpdateExercise: vi.fn().mockReturnValue(request.promise),
-    });
+    const onUpdateExercise = vi.fn().mockReturnValue(request.promise);
+    renderSession({ onUpdateExercise });
     await expand("Bench Press");
     await fireEvent.click(
       screen.getByRole("button", { name: /edit exercise bench press/i })
@@ -395,6 +394,18 @@ describe("SessionView", () => {
     expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
 
     request.resolve();
+  });
+
+  it("keeps an open edit when another card is collapsed", async () => {
+    renderSession({ plan: twoExercisePlan });
+    await expand("Bench Press");
+    await expand("Cable Fly");
+    await fireEvent.click(
+      screen.getByRole("button", { name: /edit exercise bench press/i })
+    );
+    await collapse("Cable Fly");
+
+    expect(screen.getByLabelText("Name")).toHaveValue("Bench Press");
   });
 
   it("keeps the active edit when another save finishes", async () => {
