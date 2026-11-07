@@ -64,38 +64,40 @@
 </script>
 
 <div class="stack">
-  {#each exercises as exercise (exercise.id)}
-    <article class="card stack">
-      <div class="row">
-        <h3 class="card-title">{exercise.name}</h3>
-        <span class="badge">{exercise.muscleGroup}</span>
-      </div>
-      <p class="muted">
-        Default: {exercise.defaultSets} × {exercise.defaultReps}
-        {exercise.defaultWeightKg != null
-          ? ` @ ${formatWeight(exercise.defaultWeightKg)} kg`
-          : ""}
-      </p>
-      <div class="row">
-        <button
-          type="button"
-          class="btn btn-ghost"
-          aria-label={`Edit ${exercise.name}`}
-          onclick={() => openEdit(exercise)}
-        >
-          Edit
-        </button>
-        <button
-          type="button"
-          class="btn btn-ghost"
-          aria-label={`Delete ${exercise.name}`}
-          onclick={() => void handleDelete(exercise)}
-        >
-          Delete
-        </button>
-      </div>
-    </article>
-  {/each}
+  <div class="card-grid">
+    {#each exercises as exercise (exercise.id)}
+      <article class="card stack">
+        <div class="row">
+          <h3 class="card-title">{exercise.name}</h3>
+          <span class="badge">{exercise.muscleGroup}</span>
+        </div>
+        <p class="muted">
+          Default: {exercise.defaultSets} × {exercise.defaultReps}
+          {exercise.defaultWeightKg != null
+            ? ` @ ${formatWeight(exercise.defaultWeightKg)} kg`
+            : ""}
+        </p>
+        <div class="row">
+          <button
+            type="button"
+            class="btn btn-ghost"
+            aria-label={`Edit ${exercise.name}`}
+            onclick={() => openEdit(exercise)}
+          >
+            Edit
+          </button>
+          <button
+            type="button"
+            class="btn btn-ghost"
+            aria-label={`Delete ${exercise.name}`}
+            onclick={() => void handleDelete(exercise)}
+          >
+            Delete
+          </button>
+        </div>
+      </article>
+    {/each}
+  </div>
 
   {#if error}
     <p class="error" role="alert">{error}</p>
