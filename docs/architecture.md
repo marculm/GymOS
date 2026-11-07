@@ -470,10 +470,11 @@ apps/web/
 - The session screen displays every logged set, including exercises that are not part of
   the session's plan (ADR-0019). Logged sets carry `exerciseName`, so deleted exercises
   stay readable in history.
-- While the session is active, each set row offers a confirmed Delete action. The API
-  deletes the set and renumbers the remaining sets of that exercise in one transaction;
-  the client mirrors the renumbering without reloading (ADR-0037). Completed sessions
-  remain read-only.
+- While the session is active, each set row offers a confirmed Delete action and a left
+  swipe that removes it immediately with a 5-second undo window. The API deletes the set
+  and renumbers the remaining sets of that exercise in one transaction; the client
+  mirrors the renumbering without reloading (ADR-0037). Completed sessions remain
+  read-only.
 - After a start conflict (`409`), the screen re-reads the active session; if none exists,
   it retries the start once or shows a message (ADR-0019).
 - Plan start actions include the plan name, errors render in `role="alert"` live regions,

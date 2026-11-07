@@ -29,12 +29,25 @@ this decision covers deletion only.
   shared pending state disables the other controls, and a successful delete removes the
   set from the client state and renumbers the remaining sets locally, without reloading
   the session.
-- Completed sessions render their sets without delete actions.
+- A set row also deletes on a left swipe: moving at least 60 px horizontally, with the
+  horizontal delta larger than the vertical delta, hides the row immediately and
+  schedules the API delete after a 5-second undo window. Undo cancels the pending
+  request and restores the row in its original position. Pending deletes flush when the
+  workout is finished or the view unmounts; a failed delete restores the row and shows
+  the error. The Delete button with confirmation remains the accessible and keyboard
+  fallback.
+- Completed sessions render their sets without delete actions or swipe handling.
 
 ## Consequences
 
 - A wrongly logged set can be removed before finishing the workout, and the history no
-  longer keeps it.
+  longer keeps it. A swipe makes the removal fast; the undo window prevents an accidental
+  gesture from destroying data.
+- Swiping is a pointer and touch enhancement. The Delete button remains the path for
+  keyboard and assistive-technology users.
+- A pending swipe delete diverges from the server for up to 5 seconds. Logging another
+  set during that window is renumbered by the delete transaction, and finishing the
+  workout flushes the pending delete before the session closes.
 - Deleting a set can drop an exercise below its target again; the card's collapsed or
   done state follows the new count (ADR-0019, ADR-0029).
 - The API contract gains one route and no schema change. Client state mirrors the
