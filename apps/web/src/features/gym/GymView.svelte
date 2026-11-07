@@ -448,27 +448,31 @@
       {/each}
     </div>
 
-    {#if activeTab === "exercises"}
-      <div
-        class="stack"
-        role="tabpanel"
-        id="gallery-panel-exercises"
-        aria-labelledby="gallery-tab-exercises"
-      >
+    <div
+      class="stack"
+      role="tabpanel"
+      id="gallery-panel-exercises"
+      aria-labelledby="gallery-tab-exercises"
+      hidden={activeTab !== "exercises"}
+    >
+      {#if activeTab === "exercises"}
         <ExerciseRegister
           exercises={exercises}
           onCreate={handleCreateExercise}
           onUpdate={handleUpdateExercise}
           onDelete={handleDeleteExercise}
         />
-      </div>
-    {:else if activeTab === "plans"}
-      <div
-        class="stack"
-        role="tabpanel"
-        id="gallery-panel-plans"
-        aria-labelledby="gallery-tab-plans"
-      >
+      {/if}
+    </div>
+
+    <div
+      class="stack"
+      role="tabpanel"
+      id="gallery-panel-plans"
+      aria-labelledby="gallery-tab-plans"
+      hidden={activeTab !== "plans"}
+    >
+      {#if activeTab === "plans"}
         <section class="card stack">
           <h3 class="card-title">Training rotation</h3>
 
@@ -631,18 +635,24 @@
             {/key}
           {/if}
         </section>
-      </div>
-    {:else}
-      <div
-        class="stack"
-        role="tabpanel"
-        id="gallery-panel-workouts"
-        aria-labelledby="gallery-tab-workouts"
-      >
+      {/if}
+    </div>
+
+    <div
+      class="stack"
+      role="tabpanel"
+      id="gallery-panel-workouts"
+      aria-labelledby="gallery-tab-workouts"
+      hidden={activeTab !== "workouts"}
+    >
+      {#if activeTab === "workouts"}
         <Progress />
-        <History plans={plans} />
-      </div>
-    {/if}
+        <section class="stack" aria-labelledby="history-heading">
+          <h2 class="card-title" id="history-heading">History</h2>
+          <History plans={plans} />
+        </section>
+      {/if}
+    </div>
 
     {#if showPicker}
       <WorkoutPicker
