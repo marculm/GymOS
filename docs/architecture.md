@@ -433,9 +433,11 @@ apps/web/
 - Events use attributes (`onclick`, `onsubmit`), not `on:click`.
 - Data fetching and mutations live in `src/api/`; components call that layer and never
   call `fetch` directly.
-- The exercise register creates, edits, and soft-deletes exercises. Exercise defaults
-  provide the targets shown in plans and sessions and the weight placeholder; completing
-  a session updates them from the last two workouts (ADR-0024, ADR-0038, ADR-0039).
+- The exercise register creates, edits, and soft-deletes exercises. Session cards reuse the
+  register's form to edit an exercise inline, without leaving the workout (ADR-0019,
+  ADR-0024). Exercise defaults provide the targets shown in plans and sessions and the
+  weight placeholder; completing a session updates them from the last two workouts
+  (ADR-0038, ADR-0039).
 - Plans can be edited and deleted from the plan list. Editing replaces the plan's
   exercise selection and order; targets in responses come from the exercise defaults,
   and past sessions and logged sets are unaffected (ADR-0025, ADR-0038).
@@ -458,7 +460,8 @@ apps/web/
   a plan counts as a deviation; choosing free never advances the rotation (ADR-0028).
 - Set logging happens inside each exercise card: plan cards show their target and their
   own form; free sessions build cards with an "Add exercise" control. No global set form
-  remains (ADR-0029).
+  remains (ADR-0029). An expanded card also opens the shared exercise form for editing its
+  defaults (ADR-0019, ADR-0024).
 - Every exercise card starts collapsed and the exercise name is its toggle. A collapsed
   card shows only the name, plus a visible "Done" label once the card is done. A planned
   card auto-collapses when its logged sets reach the target; re-expanding it keeps it open

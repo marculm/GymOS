@@ -37,6 +37,12 @@ nothing.
 - Expanding a done card keeps the done state and its set form, so extra sets can still be
   logged. Free and ad-hoc exercises have no target, start collapsed, and are only toggled
   manually.
+- Every expanded exercise card offers an Edit action that opens the exercise register's
+  shared form inline, with the exercise's name, muscle group, description, and defaults.
+  Saving updates the same exercise row: the session card, its target line, and the
+  register show the new values. The card stays expanded even when the new target set count
+  marks it done. Cards without a loaded exercise row and completed sessions offer no Edit
+  action; new exercises are still created only in the register.
 
 ## Consequences
 
@@ -49,3 +55,5 @@ nothing.
   state remains readable when the card is collapsed.
 - A session opens as a compact list of exercise names; a set is logged after opening its
   card.
+- Exercise defaults can be corrected from the session without leaving it. The register and
+  the session share one form, so validation and error handling stay identical.
