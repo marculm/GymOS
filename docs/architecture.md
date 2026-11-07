@@ -226,8 +226,8 @@ Services are classes with constructor injection:
 
 The service layer throws domain errors and never imports Prisma or Hono (ADR-0013,
 ADR-0015). Transactional rules from ADR-0011 are enforced in the repository layer:
-checking for an active session, assigning set numbers, and completing a session happen
-inside a serializable transaction.
+checking for an active session, assigning set numbers, completing a session, and deriving
+exercise defaults from its history happen inside a serializable transaction.
 
 ### 3.7 Repositories
 
@@ -459,10 +459,10 @@ apps/web/
   card auto-collapses when its logged sets reach the target; re-expanding it keeps it open
   while extra sets are logged. Done cards use a muted background and text; free and
   ad-hoc cards have no target and are manual-only (ADR-0019, ADR-0029).
-- Every weight input shows a suggestion as a placeholder: the average weight of that
-  exercise in the most recent completed workout, rounded to 0.5 kg, falling back to the
-  exercise default. Reps are not prefilled, and RPE is no longer recorded (ADR-0030,
-  ADR-0031).
+- Every weight input shows the exercise's `defaultWeightKg` as a placeholder. Completing a
+  session derives new defaults from all sets of the exercise in the last two completed
+  workouts: average weight rounded to 0.5 kg, and average reps of the sets within 2.5 kg
+  of it. Reps are not prefilled, and RPE is no longer recorded (ADR-0039, ADR-0031).
 - Every weight input accepts two decimals (`step=0.01`). The set form places Reps before
   Weight in compact side-by-side fields; displayed weights use up to two decimals without
   trailing zeros across set rows, history, progress, plan targets, and defaults
@@ -640,3 +640,5 @@ The target architecture deliberately excludes:
 | [0035](adr/0035-deployment-pipeline-and-tailnet-access.md) | Deployment pipeline and tailnet access |
 | [0036](adr/0036-session-bar-and-rest-timer.md) | Session bar and rest timer |
 | [0037](adr/0037-delete-logged-set.md) | Delete a logged set during an active workout |
+| [0038](adr/0038-exercise-driven-plan-model.md) | Exercise-driven plan model |
+| [0039](adr/0039-exercise-defaults-from-workouts.md) | Exercise defaults from recent workouts |
