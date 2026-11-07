@@ -206,7 +206,17 @@
     exerciseId: string,
     input: CreateExerciseInput
   ): Promise<void> {
-    await onUpdateExercise(exerciseId, input);
+    try {
+      await onUpdateExercise(exerciseId, input);
+    } catch (saveError) {
+      if (editingExerciseId !== exerciseId) {
+        error =
+          saveError instanceof Error
+            ? saveError.message
+            : "Could not save the exercise";
+      }
+      throw saveError;
+    }
     if (editingExerciseId !== exerciseId) return;
     editingExerciseId = null;
     await tick();

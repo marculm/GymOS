@@ -430,6 +430,29 @@ describe("SessionView", () => {
     expect(screen.getByLabelText("Name")).toHaveValue("Cable Fly");
   });
 
+  it("shows a failed save after the card is collapsed", async () => {
+    let reject!: (error: Error) => void;
+    const request = new Promise<void>((_, rejectPromise) => {
+      reject = rejectPromise;
+    });
+    renderSession({
+      onUpdateExercise: vi.fn().mockReturnValue(request),
+    });
+    await expand("Bench Press");
+    await fireEvent.click(
+      screen.getByRole("button", { name: /edit exercise bench press/i })
+    );
+    await submitExerciseForm();
+    await collapse("Bench Press");
+
+    reject(new Error("Name already exists"));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Name already exists"
+    );
+  });
+
   it("keeps the exercise form open when a save fails", async () => {
     renderSession({
       onUpdateExercise: vi
