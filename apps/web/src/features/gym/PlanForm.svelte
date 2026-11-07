@@ -53,15 +53,11 @@
   let pending = $state(false);
   let error = $state<string | null>(null);
 
-  function updateRow(index: number, patch: Partial<ExerciseRow>) {
-    rows = rows.map((row, rowIndex) =>
-      rowIndex === index ? { ...row, ...patch } : row
-    );
-  }
-
   function selectExercise(index: number, exerciseId: string) {
     const notes = rows[index]?.exerciseId === exerciseId ? rows[index]?.notes : undefined;
-    updateRow(index, { exerciseId, notes });
+    rows = rows.map((row, rowIndex) =>
+      rowIndex === index ? { exerciseId, notes } : row
+    );
   }
 
   const MAX_PLAN_EXERCISES = 50;
