@@ -327,6 +327,7 @@ fieldset {
   gap: 8px;
   margin: 0;
   font-variant-numeric: tabular-nums;
+  touch-action: pan-y;
 }
 
 .set-delete {
