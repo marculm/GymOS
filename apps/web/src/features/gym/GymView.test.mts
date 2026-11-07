@@ -915,6 +915,58 @@ describe("GymView", () => {
     );
   });
 
+  it("edits an exercise from the active session card", async () => {
+    const updated: Exercise = {
+      ...exercise,
+      name: "Incline Bench Press",
+      defaultSets: 5,
+      defaultReps: 12,
+      defaultWeightKg: 85,
+    };
+    vi.mocked(getActiveSession).mockResolvedValue(session);
+    vi.mocked(updateExercise).mockResolvedValueOnce(updated);
+
+    render(GymView);
+
+    await fireEvent.click(
+      await screen.findByRole("button", { name: "Expand Bench Press" })
+    );
+    await fireEvent.click(
+      screen.getByRole("button", { name: /edit exercise bench press/i })
+    );
+    await fireEvent.input(screen.getByLabelText("Name"), {
+      target: { value: "Incline Bench Press" },
+    });
+    await fireEvent.input(screen.getByLabelText("Default sets"), {
+      target: { value: "5" },
+    });
+    await fireEvent.input(screen.getByLabelText("Default reps"), {
+      target: { value: "12" },
+    });
+    await fireEvent.input(
+      screen.getByLabelText("Default weight (kg, optional)"),
+      { target: { value: "85" } }
+    );
+    await clickSubmit(screen.getByRole("button", { name: /save exercise/i }));
+
+    await waitFor(() => {
+      expect(updateExercise).toHaveBeenCalledWith("exercise-1", {
+        name: "Incline Bench Press",
+        muscleGroup: "chest",
+        description: null,
+        defaultSets: 5,
+        defaultReps: 12,
+        defaultWeightKg: 85,
+      });
+    });
+    expect(
+      await screen.findByRole("button", {
+        name: "Collapse Incline Bench Press",
+      })
+    ).toBeInTheDocument();
+    expect(screen.getByText("5 × 12 @ 85 kg")).toBeInTheDocument();
+  });
+
   it("refreshes exercise defaults after finishing a workout", async () => {
     const updatedExercise: Exercise = {
       ...exercise,

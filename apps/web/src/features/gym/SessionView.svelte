@@ -171,7 +171,7 @@
       if (cards.has(group.exerciseId)) continue;
       cards.set(group.exerciseId, {
         exerciseId: group.exerciseId,
-        name: group.name,
+        name: byId.get(group.exerciseId)?.name ?? group.name,
         sets: group.sets,
         exercise: byId.get(group.exerciseId) ?? null,
       });
@@ -510,13 +510,23 @@
 
     {#each setGroups as group (group.exerciseId)}
       {@const expanded = isCardExpanded(group.exerciseId)}
+      {@const exercise =
+        exercises.find((entry) => entry.id === group.exerciseId) ?? null}
       <section class="card stack">
-        {@render cardHeader(group.exerciseId, group.name, expanded, false)}
+        {@render cardHeader(
+          group.exerciseId,
+          exercise?.name ?? group.name,
+          expanded,
+          false
+        )}
         <div class="stack" id={`sets-${group.exerciseId}`}>
           {#if expanded}
             {#each visibleSets(group.sets) as set (set.id)}
               {@render setRow(set)}
             {/each}
+            {#if !completed && exercise}
+              {@render exerciseEdit(group.exerciseId, exercise)}
+            {/if}
           {/if}
         </div>
       </section>

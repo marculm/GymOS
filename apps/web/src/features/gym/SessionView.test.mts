@@ -346,6 +346,74 @@ describe("SessionView", () => {
     expect(screen.getByLabelText("Name")).toHaveValue("Incline Bench Press");
   });
 
+  it("edits an exercise logged outside the plan", async () => {
+    const { onUpdateExercise, rerender } = renderSession({
+      session: { ...session, sets: [cableSet] },
+    });
+    await expand("Cable Fly");
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: /edit exercise cable fly/i })
+    );
+    await fireEvent.input(screen.getByLabelText("Name"), {
+      target: { value: "Cable Fly Pro" },
+    });
+    await submitExerciseForm();
+
+    await waitFor(() => {
+      expect(onUpdateExercise).toHaveBeenCalledWith(
+        "exercise-2",
+        expect.objectContaining({ name: "Cable Fly Pro" })
+      );
+    });
+
+    await rerender({
+      exercises: [exercise, { ...extraExercise, name: "Cable Fly Pro" }],
+    });
+    expect(
+      screen.getByRole("button", { name: "Collapse Cable Fly Pro" })
+    ).toBeInTheDocument();
+  });
+
+  it("edits an exercise logged in a free session", async () => {
+    const { onUpdateExercise, rerender } = renderSession({
+      session: { ...freeSession, sets: [cableSet] },
+      plan: null,
+    });
+    await expand("Cable Fly");
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: /edit exercise cable fly/i })
+    );
+    await fireEvent.input(screen.getByLabelText("Name"), {
+      target: { value: "Cable Fly Pro" },
+    });
+    await submitExerciseForm();
+
+    await waitFor(() => {
+      expect(onUpdateExercise).toHaveBeenCalledWith(
+        "exercise-2",
+        expect.objectContaining({ name: "Cable Fly Pro" })
+      );
+    });
+
+    await rerender({
+      exercises: [exercise, { ...extraExercise, name: "Cable Fly Pro" }],
+    });
+    expect(
+      screen.getByRole("button", { name: "Collapse Cable Fly Pro" })
+    ).toBeInTheDocument();
+  });
+
+  it("offers no edit action for an exercise that is not loaded", async () => {
+    renderSession({ session: { ...session, sets: [missingExerciseSet] } });
+    await expand("Deleted Press");
+
+    expect(
+      screen.queryByRole("button", { name: /edit exercise/i })
+    ).not.toBeInTheDocument();
+  });
+
   it("logs a set from the exercise card", async () => {
     const { onLogSet } = renderSession();
     await expand("Bench Press");
