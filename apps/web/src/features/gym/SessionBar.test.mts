@@ -66,7 +66,7 @@ function renderSession() {
   const onLogSet = vi.fn().mockResolvedValue(undefined);
   const onComplete = vi.fn().mockResolvedValue(undefined);
 
-  render(SessionView, {
+  const view = render(SessionView, {
     props: {
       session,
       plan,
@@ -78,7 +78,7 @@ function renderSession() {
     },
   });
 
-  return { onLogSet, onComplete };
+  return { onLogSet, onComplete, unmount: view.unmount };
 }
 
 function bar() {
@@ -166,6 +166,21 @@ describe("SessionBar", () => {
     expect(
       within(bar()).getByRole("button", { name: "2:30" })
     ).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("keeps the countdown across a remount", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-11-07T10:00:00.000Z"));
+
+    const { onLogSet, unmount } = renderSession();
+    await logSet(onLogSet);
+    await vi.advanceTimersByTimeAsync(0);
+
+    unmount();
+    vi.setSystemTime(new Date("2026-11-07T10:00:30.000Z"));
+    renderSession();
+
+    expect(timerButton()).toHaveTextContent("1:30");
   });
 
   it("resumes the countdown from the stored end timestamp", async () => {
