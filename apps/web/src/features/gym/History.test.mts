@@ -151,6 +151,15 @@ describe("History", () => {
     expect(listSessions).toHaveBeenLastCalledWith({ page: 2, size: 10 });
   });
 
+  it("shows the duration and set count on each history card", async () => {
+    vi.mocked(listSessions).mockResolvedValue(page([pushSession], 0, 1));
+
+    renderHistory();
+
+    expect(await screen.findByText(/60 min/)).toBeInTheDocument();
+    expect(screen.getByText(/2 sets/)).toBeInTheDocument();
+  });
+
   it("opens a session with its sets and duration", async () => {
     vi.mocked(listSessions).mockResolvedValue(page([pushSession], 0, 1));
     vi.mocked(getSession).mockResolvedValue(detail);
@@ -166,7 +175,7 @@ describe("History", () => {
     expect(screen.getByText("6 × 85 kg")).toBeInTheDocument();
     expect(screen.queryByText("4 × 8 @ 80 kg")).not.toBeInTheDocument();
     expect(screen.queryByText(/@ .* kg/)).not.toBeInTheDocument();
-    expect(screen.getByText(/60 min/)).toBeInTheDocument();
+    expect(screen.getAllByText(/60 min/).length).toBeGreaterThan(0);
     expect(getSession).toHaveBeenCalledWith("session-1");
   });
 
