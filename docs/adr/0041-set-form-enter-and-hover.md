@@ -18,7 +18,9 @@ of a touch.
 - Enter in the weight field submits the set. With an empty weight field and a default,
   the keypress fills the default into the field before submitting; without a default, the
   form's normal constraint validation applies.
-- Enter does not move focus to Reps. The keyboard order stays Reps → Weight → Add set.
+- Enter does not move focus back to Reps after submitting; focus stays in the weight
+  field. Interactive validation may still focus the first invalid field, including Reps.
+- The keyboard order stays Reps → Weight → Add set.
 - Hover styles apply only inside `@media (hover: hover) and (pointer: fine)`, so touch
   devices never see a sticky hover state.
 - This replaces the Enter rule of ADR-0030; ADR-0039's reference to it is updated. The

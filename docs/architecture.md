@@ -476,8 +476,8 @@ apps/web/
   accepts the default when the field is empty, keeping the keyboard order Reps → Weight →
   Add set. Displayed weights use up to two decimals without trailing zeros across set
   rows, history, progress, plan targets, and defaults (ADR-0022, ADR-0041). Hover styles
-  apply only on devices with a fine pointer, so touch taps leave no sticky hover state
-  (ADR-0041).
+  apply only on devices that support hover with a fine pointer, so touch taps leave no
+  sticky hover state (ADR-0041).
 - The session screen displays every logged set, including exercises that are not part of
   the session's plan (ADR-0019). Logged sets carry `exerciseName`, so deleted exercises
   stay readable in history.
