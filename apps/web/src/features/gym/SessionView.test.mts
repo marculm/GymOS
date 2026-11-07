@@ -381,6 +381,22 @@ describe("SessionView", () => {
     ).toBeInTheDocument();
   });
 
+  it("disables cancel while an exercise save is pending", async () => {
+    const request = deferred();
+    renderSession({
+      onUpdateExercise: vi.fn().mockReturnValue(request.promise),
+    });
+    await expand("Bench Press");
+    await fireEvent.click(
+      screen.getByRole("button", { name: /edit exercise bench press/i })
+    );
+    await submitExerciseForm();
+
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
+
+    request.resolve();
+  });
+
   it("keeps the exercise form open when a save fails", async () => {
     renderSession({
       onUpdateExercise: vi

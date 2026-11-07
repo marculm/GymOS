@@ -134,7 +134,12 @@
   {/if}
 
   <div class="row">
-    <button type="button" class="btn btn-ghost" onclick={onCancel}>
+    <button
+      type="button"
+      class="btn btn-ghost"
+      disabled={pending}
+      onclick={onCancel}
+    >
       Cancel
     </button>
     <button
