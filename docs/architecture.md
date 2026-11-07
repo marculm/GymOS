@@ -472,9 +472,12 @@ apps/web/
   workouts: average weight rounded to 0.5 kg, and average reps of the sets within 2.5 kg
   of it. Reps are not prefilled, and RPE is no longer recorded (ADR-0039, ADR-0031).
 - Every weight input accepts two decimals (`step=0.01`). The set form places Reps before
-  Weight in compact side-by-side fields; displayed weights use up to two decimals without
-  trailing zeros across set rows, history, progress, plan targets, and defaults
-  (ADR-0022).
+  Weight in compact side-by-side fields; Enter in the weight field submits the set and
+  accepts the default when the field is empty, keeping the keyboard order Reps → Weight →
+  Add set. Displayed weights use up to two decimals without trailing zeros across set
+  rows, history, progress, plan targets, and defaults (ADR-0022, ADR-0041). Hover styles
+  apply only on devices with a fine pointer, so touch taps leave no sticky hover state
+  (ADR-0041).
 - The session screen displays every logged set, including exercises that are not part of
   the session's plan (ADR-0019). Logged sets carry `exerciseName`, so deleted exercises
   stay readable in history.
@@ -652,3 +655,4 @@ The target architecture deliberately excludes:
 | [0038](adr/0038-exercise-driven-plan-model.md) | Exercise-driven plan model |
 | [0039](adr/0039-exercise-defaults-from-workouts.md) | Exercise defaults from recent workouts |
 | [0040](adr/0040-tabbed-gym-gallery.md) | Tabbed Gym gallery |
+| [0041](adr/0041-set-form-enter-and-hover.md) | Set form Enter submission and guarded hover |

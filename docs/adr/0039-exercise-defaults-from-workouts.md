@@ -30,7 +30,8 @@ stale.
 - `defaultSets` stays manual.
 - `GET /api/gym/exercises/weight-suggestions` and the `WeightSuggestions` contract are
   removed. The set form's weight placeholder is the exercise's `defaultWeightKg`; the
-  placeholder and Enter behavior of ADR-0030 remain, and reps stay unprefilled.
+  placeholder behavior of ADR-0030 remains, Enter submits the set and accepts the
+  placeholder when the field is empty (ADR-0041), and reps stay unprefilled.
 - After a session completes, the web app reloads the exercise and plan lists so the next
   session uses the new defaults and the plan targets derived from them (ADR-0038).
 
