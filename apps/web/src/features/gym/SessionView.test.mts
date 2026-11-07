@@ -170,10 +170,10 @@ function renderSession(overrides: Partial<Props> = {}) {
   });
 
   return {
-    onLogSet,
-    onDeleteSet,
-    onUpdateExercise,
-    onComplete,
+    onLogSet: overrides.onLogSet ?? onLogSet,
+    onDeleteSet: overrides.onDeleteSet ?? onDeleteSet,
+    onUpdateExercise: overrides.onUpdateExercise ?? onUpdateExercise,
+    onComplete: overrides.onComplete ?? onComplete,
     rerender: result.rerender,
     unmount: result.unmount,
   };
@@ -355,6 +355,30 @@ describe("SessionView", () => {
       screen.getByRole("button", { name: "Collapse Bench Press" })
     ).toBeInTheDocument();
     expect(screen.getByText(/1\s*×\s*8/)).toBeInTheDocument();
+  });
+
+  it("does not reopen a card collapsed while saving", async () => {
+    const request = deferred();
+    const { onUpdateExercise } = renderSession({
+      onUpdateExercise: vi.fn().mockReturnValue(request.promise),
+    });
+    await expand("Bench Press");
+    await fireEvent.click(
+      screen.getByRole("button", { name: /edit exercise bench press/i })
+    );
+    await fireEvent.input(screen.getByLabelText("Default sets"), {
+      target: { value: "1" },
+    });
+    await submitExerciseForm();
+    expect(onUpdateExercise).toHaveBeenCalled();
+    await collapse("Bench Press");
+
+    request.resolve();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(
+      screen.getByRole("button", { name: "Expand Bench Press" })
+    ).toBeInTheDocument();
   });
 
   it("keeps the exercise form open when a save fails", async () => {
