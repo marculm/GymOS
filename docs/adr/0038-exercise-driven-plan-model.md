@@ -17,7 +17,7 @@ ADR-0010 introduced plan targets as reusable templates. ADR-0025 made plan edits
 - The plan response keeps `targetSets`, `targetReps`, and `targetWeightKg`, derived from the exercise's `defaultSets`, `defaultReps`, and `defaultWeightKg`. Existing screens keep their contract.
 - Session targets, including the done threshold, therefore follow the exercise defaults.
 - Existing plans keep their exercise selection and order; stored target values are discarded by the migration.
-- The plan form simplification and the history target-line cleanup follow in separate issues.
+- The plan form simplification landed in #65; the history target-line cleanup remains in #66.
 
 ## Consequences
 
