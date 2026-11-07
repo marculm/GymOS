@@ -205,6 +205,8 @@
   ): Promise<void> {
     await onUpdateExercise(exerciseId, input);
     editingExerciseId = null;
+    await tick();
+    manualExpanded = { ...manualExpanded, [exerciseId]: true };
   }
 
   const doneState = new Map<string, boolean>();

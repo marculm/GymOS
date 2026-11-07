@@ -324,6 +324,39 @@ describe("SessionView", () => {
     ).toBeInTheDocument();
   });
 
+  it("keeps a card expanded when saved defaults make it done", async () => {
+    const donePlan: WorkoutPlan = {
+      ...plan,
+      exercises: plan.exercises.map((entry) => ({ ...entry, targetSets: 1 })),
+    };
+    let rerender: ReturnType<typeof renderSession>["rerender"] | undefined;
+    const onUpdateExercise = vi.fn(async () => {
+      await rerender?.({ plan: donePlan });
+    });
+    const rendered = renderSession({
+      session: { ...session, sets: [benchSet] },
+      onUpdateExercise,
+    });
+    rerender = rendered.rerender;
+
+    await expand("Bench Press");
+    await fireEvent.click(
+      screen.getByRole("button", { name: /edit exercise bench press/i })
+    );
+    await fireEvent.input(screen.getByLabelText("Default sets"), {
+      target: { value: "1" },
+    });
+    await submitExerciseForm();
+
+    await waitFor(() => {
+      expect(onUpdateExercise).toHaveBeenCalled();
+    });
+    expect(
+      screen.getByRole("button", { name: "Collapse Bench Press" })
+    ).toBeInTheDocument();
+    expect(screen.getByText(/1\s*×\s*8/)).toBeInTheDocument();
+  });
+
   it("keeps the exercise form open when a save fails", async () => {
     renderSession({
       onUpdateExercise: vi
