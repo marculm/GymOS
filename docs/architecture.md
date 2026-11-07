@@ -446,7 +446,7 @@ apps/web/
   plan" section; free workouts are a secondary action (ADR-0027).
 - A progress section shows personal records and per-workout volume. Below it, history
   lists completed sessions with plan and date filters and a "Load more" action; opening a
-  session expands its sets, targets, and duration inline (ADR-0032).
+  session expands its sets and duration inline (ADR-0032).
 - History is collapsed by default behind a Show/Hide toggle at the bottom of the screen,
   and its list loads only after it is opened (ADR-0033).
 - The secondary action opens a modal picker with every plan and a free workout. Choosing
@@ -563,8 +563,8 @@ Required regression coverage (ADR-0018):
   and empty history (ADR-0026).
 - Progress analytics: personal records by weight, then reps, then newest set; per-session
   volume; active sessions excluded (ADR-0032).
-- History filters by plan and start-date range, and session detail includes sets, targets,
-  and completion time (ADR-0032).
+- History filters by plan and start-date range, and session detail includes sets,
+  start/finish times, and duration (ADR-0032).
 
 Verification commands:
 
