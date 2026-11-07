@@ -934,9 +934,7 @@ describe("GymView", () => {
       await screen.findByRole("button", { name: /finish workout/i })
     );
 
-    expect(
-      await screen.findByRole("heading", { name: "Push Day" })
-    ).toBeInTheDocument();
+    expect(await startScreenReady()).toBeInTheDocument();
   });
 
   it("logs a set and finishes the active session", async () => {

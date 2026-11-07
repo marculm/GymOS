@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { tick } from "svelte";
+  import { onDestroy, tick } from "svelte";
   import type {
     CreateWorkoutSetInput,
     Exercise,
@@ -29,6 +29,8 @@
   const REST_PRESETS: readonly number[] = [120, 150, 180];
   const DEFAULT_REST_PRESET = 120;
   const REST_PRESET_KEY = "gymos.restTimerSeconds";
+  const SWIPE_DELETE_THRESHOLD = 60;
+  const UNDO_WINDOW_MS = 5000;
 
   let freeExercises = $state<Exercise[]>([]);
   let manualExpanded = $state<Record<string, boolean>>({});
@@ -40,6 +42,15 @@
   let remaining = $state(0);
   let timerRunning = $state(false);
   let showTimerOptions = $state(false);
+  let hiddenSetIds = $state<Set<string>>(new Set());
+  let pendingUndos = $state<LoggedSet[]>([]);
+  const deleteTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  let swipeStart: {
+    pointerId: number;
+    setId: string;
+    x: number;
+    y: number;
+  } | null = null;
 
   function formatTime(seconds: number): string {
     return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
@@ -184,7 +195,8 @@
     for (const entry of plan?.exercises ?? []) {
       const exerciseId = entry.exercise.id;
       const done =
-        (setsByExercise.get(exerciseId)?.length ?? 0) >= entry.targetSets;
+        visibleSets(setsByExercise.get(exerciseId) ?? []).length >=
+        entry.targetSets;
       if (done && doneState.get(exerciseId) !== true) {
         manualExpanded = { ...manualExpanded, [exerciseId]: false };
       }
@@ -238,6 +250,87 @@
     }
   }
 
+  function visibleSets(sets: LoggedSet[]): LoggedSet[] {
+    return sets.filter((set) => !hiddenSetIds.has(set.id));
+  }
+
+  function scheduleDelete(set: LoggedSet) {
+    if (completed || pending || deleteTimers.has(set.id)) return;
+    error = null;
+    hiddenSetIds = new Set(hiddenSetIds).add(set.id);
+    pendingUndos = [...pendingUndos, set];
+    deleteTimers.set(
+      set.id,
+      setTimeout(() => void flushDelete(set.id), UNDO_WINDOW_MS)
+    );
+  }
+
+  async function flushDelete(setId: string): Promise<boolean> {
+    const timer = deleteTimers.get(setId);
+    if (!timer) return true;
+    clearTimeout(timer);
+    deleteTimers.delete(setId);
+    pendingUndos = pendingUndos.filter((set) => set.id !== setId);
+
+    try {
+      await onDeleteSet(setId);
+      return true;
+    } catch (deleteError) {
+      hiddenSetIds = new Set([...hiddenSetIds].filter((id) => id !== setId));
+      error =
+        deleteError instanceof Error
+          ? deleteError.message
+          : "Could not delete the set";
+      return false;
+    }
+  }
+
+  async function undoDelete(set: LoggedSet) {
+    const timer = deleteTimers.get(set.id);
+    if (!timer) return;
+    clearTimeout(timer);
+    deleteTimers.delete(set.id);
+    pendingUndos = pendingUndos.filter((entry) => entry.id !== set.id);
+    hiddenSetIds = new Set([...hiddenSetIds].filter((id) => id !== set.id));
+    await tick();
+    manualExpanded = { ...manualExpanded, [set.exerciseId]: true };
+  }
+
+  async function flushPendingDeletes(): Promise<boolean> {
+    const results = await Promise.all(
+      [...deleteTimers.keys()].map((setId) => flushDelete(setId))
+    );
+    return results.every(Boolean);
+  }
+
+  onDestroy(() => void flushPendingDeletes());
+
+  function startSwipe(event: PointerEvent, set: LoggedSet) {
+    if (completed || pending || event.button !== 0) return;
+    swipeStart = {
+      pointerId: event.pointerId,
+      setId: set.id,
+      x: event.clientX,
+      y: event.clientY,
+    };
+  }
+
+  function endSwipe(event: PointerEvent, set: LoggedSet) {
+    if (!swipeStart || event.pointerId !== swipeStart.pointerId) return;
+    const start = swipeStart;
+    swipeStart = null;
+    if (set.id !== start.setId) return;
+    const dx = event.clientX - start.x;
+    const dy = event.clientY - start.y;
+    if (dx <= -SWIPE_DELETE_THRESHOLD && Math.abs(dx) > Math.abs(dy)) {
+      scheduleDelete(set);
+    }
+  }
+
+  function cancelSwipe() {
+    swipeStart = null;
+  }
+
   async function handleComplete() {
     if (pending) return;
 
@@ -246,7 +339,11 @@
     let failed = false;
 
     try {
-      await onComplete();
+      if (await flushPendingDeletes()) {
+        await onComplete();
+      } else {
+        failed = true;
+      }
     } catch (completeError) {
       failed = true;
       error =
@@ -265,7 +362,13 @@
 </script>
 
 {#snippet setRow(set: LoggedSet)}
-  <div class="set-row">
+  <div
+    class="set-row"
+    role="group"
+    onpointerdown={(event) => startSwipe(event, set)}
+    onpointerup={(event) => endSwipe(event, set)}
+    onpointercancel={cancelSwipe}
+  >
     <span class="badge">Set {set.setNumber}</span>
     <span class="grow">{set.reps} × {formatWeight(set.weightKg)} kg</span>
     {#if !completed}
@@ -340,7 +443,7 @@
   {#if plan}
     {#each plan.exercises as planExercise (planExercise.id)}
       {@const exerciseId = planExercise.exercise.id}
-      {@const sets = setsByExercise.get(exerciseId) ?? []}
+      {@const sets = visibleSets(setsByExercise.get(exerciseId) ?? [])}
       {@const done = sets.length >= planExercise.targetSets}
       {@const expanded = isCardExpanded(exerciseId)}
       <section class="card stack" class:exercise-done={done}>
@@ -370,7 +473,7 @@
         {@render cardHeader(group.exerciseId, group.name, expanded, false)}
         <div class="stack" id={`sets-${group.exerciseId}`}>
           {#if expanded}
-            {#each group.sets as set (set.id)}
+            {#each visibleSets(group.sets) as set (set.id)}
               {@render setRow(set)}
             {/each}
           {/if}
@@ -388,7 +491,11 @@
         {@render cardHeader(card.exerciseId, card.name, expanded, false)}
         <div class="stack" id={`sets-${card.exerciseId}`}>
           {#if expanded}
-            {@render setRowsAndForm(card.exerciseId, card.sets, card.exercise)}
+            {@render setRowsAndForm(
+              card.exerciseId,
+              visibleSets(card.sets),
+              card.exercise
+            )}
           {/if}
         </div>
       </section>
@@ -435,6 +542,26 @@
   <div class="session-bar" role="region" aria-label="Workout controls">
     {#if error}
       <p class="error" role="alert">{error}</p>
+    {/if}
+
+    {#if pendingUndos.length > 0}
+      <div class="stack" role="status" aria-live="polite">
+        {#each pendingUndos as set (set.id)}
+          {@const current =
+            session.sets.find((entry) => entry.id === set.id) ?? set}
+          <p class="muted">
+            Deleted set {current.setNumber} for {current.exerciseName}.
+            <button
+              type="button"
+              class="btn btn-ghost"
+              aria-label={`Undo deleting set ${current.setNumber} for ${current.exerciseName}`}
+              onclick={() => void undoDelete(set)}
+            >
+              Undo
+            </button>
+          </p>
+        {/each}
+      </div>
     {/if}
 
     <div id="rest-timer-options" hidden={!showTimerOptions}>
