@@ -593,6 +593,28 @@ describe("SessionView", () => {
     expect(onDeleteSet).not.toHaveBeenCalled();
   });
 
+  it("keeps the card expanded when undo restores the target count", async () => {
+    vi.useFakeTimers();
+    const { onDeleteSet } = renderSession({
+      session: { ...session, sets: loggedSets(benchSet, 4) },
+    });
+    await expand("Bench Press");
+
+    swipeSet(4, -100);
+    await fireEvent.click(
+      screen.getByRole("button", {
+        name: "Undo deleting set 4 for Bench Press",
+      })
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Set 4")).toBeInTheDocument();
+    });
+
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(onDeleteSet).not.toHaveBeenCalled();
+  });
+
   it("restores a swiped set when the delayed delete fails", async () => {
     vi.useFakeTimers();
     const onDeleteSet = vi
@@ -630,6 +652,33 @@ describe("SessionView", () => {
     expect(onDeleteSet).not.toHaveBeenCalled();
   });
 
+  it("does not delete when the swipe ends on another row", async () => {
+    const { onDeleteSet } = renderSession({
+      session: { ...session, sets: [benchSet, benchSet2] },
+    });
+    await expand("Bench Press");
+
+    const first = screen.getByText("Set 1").closest(".set-row");
+    const second = screen.getByText("Set 2").closest(".set-row");
+    if (!first || !second) throw new Error("set rows are missing");
+    fireEvent.pointerDown(first, {
+      clientX: 200,
+      clientY: 40,
+      pointerId: 1,
+      button: 0,
+    });
+    fireEvent.pointerUp(second, {
+      clientX: 80,
+      clientY: 40,
+      pointerId: 1,
+      button: 0,
+    });
+
+    expect(screen.getByText("Set 1")).toBeInTheDocument();
+    expect(screen.getByText("Set 2")).toBeInTheDocument();
+    expect(onDeleteSet).not.toHaveBeenCalled();
+  });
+
   it("flushes a pending swipe delete on unmount", async () => {
     vi.useFakeTimers();
     const { onDeleteSet, unmount } = renderSession({
@@ -660,9 +709,36 @@ describe("SessionView", () => {
       expect(onDeleteSet).toHaveBeenCalledWith("set-1");
       expect(onComplete).toHaveBeenCalled();
     });
-    expect(onDeleteSet.mock.invocationCallOrder[0]).toBeLessThan(
-      onComplete.mock.invocationCallOrder[0]
+    const deleteOrder = onDeleteSet.mock.invocationCallOrder[0];
+    const completeOrder = onComplete.mock.invocationCallOrder[0];
+    if (deleteOrder === undefined || completeOrder === undefined) {
+      throw new Error("expected both calls");
+    }
+    expect(deleteOrder).toBeLessThan(completeOrder);
+  });
+
+  it("keeps the session open when a pending delete fails on finish", async () => {
+    const onDeleteSet = vi
+      .fn()
+      .mockRejectedValue(new Error("Could not delete"));
+    const onComplete = vi.fn().mockResolvedValue(undefined);
+    renderSession({
+      session: { ...session, sets: [benchSet] },
+      onDeleteSet,
+      onComplete,
+    });
+    await expand("Bench Press");
+
+    swipeSet(1, -100);
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Finish workout" })
     );
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Could not delete"
+    );
+    expect(onComplete).not.toHaveBeenCalled();
+    expect(screen.getByText("Set 1")).toBeInTheDocument();
   });
 
   it("offers no delete action for a completed session", async () => {

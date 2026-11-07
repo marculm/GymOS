@@ -45,7 +45,12 @@
   let hiddenSetIds = $state<Set<string>>(new Set());
   let pendingUndos = $state<LoggedSet[]>([]);
   const deleteTimers = new Map<string, ReturnType<typeof setTimeout>>();
-  let swipeStart: { x: number; y: number } | null = null;
+  let swipeStart: {
+    pointerId: number;
+    setId: string;
+    x: number;
+    y: number;
+  } | null = null;
 
   function formatTime(seconds: number): string {
     return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
@@ -251,6 +256,7 @@
 
   function scheduleDelete(set: LoggedSet) {
     if (completed || pending || deleteTimers.has(set.id)) return;
+    error = null;
     hiddenSetIds = new Set(hiddenSetIds).add(set.id);
     pendingUndos = [...pendingUndos, set];
     deleteTimers.set(
@@ -259,52 +265,63 @@
     );
   }
 
-  async function flushDelete(setId: string) {
+  async function flushDelete(setId: string): Promise<boolean> {
     const timer = deleteTimers.get(setId);
-    if (!timer) return;
+    if (!timer) return true;
     clearTimeout(timer);
     deleteTimers.delete(setId);
     pendingUndos = pendingUndos.filter((set) => set.id !== setId);
-    error = null;
 
     try {
       await onDeleteSet(setId);
+      return true;
     } catch (deleteError) {
       hiddenSetIds = new Set([...hiddenSetIds].filter((id) => id !== setId));
       error =
         deleteError instanceof Error
           ? deleteError.message
           : "Could not delete the set";
+      return false;
     }
   }
 
-  function undoDelete(set: LoggedSet) {
+  async function undoDelete(set: LoggedSet) {
     const timer = deleteTimers.get(set.id);
     if (!timer) return;
     clearTimeout(timer);
     deleteTimers.delete(set.id);
     pendingUndos = pendingUndos.filter((entry) => entry.id !== set.id);
     hiddenSetIds = new Set([...hiddenSetIds].filter((id) => id !== set.id));
+    await tick();
+    manualExpanded = { ...manualExpanded, [set.exerciseId]: true };
   }
 
-  async function flushPendingDeletes() {
-    await Promise.all(
+  async function flushPendingDeletes(): Promise<boolean> {
+    const results = await Promise.all(
       [...deleteTimers.keys()].map((setId) => flushDelete(setId))
     );
+    return results.every(Boolean);
   }
 
   onDestroy(() => void flushPendingDeletes());
 
-  function startSwipe(event: PointerEvent) {
-    if (completed || event.button !== 0) return;
-    swipeStart = { x: event.clientX, y: event.clientY };
+  function startSwipe(event: PointerEvent, set: LoggedSet) {
+    if (completed || pending || event.button !== 0) return;
+    swipeStart = {
+      pointerId: event.pointerId,
+      setId: set.id,
+      x: event.clientX,
+      y: event.clientY,
+    };
   }
 
   function endSwipe(event: PointerEvent, set: LoggedSet) {
-    if (!swipeStart) return;
-    const dx = event.clientX - swipeStart.x;
-    const dy = event.clientY - swipeStart.y;
+    if (!swipeStart || event.pointerId !== swipeStart.pointerId) return;
+    const start = swipeStart;
     swipeStart = null;
+    if (set.id !== start.setId) return;
+    const dx = event.clientX - start.x;
+    const dy = event.clientY - start.y;
     if (dx <= -SWIPE_DELETE_THRESHOLD && Math.abs(dx) > Math.abs(dy)) {
       scheduleDelete(set);
     }
@@ -322,8 +339,11 @@
     let failed = false;
 
     try {
-      await flushPendingDeletes();
-      await onComplete();
+      if (await flushPendingDeletes()) {
+        await onComplete();
+      } else {
+        failed = true;
+      }
     } catch (completeError) {
       failed = true;
       error =
@@ -345,7 +365,7 @@
   <div
     class="set-row"
     role="group"
-    onpointerdown={startSwipe}
+    onpointerdown={(event) => startSwipe(event, set)}
     onpointerup={(event) => endSwipe(event, set)}
     onpointercancel={cancelSwipe}
   >
@@ -527,13 +547,15 @@
     {#if pendingUndos.length > 0}
       <div class="stack" role="status" aria-live="polite">
         {#each pendingUndos as set (set.id)}
+          {@const current =
+            session.sets.find((entry) => entry.id === set.id) ?? set}
           <p class="muted">
-            Deleted set {set.setNumber} for {set.exerciseName}.
+            Deleted set {current.setNumber} for {current.exerciseName}.
             <button
               type="button"
               class="btn btn-ghost"
-              aria-label={`Undo deleting set ${set.setNumber} for ${set.exerciseName}`}
-              onclick={() => undoDelete(set)}
+              aria-label={`Undo deleting set ${current.setNumber} for ${current.exerciseName}`}
+              onclick={() => void undoDelete(set)}
             >
               Undo
             </button>
