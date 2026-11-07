@@ -438,6 +438,42 @@ describe("SessionView", () => {
     ).toBeInTheDocument();
   });
 
+  it("shows saved values on an added free-session card", async () => {
+    const { onUpdateExercise, rerender } = renderSession({
+      session: freeSession,
+      plan: null,
+    });
+    await fireEvent.change(screen.getByLabelText("Exercise"), {
+      target: { value: "exercise-2" },
+    });
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Add exercise" })
+    );
+    await expand("Cable Fly");
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: /edit exercise cable fly/i })
+    );
+    await fireEvent.input(screen.getByLabelText("Name"), {
+      target: { value: "Cable Fly Pro" },
+    });
+    await submitExerciseForm();
+
+    await waitFor(() => {
+      expect(onUpdateExercise).toHaveBeenCalledWith(
+        "exercise-2",
+        expect.objectContaining({ name: "Cable Fly Pro" })
+      );
+    });
+
+    await rerender({
+      exercises: [exercise, { ...extraExercise, name: "Cable Fly Pro" }],
+    });
+    expect(
+      screen.getByRole("button", { name: "Collapse Cable Fly Pro" })
+    ).toBeInTheDocument();
+  });
+
   it("offers no edit action for an exercise that is not loaded", async () => {
     renderSession({ session: { ...session, sets: [missingExerciseSet] } });
     await expand("Deleted Press");

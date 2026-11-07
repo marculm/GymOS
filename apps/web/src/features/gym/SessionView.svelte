@@ -158,7 +158,8 @@
       }
     >();
 
-    for (const exercise of freeExercises) {
+    for (const freeExercise of freeExercises) {
+      const exercise = byId.get(freeExercise.id) ?? freeExercise;
       cards.set(exercise.id, {
         exerciseId: exercise.id,
         name: exercise.name,
