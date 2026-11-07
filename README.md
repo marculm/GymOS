@@ -13,8 +13,8 @@ The **Gym Tracker** slice is implemented:
 - Manage the exercise register: create, edit, and soft-delete exercises with default
   sets, reps, and weight
 - Browse exercises and training plans
-- Create plans with target sets, reps, and optional weight (prefilled from exercise
-  defaults)
+- Create plans by selecting exercises and their order; targets come from the exercise
+  defaults
 - Start free or plan-based workouts
 - Log sets with weight and reps; weights accept two decimals and display without
   trailing zeros (ADR-0022)
@@ -208,8 +208,8 @@ full contract.
 | `DELETE` | `/api/gym/exercises/:id` | Soft-delete an exercise |
 | `GET` | `/api/gym/exercises/weight-suggestions` | Suggested weight per exercise: average of the latest completed workout containing it, rounded to 0.5 kg |
 | `GET` | `/api/gym/plans?page=&size=&name=` | List the current user's plans |
-| `POST` | `/api/gym/plans` | Create a plan (`{ name, description?, exercises[] }`); `201` + `Location` |
-| `PUT` | `/api/gym/plans/:id` | Replace a plan's name, description, and exercises |
+| `POST` | `/api/gym/plans` | Create a plan (`{ name, description?, exercises: [{ exerciseId, notes? }] }`); `201` + `Location` |
+| `PUT` | `/api/gym/plans/:id` | Replace a plan's name, description, exercise selection, and order |
 | `DELETE` | `/api/gym/plans/:id` | Delete a plan; past sessions keep their records |
 | `GET` | `/api/gym/rotation` | Rotation with `plans` and `nextPlanId` |
 | `PUT` | `/api/gym/rotation` | Replace the ordered rotation (`{ planIds[] }`); empty clears it |

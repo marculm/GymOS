@@ -64,9 +64,6 @@ export class PlanRepository {
             create: input.exercises.map((exercise, index) => ({
               exerciseId: exercise.exerciseId,
               position: index,
-              targetSets: exercise.targetSets,
-              targetReps: exercise.targetReps,
-              targetWeightKg: exercise.targetWeightKg ?? null,
               notes: exercise.notes ?? null,
             })),
           },
@@ -102,9 +99,6 @@ export class PlanRepository {
               create: input.exercises.map((exercise, index) => ({
                 exerciseId: exercise.exerciseId,
                 position: index,
-                targetSets: exercise.targetSets,
-                targetReps: exercise.targetReps,
-                targetWeightKg: exercise.targetWeightKg ?? null,
                 notes: exercise.notes ?? null,
               })),
             },

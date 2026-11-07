@@ -27,11 +27,12 @@ for the `max` attributes on the reps and weight inputs. The subpath keeps Zod ou
 the web bundle. Out-of-range input fails Zod validation in the router and is returned
 as `422` problem details before it reaches the repository or the database.
 
-Plan targets keep the ADR-0017 limits (100 target reps) and are unchanged.
+Plan targets are no longer stored; the plan response derives them from the exercise
+defaults (ADR-0038).
 
 The precision rules for weights change:
 
-- Every weight input (logged set, plan target, exercise default) uses `step=0.01` and
+- Every editable weight input (logged set and exercise default) uses `step=0.01` and
   accepts two decimal places, so values such as `22.25 kg` can be entered.
 - `weightKg` stays a `Float` and the API keeps the `0`–`1000` bound without an extra
   precision check. A submitted `22.25` is stored as `22.25`; no rounding happens on the

@@ -8,6 +8,9 @@ const DEFAULT_EXERCISES = [
     name: "Barbell Bench Press",
     muscleGroup: "chest",
     description: "Compound chest exercise targeting pectoral muscles, anterior deltoids, and triceps.",
+    defaultSets: 4,
+    defaultReps: 8,
+    defaultWeightKg: 80,
   },
   {
     name: "Barbell Back Squat",
@@ -23,6 +26,9 @@ const DEFAULT_EXERCISES = [
     name: "Overhead Shoulder Press",
     muscleGroup: "shoulders",
     description: "Compound shoulder exercise targeting anterior and lateral deltoids.",
+    defaultSets: 3,
+    defaultReps: 10,
+    defaultWeightKg: 40,
   },
   {
     name: "Pull-Up",
@@ -43,6 +49,8 @@ const DEFAULT_EXERCISES = [
     name: "Tricep Rope Pushdown",
     muscleGroup: "arms",
     description: "Cable isolation exercise targeting all three heads of the triceps.",
+    defaultSets: 3,
+    defaultReps: 12,
   },
 ];
 
@@ -91,9 +99,9 @@ async function main() {
       description: "Chest, shoulders, and triceps",
       exercises: {
         create: [
-          { exerciseId: requireExercise("Barbell Bench Press").id, position: 0, targetSets: 4, targetReps: 8, targetWeightKg: 80 },
-          { exerciseId: requireExercise("Overhead Shoulder Press").id, position: 1, targetSets: 3, targetReps: 10, targetWeightKg: 40 },
-          { exerciseId: requireExercise("Tricep Rope Pushdown").id, position: 2, targetSets: 3, targetReps: 12 },
+          { exerciseId: requireExercise("Barbell Bench Press").id, position: 0 },
+          { exerciseId: requireExercise("Overhead Shoulder Press").id, position: 1 },
+          { exerciseId: requireExercise("Tricep Rope Pushdown").id, position: 2 },
         ],
       },
     },
