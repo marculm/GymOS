@@ -190,6 +190,22 @@ describe("SessionBar", () => {
     expect(timerButton()).toHaveTextContent("0:00");
   });
 
+  it("clears the stored countdown when the workout finishes", async () => {
+    vi.useFakeTimers();
+
+    const { onLogSet, onComplete } = renderSession();
+    await logSet(onLogSet);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(presetStorage()?.getItem(REST_END_KEY)).not.toBeNull();
+
+    await fireEvent.click(
+      within(bar()).getByRole("button", { name: "Finish workout" })
+    );
+    await waitFor(() => expect(onComplete).toHaveBeenCalled());
+
+    expect(presetStorage()?.getItem(REST_END_KEY)).toBeNull();
+  });
+
   it("clears the end timestamp when the countdown reaches zero", async () => {
     vi.useFakeTimers();
 

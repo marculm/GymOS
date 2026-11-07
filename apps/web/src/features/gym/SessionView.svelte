@@ -417,6 +417,7 @@
     try {
       if (await flushPendingDeletes()) {
         await onComplete();
+        stopTimer();
       } else {
         failed = true;
       }
