@@ -19,7 +19,6 @@
   let reps = $state<string | number | null>("");
   let submitting = $state(false);
   let error = $state<string | null>(null);
-  let repsInput = $state<HTMLInputElement>();
 
   const weightPlaceholder = $derived(exercise.defaultWeightKg ?? undefined);
 
@@ -27,17 +26,20 @@
     return value === "" || value == null;
   }
 
-  function acceptSuggestionOnEnter(event: KeyboardEvent) {
-    if (event.key !== "Enter" || !isEmpty(weightKg) || weightPlaceholder == null) {
+  function submitOnEnter(event: KeyboardEvent) {
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    if (isEmpty(weightKg) && weightPlaceholder != null) {
+      weightKg = weightPlaceholder;
+    }
+    if (isEmpty(weightKg) || isEmpty(reps)) {
+      (event.currentTarget as HTMLInputElement).form?.reportValidity();
       return;
     }
-    event.preventDefault();
-    weightKg = weightPlaceholder;
-    repsInput?.focus();
+    void submitSet();
   }
 
-  async function handleSubmit(event: SubmitEvent) {
-    event.preventDefault();
+  async function submitSet() {
     if (disabled || submitting || isEmpty(weightKg) || isEmpty(reps)) return;
 
     submitting = true;
@@ -58,6 +60,11 @@
       submitting = false;
     }
   }
+
+  async function handleSubmit(event: SubmitEvent) {
+    event.preventDefault();
+    await submitSet();
+  }
 </script>
 
 <form
@@ -76,7 +83,6 @@
           max={MAX_SET_REPS}
           required
           bind:value={reps}
-          bind:this={repsInput}
         />
       </label>
       <label class="field set-field">
@@ -94,7 +100,7 @@
               : formatWeight(weightPlaceholder)
           }
           bind:value={weightKg}
-          onkeydown={acceptSuggestionOnEnter}
+          onkeydown={submitOnEnter}
         />
       </label>
     </div>
