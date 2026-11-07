@@ -456,55 +456,94 @@ describe("Gym session routes", () => {
     });
   });
 
-  it("suggests the rounded average of the latest completed workout", async () => {
-    const session = await startSession();
-    await logSet(session.id, { weightKg: 60 });
-    await logSet(session.id, { weightKg: 61.5 });
-    await postJson(`/api/gym/sessions/${session.id}/complete`, {});
-
-    const res = await app.request("/api/gym/exercises/weight-suggestions");
-
-    expect(res.status).toBe(200);
-    const suggestions = (await res.json()) as Record<string, number>;
-    expect(suggestions[exerciseId]).toBe(61);
-  });
-
-  it("uses only the most recent completed workout that has the exercise", async () => {
-    const older = await startSession();
-    await logSet(older.id, { weightKg: 40 });
-    await logSet(older.id, { weightKg: 41 });
-    await postJson(`/api/gym/sessions/${older.id}/complete`, {});
-
-    const newer = await startSession();
-    await logSet(newer.id, { weightKg: 50 });
-    await logSet(newer.id, { weightKg: 51 });
-    await postJson(`/api/gym/sessions/${newer.id}/complete`, {});
-
-    const otherExercise = await prisma.exercise.create({
+  it("updates exercise defaults when a session is completed", async () => {
+    const created = await prisma.exercise.create({
       data: {
-        name: `Other Exercise ${crypto.randomUUID()}`,
-        muscleGroup: "arms",
+        name: `Defaults Exercise ${crypto.randomUUID()}`,
+        muscleGroup: "chest",
+        defaultSets: 5,
+        defaultReps: 10,
+        defaultWeightKg: 20,
       },
     });
 
     try {
-      const newest = await startSession();
-      await logSet(newest.id, {
-        exerciseId: otherExercise.id,
-        weightKg: 12.5,
+      const session = await startSession();
+      await logSet(session.id, { exerciseId: created.id, weightKg: 60, reps: 8 });
+      await logSet(session.id, { exerciseId: created.id, weightKg: 61, reps: 6 });
+      await postJson(`/api/gym/sessions/${session.id}/complete`, {});
+
+      const updated = await prisma.exercise.findUniqueOrThrow({
+        where: { id: created.id },
       });
-      await postJson(`/api/gym/sessions/${newest.id}/complete`, {});
-
-      const res = await app.request("/api/gym/exercises/weight-suggestions");
-
-      const suggestions = (await res.json()) as Record<string, number>;
-      expect(suggestions[exerciseId]).toBe(50.5);
-      expect(suggestions[otherExercise.id]).toBe(12.5);
+      expect(updated.defaultWeightKg).toBe(60.5);
+      expect(updated.defaultReps).toBe(7);
+      expect(updated.defaultSets).toBe(5);
     } finally {
       await prisma.workoutSession.deleteMany({
         where: { user: { email: TEST_EMAIL } },
       });
-      await prisma.exercise.delete({ where: { id: otherExercise.id } });
+      await prisma.exercise.delete({ where: { id: created.id } });
+    }
+  });
+
+  it("derives defaults from the last two completed sessions", async () => {
+    const created = await prisma.exercise.create({
+      data: {
+        name: `History Exercise ${crypto.randomUUID()}`,
+        muscleGroup: "back",
+        defaultWeightKg: 20,
+      },
+    });
+
+    try {
+      for (const reps of [20, 6, 4]) {
+        const session = await startSession();
+        await logSet(session.id, {
+          exerciseId: created.id,
+          weightKg: 100,
+          reps,
+        });
+        await postJson(`/api/gym/sessions/${session.id}/complete`, {});
+      }
+
+      const updated = await prisma.exercise.findUniqueOrThrow({
+        where: { id: created.id },
+      });
+      expect(updated.defaultWeightKg).toBe(100);
+      expect(updated.defaultReps).toBe(5);
+    } finally {
+      await prisma.workoutSession.deleteMany({
+        where: { user: { email: TEST_EMAIL } },
+      });
+      await prisma.exercise.delete({ where: { id: created.id } });
+    }
+  });
+
+  it("keeps exercise defaults when a completed session has no sets", async () => {
+    const created = await prisma.exercise.create({
+      data: {
+        name: `Untouched Exercise ${crypto.randomUUID()}`,
+        muscleGroup: "arms",
+        defaultReps: 10,
+        defaultWeightKg: 20,
+      },
+    });
+
+    try {
+      const session = await startSession();
+      await postJson(`/api/gym/sessions/${session.id}/complete`, {});
+
+      const unchanged = await prisma.exercise.findUniqueOrThrow({
+        where: { id: created.id },
+      });
+      expect(unchanged.defaultReps).toBe(10);
+      expect(unchanged.defaultWeightKg).toBe(20);
+    } finally {
+      await prisma.workoutSession.deleteMany({
+        where: { user: { email: TEST_EMAIL } },
+      });
+      await prisma.exercise.delete({ where: { id: created.id } });
     }
   });
 
@@ -518,65 +557,20 @@ describe("Gym session routes", () => {
     expect(set).not.toHaveProperty("rpe");
   });
 
-  it("ignores active sessions and other users", async () => {
+  it("keeps sets of a completed session out of the active session", async () => {
     const completed = await startSession();
     await logSet(completed.id, { weightKg: 60 });
     await postJson(`/api/gym/sessions/${completed.id}/complete`, {});
 
     const active = await startSession();
-    await logSet(active.id, { weightKg: 200 });
 
-    const other = await createUser(`other-${crypto.randomUUID()}@gymos.app`);
-    try {
-      await prisma.workoutSession.create({
-        data: {
-          userId: other.id,
-          title: "Other workout",
-          completedAt: new Date(Date.now() + 60_000),
-          sets: {
-            create: [{ exerciseId, setNumber: 1, reps: 5, weightKg: 300 }],
-          },
-        },
-      });
-
-      const res = await app.request("/api/gym/exercises/weight-suggestions");
-
-      const suggestions = (await res.json()) as Record<string, number>;
-      expect(suggestions[exerciseId]).toBe(60);
-    } finally {
-      await deleteUser(other.id);
-    }
+    const activeRes = await app.request("/api/gym/sessions/active");
+    const activeSession = (await activeRes.json()) as { id: string; sets: unknown[] };
+    expect(activeSession.id).toBe(active.id);
+    expect(activeSession.sets).toHaveLength(0);
   });
 
-  it("keeps suggestions for soft-deleted exercises", async () => {
-    const deleted = await prisma.exercise.create({
-      data: {
-        name: `Deleted Exercise ${crypto.randomUUID()}`,
-        muscleGroup: "back",
-        defaultWeightKg: 20,
-      },
-    });
 
-    try {
-      const session = await startSession();
-      await logSet(session.id, { exerciseId: deleted.id, weightKg: 42.5 });
-      await postJson(`/api/gym/sessions/${session.id}/complete`, {});
-      const removal = await app.request(`/api/gym/exercises/${deleted.id}`, {
-        method: "DELETE",
-      });
-      expect(removal.status).toBe(200);
-
-      const res = await app.request("/api/gym/exercises/weight-suggestions");
-
-      const suggestions = (await res.json()) as Record<string, number>;
-      expect(suggestions[deleted.id]).toBe(42.5);
-    } finally {
-      await prisma.workoutSession.deleteMany({
-        where: { user: { email: TEST_EMAIL } },
-      });
-      await prisma.exercise.delete({ where: { id: deleted.id } });
-    }
-  });
 
   it("isolates sessions and plans by user", async () => {
     const other = await createUser(`other-${crypto.randomUUID()}@gymos.app`);

@@ -14,7 +14,7 @@ const exercise: Exercise = {
   defaultWeightKg: null,
 };
 
-function renderForm(overrides: { exercise?: Exercise; suggestedWeightKg?: number } = {}) {
+function renderForm(overrides: { exercise?: Exercise } = {}) {
   const onSubmit = vi.fn().mockResolvedValue(true);
 
   render(SetLogForm, {
@@ -33,8 +33,10 @@ function renderForm(overrides: { exercise?: Exercise; suggestedWeightKg?: number
 }
 
 describe("SetLogForm", () => {
-  it("accepts the suggested weight with Enter and focuses Reps", async () => {
-    const { onSubmit, weight, reps } = renderForm({ suggestedWeightKg: 82.5 });
+  it("accepts the default weight with Enter and focuses Reps", async () => {
+    const { onSubmit, weight, reps } = renderForm({
+      exercise: { ...exercise, defaultWeightKg: 82.5 },
+    });
 
     weight.focus();
     await fireEvent.keyDown(weight, { key: "Enter" });
@@ -44,20 +46,10 @@ describe("SetLogForm", () => {
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
-  it("accepts the exercise default weight as the suggestion", async () => {
+  it("keeps a typed weight instead of the default", async () => {
     const { weight, reps } = renderForm({
-      exercise: { ...exercise, defaultWeightKg: 60 },
+      exercise: { ...exercise, defaultWeightKg: 82.5 },
     });
-
-    weight.focus();
-    await fireEvent.keyDown(weight, { key: "Enter" });
-
-    expect(weight).toHaveValue(60);
-    expect(reps).toHaveFocus();
-  });
-
-  it("keeps a typed weight instead of the suggestion", async () => {
-    const { weight, reps } = renderForm({ suggestedWeightKg: 82.5 });
 
     await fireEvent.input(weight, { target: { value: "65" } });
     weight.focus();
@@ -90,8 +82,8 @@ describe("SetLogForm", () => {
     });
   });
 
-  it("formats the suggestion placeholder", () => {
-    renderForm({ suggestedWeightKg: 22.25 });
+  it("formats the default weight placeholder", () => {
+    renderForm({ exercise: { ...exercise, defaultWeightKg: 22.25 } });
 
     expect(screen.getByLabelText("Weight (kg)")).toHaveAttribute(
       "placeholder",
@@ -99,7 +91,7 @@ describe("SetLogForm", () => {
     );
   });
 
-  it("keeps the form behavior without a suggestion", async () => {
+  it("keeps the form behavior without a default weight", async () => {
     const { onSubmit, weight, reps } = renderForm();
 
     weight.focus();

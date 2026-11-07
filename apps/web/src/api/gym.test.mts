@@ -10,7 +10,6 @@ import {
   getProgress,
   getRotation,
   getSession,
-  getWeightSuggestions,
   listAllExercises,
   listExercises,
   listSessions,
@@ -348,25 +347,6 @@ describe("gym api client", () => {
       status: 422,
       message: "Name is required, Too many exercises",
     });
-  });
-
-  it("fetches weight suggestions", async () => {
-    const fetchMock = mockFetch(
-      new Response(JSON.stringify({ "exercise-1": 61 }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      })
-    );
-
-    const suggestions = await getWeightSuggestions();
-
-    expect(suggestions).toEqual({ "exercise-1": 61 });
-    expect(fetchMock).toHaveBeenCalledWith(
-      "/api/gym/exercises/weight-suggestions",
-      expect.objectContaining({
-        headers: expect.objectContaining({ "Content-Type": "application/json" }),
-      })
-    );
   });
 
   it("throws ApiError with the problem detail on failure", async () => {

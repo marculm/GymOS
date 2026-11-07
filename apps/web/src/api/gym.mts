@@ -9,7 +9,6 @@ import type {
   UpdateExerciseInput,
   UpdateWorkoutPlanInput,
   UpdateWorkoutRotationInput,
-  WeightSuggestions,
   WorkoutPlan,
   WorkoutProgress,
   WorkoutRotation,
@@ -32,10 +31,6 @@ function toQuery(params: Record<string, unknown>): string {
   }
   const query = search.toString();
   return query ? `?${query}` : "";
-}
-
-export function getWeightSuggestions(): Promise<WeightSuggestions> {
-  return api.get<WeightSuggestions>("/gym/exercises/weight-suggestions");
 }
 
 export function listExercises(params: PageParams = {}): Promise<Page<Exercise>> {

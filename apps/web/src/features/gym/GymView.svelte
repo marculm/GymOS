@@ -5,7 +5,6 @@
     CreateWorkoutPlanInput,
     CreateWorkoutSetInput,
     Exercise,
-    WeightSuggestions,
     WorkoutPlan,
     WorkoutRotation,
     WorkoutSessionDetail,
@@ -21,7 +20,6 @@
     deleteSet,
     getActiveSession,
     getRotation,
-    getWeightSuggestions,
     listAllExercises,
     listAllPlans,
     setRotation,
@@ -41,7 +39,6 @@
   let plans = $state<WorkoutPlan[]>([]);
   let rotation = $state<WorkoutRotation>({ plans: [], nextPlanId: null });
   let activeSession = $state<WorkoutSessionDetail | null>(null);
-  let weightSuggestions = $state<WeightSuggestions>({});
   let loading = $state(true);
   let error = $state<string | null>(null);
   let showManagement = $state(false);
@@ -71,19 +68,16 @@
     error = null;
 
     try {
-      const [exerciseList, planList, rotationState, active, suggestions] =
-        await Promise.all([
-          listAllExercises(),
-          listAllPlans(),
-          getRotation(),
-          getActiveSession(),
-          getWeightSuggestions().catch(() => ({})),
-        ]);
+      const [exerciseList, planList, rotationState, active] = await Promise.all([
+        listAllExercises(),
+        listAllPlans(),
+        getRotation(),
+        getActiveSession(),
+      ]);
       exercises = exerciseList;
       plans = planList;
       rotation = rotationState;
       activeSession = active;
-      weightSuggestions = suggestions;
     } catch (loadError) {
       error = messageOf(loadError);
     } finally {
@@ -289,9 +283,14 @@
     document.getElementById("next-workout-heading")?.focus();
 
     try {
-      weightSuggestions = await getWeightSuggestions();
+      const [exerciseList, planList] = await Promise.all([
+        listAllExercises(),
+        listAllPlans(),
+      ]);
+      exercises = exerciseList;
+      plans = planList;
     } catch {
-      // The workout is complete; the suggestion refreshes on the next load.
+      // The workout is complete; defaults refresh on the next load.
     }
   }
 
@@ -332,7 +331,6 @@
     session={activeSession}
     plan={matchingPlan}
     exercises={exercises}
-    weightSuggestions={weightSuggestions}
     onLogSet={handleLogSet}
     onDeleteSet={handleDeleteSet}
     onComplete={handleComplete}

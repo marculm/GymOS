@@ -9,7 +9,6 @@ import {
 import type {
   CreateWorkoutSetInput,
   Exercise,
-  WeightSuggestions,
   WorkoutPlan,
   WorkoutSessionDetail,
 } from "@gymos/shared";
@@ -71,7 +70,6 @@ function renderSession() {
       session,
       plan,
       exercises: [exercise],
-      weightSuggestions: {} as WeightSuggestions,
       onLogSet: onLogSet as (input: CreateWorkoutSetInput) => Promise<void>,
       onDeleteSet: vi.fn().mockResolvedValue(undefined),
       onComplete: onComplete as () => Promise<void>,

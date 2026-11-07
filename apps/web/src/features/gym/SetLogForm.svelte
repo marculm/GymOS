@@ -7,12 +7,10 @@
 
   let {
     exercise,
-    suggestedWeightKg,
     disabled = false,
     onSubmit,
   }: {
     exercise: Exercise;
-    suggestedWeightKg?: number;
     disabled?: boolean;
     onSubmit: (input: SetInput) => Promise<boolean>;
   } = $props();
@@ -23,9 +21,7 @@
   let error = $state<string | null>(null);
   let repsInput = $state<HTMLInputElement>();
 
-  const weightPlaceholder = $derived(
-    suggestedWeightKg ?? exercise.defaultWeightKg ?? undefined
-  );
+  const weightPlaceholder = $derived(exercise.defaultWeightKg ?? undefined);
 
   function isEmpty(value: string | number | null) {
     return value === "" || value == null;
