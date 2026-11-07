@@ -869,6 +869,27 @@ describe("GymView", () => {
     expect(await screen.findByText("5 × 6 @ 85 kg")).toBeInTheDocument();
   });
 
+  it("keeps the finished state when the defaults refresh fails", async () => {
+    vi.mocked(getActiveSession).mockResolvedValue(session);
+    vi.mocked(getRotation).mockResolvedValue({
+      plans: [plan],
+      nextPlanId: plan.id,
+    });
+    vi.mocked(listAllExercises)
+      .mockResolvedValueOnce([exercise])
+      .mockRejectedValueOnce(new Error("No defaults"));
+
+    render(GymView);
+
+    await fireEvent.click(
+      await screen.findByRole("button", { name: /finish workout/i })
+    );
+
+    expect(
+      await screen.findByRole("heading", { name: "Push Day" })
+    ).toBeInTheDocument();
+  });
+
   it("logs a set and finishes the active session", async () => {
     vi.mocked(getActiveSession).mockResolvedValue(session);
 
