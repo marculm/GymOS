@@ -11,7 +11,6 @@ import type {
   CreateWorkoutSetInput,
   Exercise,
   LoggedSet,
-  WeightSuggestions,
   WorkoutPlan,
   WorkoutSessionDetail,
 } from "@gymos/shared";
@@ -21,7 +20,6 @@ type Props = {
   session: WorkoutSessionDetail;
   plan: WorkoutPlan | null;
   exercises: Exercise[];
-  weightSuggestions: WeightSuggestions;
   onLogSet: (input: CreateWorkoutSetInput) => Promise<void>;
   onDeleteSet: (setId: string) => Promise<void>;
   onComplete: () => Promise<void>;
@@ -160,7 +158,6 @@ function renderSession(overrides: Partial<Props> = {}) {
       session,
       plan,
       exercises: [exercise, extraExercise],
-      weightSuggestions: {},
       onLogSet,
       onDeleteSet,
       onComplete,
@@ -412,36 +409,22 @@ describe("SessionView", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("shows the suggestion as a placeholder without prefilling inputs", async () => {
-    renderSession({
-      plan: twoExercisePlan,
-      weightSuggestions: { "exercise-1": 82.5 },
-    });
-    await expand("Bench Press");
-    await expand("Cable Fly");
-
-    const weight = cardForm("Bench Press").getByLabelText("Weight (kg)");
-    expect(weight).toHaveAttribute("placeholder", "82.5");
-    expect(weight).toHaveValue(null);
-    expect(cardForm("Bench Press").getByLabelText("Reps")).toHaveValue(null);
-  });
-
-  it("falls back to the exercise default weight as the placeholder", async () => {
+  it("shows the exercise default weight as a placeholder without prefilling inputs", async () => {
     renderSession({ plan: twoExercisePlan });
     await expand("Bench Press");
     await expand("Cable Fly");
 
-    expect(cardForm("Bench Press").getByLabelText("Weight (kg)")).toHaveAttribute(
-      "placeholder",
-      "60"
-    );
+    const weight = cardForm("Bench Press").getByLabelText("Weight (kg)");
+    expect(weight).toHaveAttribute("placeholder", "60");
+    expect(weight).toHaveValue(null);
+    expect(cardForm("Bench Press").getByLabelText("Reps")).toHaveValue(null);
     expect(cardForm("Cable Fly").getByLabelText("Weight (kg)")).toHaveAttribute(
       "placeholder",
       "15"
     );
   });
 
-  it("has no weight placeholder without history or a default", async () => {
+  it("has no weight placeholder without a default", async () => {
     renderSession({
       plan: {
         ...plan,
@@ -463,9 +446,7 @@ describe("SessionView", () => {
   });
 
   it("submits typed values instead of the placeholder", async () => {
-    const { onLogSet } = renderSession({
-      weightSuggestions: { "exercise-1": 82.5 },
-    });
+    const { onLogSet } = renderSession();
     await expand("Bench Press");
     const form = cardForm("Bench Press");
 
@@ -791,7 +772,6 @@ describe("SessionView", () => {
     const { onLogSet } = renderSession({
       session: freeSession,
       plan: null,
-      weightSuggestions: { "exercise-2": 17.5 },
     });
 
     await fireEvent.change(screen.getByLabelText("Exercise"), {
@@ -810,7 +790,7 @@ describe("SessionView", () => {
     ).toBeInTheDocument();
     expect(cardForm("Cable Fly").getByLabelText("Weight (kg)")).toHaveAttribute(
       "placeholder",
-      "17.5"
+      "15"
     );
 
     await fireEvent.input(cardForm("Cable Fly").getByLabelText("Weight (kg)"), {

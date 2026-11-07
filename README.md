@@ -206,7 +206,6 @@ full contract.
 | `POST` | `/api/gym/exercises` | Create an exercise (`{ name, muscleGroup, description?, defaultSets?, defaultReps?, defaultWeightKg? }`); `201` + `Location` |
 | `PUT` | `/api/gym/exercises/:id` | Edit an exercise; omitted optional fields are preserved |
 | `DELETE` | `/api/gym/exercises/:id` | Soft-delete an exercise |
-| `GET` | `/api/gym/exercises/weight-suggestions` | Suggested weight per exercise: average of the latest completed workout containing it, rounded to 0.5 kg |
 | `GET` | `/api/gym/plans?page=&size=&name=` | List the current user's plans |
 | `POST` | `/api/gym/plans` | Create a plan (`{ name, description?, exercises: [{ exerciseId, notes? }] }`); `201` + `Location` |
 | `PUT` | `/api/gym/plans/:id` | Replace a plan's name, description, exercise selection, and order |
@@ -220,7 +219,7 @@ full contract.
 | `GET` | `/api/gym/progress` | Personal records per exercise and volume per completed session |
 | `POST` | `/api/gym/sessions/:id/sets` | Log a set (`{ exerciseId, reps, weightKg }`) |
 | `DELETE` | `/api/gym/sessions/:id/sets/:setId` | Delete a set in an active session and renumber the rest |
-| `POST` | `/api/gym/sessions/:id/complete` | Finish a session |
+| `POST` | `/api/gym/sessions/:id/complete` | Finish a session; updates exercise weight and rep defaults from the last two workouts |
 
 `GET /health/liveness`, `GET /health/readiness`, and `GET /prometheus` are available for
 operations. There is no authentication; the API resolves a single user from

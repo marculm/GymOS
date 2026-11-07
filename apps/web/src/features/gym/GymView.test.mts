@@ -21,7 +21,6 @@ import {
   getProgress,
   getRotation,
   getSession,
-  getWeightSuggestions,
   listAllExercises,
   listAllPlans,
   listSessions,
@@ -42,7 +41,6 @@ vi.mock("../../api/gym.mts", () => ({
   updatePlan: vi.fn(),
   deletePlan: vi.fn(),
   getRotation: vi.fn(),
-  getWeightSuggestions: vi.fn(),
   setRotation: vi.fn(),
   startSession: vi.fn(),
   getActiveSession: vi.fn(),
@@ -144,7 +142,6 @@ beforeEach(() => {
   vi.mocked(deletePlan).mockResolvedValue(undefined);
   vi.mocked(deleteSet).mockResolvedValue(undefined);
   vi.mocked(getRotation).mockResolvedValue({ plans: [], nextPlanId: null });
-  vi.mocked(getWeightSuggestions).mockResolvedValue({});
   vi.mocked(setRotation).mockImplementation(async ({ planIds }) => {
     const byId = new Map([plan, extraPlan].map((entry) => [entry.id, entry]));
     const plans = planIds.flatMap((id) => byId.get(id) ?? []);
@@ -811,36 +808,6 @@ describe("GymView", () => {
     });
   });
 
-  it("loads the gym when weight suggestions fail", async () => {
-    vi.mocked(getWeightSuggestions).mockRejectedValueOnce(
-      new Error("No suggestions")
-    );
-
-    render(GymView);
-
-    expect(await screen.findByText("No workout scheduled")).toBeInTheDocument();
-  });
-
-  it("refreshes the rotation when the suggestion refresh fails", async () => {
-    vi.mocked(getActiveSession).mockResolvedValue(session);
-    vi.mocked(getWeightSuggestions)
-      .mockResolvedValueOnce({})
-      .mockRejectedValueOnce(new Error("No suggestions"));
-    vi.mocked(getRotation)
-      .mockResolvedValueOnce({ plans: [plan, extraPlan], nextPlanId: plan.id })
-      .mockResolvedValueOnce({ plans: [plan, extraPlan], nextPlanId: extraPlan.id });
-
-    render(GymView);
-
-    await fireEvent.click(
-      await screen.findByRole("button", { name: /finish workout/i })
-    );
-
-    expect(
-      await screen.findByRole("heading", { name: "Pull Day" })
-    ).toBeInTheDocument();
-  });
-
   it("refreshes the next rotation plan after finishing a workout", async () => {
     vi.mocked(getActiveSession).mockResolvedValue(session);
     vi.mocked(getRotation)
@@ -894,9 +861,8 @@ describe("GymView", () => {
     ).toBeInTheDocument();
   });
 
-  it("shows the suggested weight in the active session", async () => {
+  it("shows the exercise default weight in the active session", async () => {
     vi.mocked(getActiveSession).mockResolvedValue(session);
-    vi.mocked(getWeightSuggestions).mockResolvedValue({ "exercise-1": 82.5 });
 
     render(GymView);
 
@@ -906,8 +872,71 @@ describe("GymView", () => {
 
     expect(await screen.findByLabelText("Weight (kg)")).toHaveAttribute(
       "placeholder",
-      "82.5"
+      "80"
     );
+  });
+
+  it("refreshes exercise defaults after finishing a workout", async () => {
+    const updatedExercise: Exercise = {
+      ...exercise,
+      defaultSets: 5,
+      defaultReps: 6,
+      defaultWeightKg: 85,
+    };
+    const planExercise = plan.exercises[0];
+    if (!planExercise) throw new Error("plan fixture is missing");
+    const updatedPlan: WorkoutPlan = {
+      ...plan,
+      exercises: [
+        {
+          ...planExercise,
+          targetSets: 5,
+          targetReps: 6,
+          targetWeightKg: 85,
+          exercise: updatedExercise,
+        },
+      ],
+    };
+
+    vi.mocked(getActiveSession).mockResolvedValue(session);
+    vi.mocked(getRotation)
+      .mockResolvedValueOnce({ plans: [plan], nextPlanId: plan.id })
+      .mockResolvedValueOnce({ plans: [updatedPlan], nextPlanId: plan.id });
+    vi.mocked(listAllPlans)
+      .mockResolvedValueOnce([plan])
+      .mockResolvedValueOnce([updatedPlan]);
+    vi.mocked(listAllExercises)
+      .mockResolvedValueOnce([exercise])
+      .mockResolvedValueOnce([updatedExercise]);
+
+    render(GymView);
+
+    await fireEvent.click(
+      await screen.findByRole("button", { name: /finish workout/i })
+    );
+
+    expect(await screen.findByText("5 × 6 @ 85 kg")).toBeInTheDocument();
+  });
+
+  it("keeps the finished state when the defaults refresh fails", async () => {
+    vi.mocked(getActiveSession).mockResolvedValue(session);
+    vi.mocked(getRotation).mockResolvedValue({
+      plans: [plan],
+      nextPlanId: plan.id,
+    });
+    vi.mocked(listAllExercises)
+      .mockResolvedValueOnce([exercise])
+      .mockRejectedValueOnce(new Error("No defaults"));
+
+    render(GymView);
+
+    await fireEvent.click(
+      await screen.findByRole("button", { name: /finish workout/i })
+    );
+
+    expect(
+      await screen.findByRole("heading", { name: "Push Day" })
+    ).toBeInTheDocument();
   });
 
   it("logs a set and finishes the active session", async () => {

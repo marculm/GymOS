@@ -1,7 +1,6 @@
 import type {
   Exercise,
   PersonalRecord,
-  WeightSuggestions,
   WorkoutPlan,
   WorkoutProgress,
   WorkoutRotation,
@@ -28,7 +27,6 @@ type SessionReader = Pick<
   | "findRecent"
   | "countRecent"
   | "findLastCompletedPlanId"
-  | "findWeightSuggestions"
   | "findCompleted"
 >;
 
@@ -72,10 +70,6 @@ export class GymReadService {
         lastPlanId
       ),
     };
-  }
-
-  async getWeightSuggestions(userId: string): Promise<WeightSuggestions> {
-    return this.sessionRepository.findWeightSuggestions(userId);
   }
 
   async getActiveSession(userId: string): Promise<WorkoutSessionDetail> {
