@@ -1,5 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/svelte";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/svelte";
 import type {
   Exercise,
   Page,
@@ -175,7 +181,9 @@ describe("History", () => {
     expect(screen.getByText("6 × 85 kg")).toBeInTheDocument();
     expect(screen.queryByText("4 × 8 @ 80 kg")).not.toBeInTheDocument();
     expect(screen.queryByText(/@ .* kg/)).not.toBeInTheDocument();
-    expect(screen.getAllByText(/60 min/).length).toBeGreaterThan(0);
+    const detailContent = document.getElementById("history-session-1");
+    if (!detailContent) throw new Error("session detail is missing");
+    expect(within(detailContent).getByText(/60 min/)).toBeInTheDocument();
     expect(getSession).toHaveBeenCalledWith("session-1");
   });
 

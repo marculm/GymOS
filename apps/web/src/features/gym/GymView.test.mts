@@ -427,6 +427,11 @@ describe("GymView", () => {
     );
     expect(galleryTab("Plans")).toHaveAttribute("aria-selected", "false");
     expect(galleryTab("Plans")).toHaveAttribute("tabindex", "-1");
+    for (const tab of within(tablist).getAllByRole("tab")) {
+      const controls = tab.getAttribute("aria-controls");
+      expect(controls).not.toBeNull();
+      expect(document.getElementById(controls as string)).not.toBeNull();
+    }
 
     const exercisesPanel = screen.getByRole("tabpanel", { name: "Exercises" });
     expect(within(exercisesPanel).getByText("Bench Press")).toBeInTheDocument();
@@ -483,12 +488,15 @@ describe("GymView", () => {
 
     await fireEvent.keyDown(galleryTab("Exercises"), { key: "ArrowLeft" });
     expect(galleryTab("Workouts")).toHaveAttribute("aria-selected", "true");
+    expect(galleryTab("Workouts")).toHaveFocus();
 
     await fireEvent.keyDown(galleryTab("Workouts"), { key: "Home" });
     expect(galleryTab("Exercises")).toHaveAttribute("aria-selected", "true");
+    expect(galleryTab("Exercises")).toHaveFocus();
 
     await fireEvent.keyDown(galleryTab("Exercises"), { key: "End" });
     expect(galleryTab("Workouts")).toHaveAttribute("aria-selected", "true");
+    expect(galleryTab("Workouts")).toHaveFocus();
   });
 
   it("creates a plan from the form", async () => {
