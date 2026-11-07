@@ -563,8 +563,8 @@ Required regression coverage (ADR-0018):
   and empty history (ADR-0026).
 - Progress analytics: personal records by weight, then reps, then newest set; per-session
   volume; active sessions excluded (ADR-0032).
-- History filters by plan and start-date range, and session detail includes sets, targets,
-  and completion time (ADR-0032).
+- History filters by plan and start-date range, and session detail includes sets,
+  start/finish times, and duration (ADR-0032).
 
 Verification commands:
 
