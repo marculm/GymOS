@@ -15,6 +15,7 @@ import type {
 import SessionView from "./SessionView.svelte";
 
 const REST_PRESET_KEY = "gymos.restTimerSeconds";
+const REST_END_KEY = "gymos.restTimerEndsAt";
 
 function presetStorage(): Storage | null {
   try {
@@ -165,6 +166,44 @@ describe("SessionBar", () => {
     expect(
       within(bar()).getByRole("button", { name: "2:30" })
     ).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("stores the end timestamp when a logged set starts the countdown", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-11-07T10:00:00.000Z"));
+
+    const { onLogSet } = renderSession();
+    await logSet(onLogSet);
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(presetStorage()?.getItem(REST_END_KEY)).toBe(
+      String(Date.now() + 120_000)
+    );
+  });
+
+  it("updates the end timestamp when the preset changes", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-11-07T10:00:00.000Z"));
+
+    renderSession();
+    await fireEvent.click(timerButton());
+    await fireEvent.click(within(bar()).getByRole("button", { name: "3:00" }));
+
+    expect(presetStorage()?.getItem(REST_END_KEY)).toBe(
+      String(Date.now() + 180_000)
+    );
+  });
+
+  it("clears the end timestamp when the timer stops", async () => {
+    vi.useFakeTimers();
+
+    renderSession();
+    await fireEvent.click(timerButton());
+    await fireEvent.click(within(bar()).getByRole("button", { name: "Reset" }));
+    expect(presetStorage()?.getItem(REST_END_KEY)).not.toBeNull();
+
+    await fireEvent.click(within(bar()).getByRole("button", { name: "Stop" }));
+    expect(presetStorage()?.getItem(REST_END_KEY)).toBeNull();
   });
 
   it("stops and resets the countdown", async () => {

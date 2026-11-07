@@ -33,6 +33,7 @@
   const REST_PRESETS: readonly number[] = [120, 150, 180];
   const DEFAULT_REST_PRESET = 120;
   const REST_PRESET_KEY = "gymos.restTimerSeconds";
+  const REST_END_KEY = "gymos.restTimerEndsAt";
   const SWIPE_DELETE_THRESHOLD = 60;
   const UNDO_WINDOW_MS = 5000;
 
@@ -78,9 +79,19 @@
     }
   }
 
+  function storeEnd(end: number | null) {
+    try {
+      if (end === null) presetStorage()?.removeItem(REST_END_KEY);
+      else presetStorage()?.setItem(REST_END_KEY, String(end));
+    } catch {
+      // Restoring the timer is best-effort; the countdown still runs.
+    }
+  }
+
   function startTimer() {
     remaining = timerPreset;
     timerRunning = true;
+    storeEnd(Date.now() + timerPreset * 1000);
   }
 
   function selectPreset(preset: number) {
@@ -97,6 +108,7 @@
     if (timerRunning) {
       remaining = 0;
       timerRunning = false;
+      storeEnd(null);
     } else {
       startTimer();
     }
