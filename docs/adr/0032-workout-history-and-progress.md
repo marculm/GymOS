@@ -22,9 +22,12 @@ History and analytics are read-only; no new storage is needed.
 - History filters mirror the API: a plan dropdown and a `from`/`to` date range. Date
   inputs cover whole local days. Changing any filter restarts the list at page 1.
 - Opening a session loads `GET /api/gym/sessions/:id` lazily and expands it inline. The
-  detail shows sets grouped by exercise, the plan's targets when that plan still exists,
-  start and finish times, and the duration. Logged sets carry `exerciseName`, so sets for
-  soft-deleted exercises stay readable.
+  detail shows sets grouped by exercise, start and finish times, and the duration. The
+  groups keep the plan's exercise order when that plan still exists. Logged sets carry
+  `exerciseName`, so sets for soft-deleted exercises stay readable.
+- History does not show plan targets for past workouts. After the exercise-driven plan
+  model (ADR-0038), plan targets are the current exercise defaults, not the targets the
+  session was planned with.
 - A new read endpoint `GET /api/gym/progress` returns:
   - `personalRecords`: one entry per exercise with the heaviest logged set, tie-broken by
     more reps and then by the newest set, including sets of soft-deleted exercises.
@@ -47,4 +50,5 @@ History and analytics are read-only; no new storage is needed.
   acceptable at single-user scale; SQL aggregation becomes worthwhile if history grows
   considerably.
 - Deleting a plan clears the plan association of its past sessions (`planId` becomes
-  `null`), so their logged sets remain readable but the plan and its targets are gone.
+  `null`), so their logged sets remain readable but the plan and its exercise order are
+  gone.
