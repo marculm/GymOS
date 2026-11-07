@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { tick } from "svelte";
   import { MAX_SET_REPS, MAX_SET_WEIGHT_KG } from "@gymos/shared/limits";
   import type { CreateWorkoutSetInput, Exercise } from "@gymos/shared";
   import { formatWeight } from "./format.mts";
@@ -26,17 +27,15 @@
     return value === "" || value == null;
   }
 
-  function submitOnEnter(event: KeyboardEvent) {
+  async function submitOnEnter(event: KeyboardEvent) {
     if (event.key !== "Enter") return;
     event.preventDefault();
+    const form = (event.currentTarget as HTMLInputElement).form;
     if (isEmpty(weightKg) && weightPlaceholder != null) {
       weightKg = weightPlaceholder;
+      await tick();
     }
-    if (isEmpty(weightKg) || isEmpty(reps)) {
-      (event.currentTarget as HTMLInputElement).form?.reportValidity();
-      return;
-    }
-    void submitSet();
+    form?.requestSubmit();
   }
 
   async function submitSet() {
