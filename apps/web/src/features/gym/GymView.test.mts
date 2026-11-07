@@ -849,6 +849,10 @@ describe("GymView", () => {
 
     render(GymView);
 
+    await fireEvent.click(
+      await screen.findByRole("button", { name: "Expand Bench Press" })
+    );
+
     expect(await screen.findByLabelText("Weight (kg)")).toHaveAttribute(
       "placeholder",
       "82.5"
@@ -863,6 +867,10 @@ describe("GymView", () => {
     expect(
       await screen.findByRole("heading", { name: "Push Day" })
     ).toBeInTheDocument();
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Expand Bench Press" })
+    );
 
     await fireEvent.input(screen.getByLabelText("Weight (kg)"), {
       target: { value: "80" },
@@ -916,6 +924,9 @@ describe("GymView", () => {
 
     render(GymView);
 
+    await fireEvent.click(
+      await screen.findByRole("button", { name: "Expand Bench Press" })
+    );
     await screen.findByText("Set 2");
     await fireEvent.click(
       screen.getByRole("button", { name: "Delete set 1 for Bench Press" })

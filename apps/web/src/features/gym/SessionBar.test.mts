@@ -90,6 +90,9 @@ function timerButton() {
 }
 
 async function logSet(onLogSet: ReturnType<typeof vi.fn>) {
+  await fireEvent.click(
+    screen.getByRole("button", { name: "Expand Bench Press" })
+  );
   const formElement = screen.getByRole("form", {
     name: "Add set for Bench Press",
   });

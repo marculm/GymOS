@@ -160,6 +160,25 @@ fieldset {
   font-size: 1.05rem;
 }
 
+.card-heading {
+  margin: 0;
+}
+
+.card-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
 .stack {
   display: flex;
   flex-direction: column;
@@ -262,7 +281,12 @@ fieldset {
 }
 
 .exercise-done {
-  background: var(--bg);
+  background: var(--surface-2);
+  color: var(--muted);
+}
+
+.exercise-done .badge {
+  background: var(--surface);
 }
 
 .plan-exercise {
