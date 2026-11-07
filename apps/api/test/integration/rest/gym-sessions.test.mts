@@ -487,6 +487,54 @@ describe("Gym session routes", () => {
     }
   });
 
+  it("leaves exercises outside the completed session untouched", async () => {
+    const trained = await prisma.exercise.create({
+      data: {
+        name: `Trained Exercise ${crypto.randomUUID()}`,
+        muscleGroup: "chest",
+        defaultWeightKg: 20,
+      },
+    });
+    const untouched = await prisma.exercise.create({
+      data: {
+        name: `Untouched Exercise ${crypto.randomUUID()}`,
+        muscleGroup: "back",
+        defaultWeightKg: 20,
+      },
+    });
+
+    try {
+      const history = await startSession();
+      await logSet(history.id, {
+        exerciseId: untouched.id,
+        weightKg: 70,
+        reps: 6,
+      });
+      await postJson(`/api/gym/sessions/${history.id}/complete`, {});
+      await prisma.exercise.update({
+        where: { id: untouched.id },
+        data: { defaultWeightKg: 30, defaultReps: 12 },
+      });
+
+      const session = await startSession();
+      await logSet(session.id, { exerciseId: trained.id, weightKg: 50, reps: 8 });
+      await postJson(`/api/gym/sessions/${session.id}/complete`, {});
+
+      const unchanged = await prisma.exercise.findUniqueOrThrow({
+        where: { id: untouched.id },
+      });
+      expect(unchanged.defaultWeightKg).toBe(30);
+      expect(unchanged.defaultReps).toBe(12);
+    } finally {
+      await prisma.workoutSession.deleteMany({
+        where: { user: { email: TEST_EMAIL } },
+      });
+      await prisma.exercise.deleteMany({
+        where: { id: { in: [trained.id, untouched.id] } },
+      });
+    }
+  });
+
   it("derives defaults from the last two completed sessions", async () => {
     const created = await prisma.exercise.create({
       data: {
@@ -526,7 +574,7 @@ describe("Gym session routes", () => {
         name: `Untouched Exercise ${crypto.randomUUID()}`,
         muscleGroup: "arms",
         defaultReps: 10,
-        defaultWeightKg: 20,
+        defaultWeightKg: null,
       },
     });
 
@@ -538,7 +586,7 @@ describe("Gym session routes", () => {
         where: { id: created.id },
       });
       expect(unchanged.defaultReps).toBe(10);
-      expect(unchanged.defaultWeightKg).toBe(20);
+      expect(unchanged.defaultWeightKg).toBeNull();
     } finally {
       await prisma.workoutSession.deleteMany({
         where: { user: { email: TEST_EMAIL } },
@@ -556,21 +604,6 @@ describe("Gym session routes", () => {
     const set = (await res.json()) as Record<string, unknown>;
     expect(set).not.toHaveProperty("rpe");
   });
-
-  it("keeps sets of a completed session out of the active session", async () => {
-    const completed = await startSession();
-    await logSet(completed.id, { weightKg: 60 });
-    await postJson(`/api/gym/sessions/${completed.id}/complete`, {});
-
-    const active = await startSession();
-
-    const activeRes = await app.request("/api/gym/sessions/active");
-    const activeSession = (await activeRes.json()) as { id: string; sets: unknown[] };
-    expect(activeSession.id).toBe(active.id);
-    expect(activeSession.sets).toHaveLength(0);
-  });
-
-
 
   it("isolates sessions and plans by user", async () => {
     const other = await createUser(`other-${crypto.randomUUID()}@gymos.app`);

@@ -222,7 +222,11 @@ export class SessionRepository {
         include: sessionInclude,
       });
 
-      await this.applyExerciseDefaults(tx, userId);
+      await this.applyExerciseDefaults(
+        tx,
+        userId,
+        new Set(updated.sets.map((set) => set.exerciseId))
+      );
 
       return { kind: "completed", session: toSessionDetail(updated) } as const;
     });
@@ -230,7 +234,8 @@ export class SessionRepository {
 
   private async applyExerciseDefaults(
     tx: Prisma.TransactionClient,
-    userId: string
+    userId: string,
+    exerciseIds: ReadonlySet<string>
   ): Promise<void> {
     // shortcut: loads every completed set for the user; add a per-exercise
     // last-two-sessions query if history grows large.
@@ -243,6 +248,7 @@ export class SessionRepository {
     });
 
     for (const [exerciseId, defaults] of deriveDefaultsByExercise(sessions)) {
+      if (!exerciseIds.has(exerciseId)) continue;
       await tx.exercise.update({ where: { id: exerciseId }, data: defaults });
     }
   }

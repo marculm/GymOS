@@ -3,6 +3,12 @@ import { prisma } from "../../src/config/prisma-client.mts";
 export const TEST_EMAIL = `test-${crypto.randomUUID()}@gymos.app`;
 let testUserId: string | null = null;
 let fallbackExerciseId: string | null = null;
+let sharedExerciseDefaults: {
+  id: string;
+  defaultSets: number;
+  defaultReps: number;
+  defaultWeightKg: number | null;
+} | null = null;
 
 export async function createTestUser() {
   process.env.GYMOS_USER_EMAIL = TEST_EMAIL;
@@ -32,6 +38,17 @@ export async function cleanupTestUser() {
     await prisma.exercise.deleteMany({ where: { id: fallbackExerciseId } });
     fallbackExerciseId = null;
   }
+  if (sharedExerciseDefaults) {
+    await prisma.exercise.update({
+      where: { id: sharedExerciseDefaults.id },
+      data: {
+        defaultSets: sharedExerciseDefaults.defaultSets,
+        defaultReps: sharedExerciseDefaults.defaultReps,
+        defaultWeightKg: sharedExerciseDefaults.defaultWeightKg,
+      },
+    });
+    sharedExerciseDefaults = null;
+  }
   delete process.env.GYMOS_USER_EMAIL;
   await prisma.$disconnect();
 }
@@ -41,7 +58,15 @@ export async function firstExercise() {
     where: { deletedAt: null },
     orderBy: { name: "asc" },
   });
-  if (active) return active;
+  if (active) {
+    sharedExerciseDefaults ??= {
+      id: active.id,
+      defaultSets: active.defaultSets,
+      defaultReps: active.defaultReps,
+      defaultWeightKg: active.defaultWeightKg,
+    };
+    return active;
+  }
 
   const created = await prisma.exercise.create({
     data: {
