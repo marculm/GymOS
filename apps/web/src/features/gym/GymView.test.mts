@@ -475,14 +475,15 @@ describe("GymView", () => {
     await startScreenReady();
     await openManagement();
     await fireEvent.click(screen.getByRole("button", { name: /create plan/i }));
+
+    expect(screen.queryByLabelText("Sets")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Reps")).not.toBeInTheDocument();
+    expect(
+      screen.queryByLabelText("Weight (kg, optional)")
+    ).not.toBeInTheDocument();
+
     await fireEvent.input(screen.getByLabelText("Name"), {
       target: { value: "Leg Day" },
-    });
-    await fireEvent.input(screen.getByLabelText("Sets"), {
-      target: { value: "5" },
-    });
-    await fireEvent.input(screen.getByLabelText("Reps"), {
-      target: { value: "5" },
     });
     await clickSubmit(screen.getByRole("button", { name: /save plan/i }));
 
@@ -496,6 +497,54 @@ describe("GymView", () => {
     });
     const input = vi.mocked(createPlan).mock.calls.at(-1)?.[0];
     expect(input?.exercises[0]).not.toHaveProperty("targetSets");
+    expect(input?.exercises[0]).not.toHaveProperty("targetReps");
+    expect(input?.exercises[0]).not.toHaveProperty("targetWeightKg");
+  });
+
+  it("removes a plan row", async () => {
+    vi.mocked(listAllExercises).mockResolvedValueOnce([exercise, extraExercise]);
+    vi.mocked(createPlan).mockResolvedValueOnce({
+      ...plan,
+      id: "plan-2",
+      name: "Leg Day",
+    });
+
+    render(GymView);
+
+    await startScreenReady();
+    await openManagement();
+    await fireEvent.click(screen.getByRole("button", { name: /create plan/i }));
+
+    expect(
+      screen.getByRole("button", { name: "Remove Bench Press" })
+    ).toBeDisabled();
+
+    await fireEvent.click(screen.getByRole("button", { name: /add exercise/i }));
+    const removeButtons = screen.getAllByRole("button", {
+      name: "Remove Bench Press",
+    });
+    const secondRow = removeButtons[1];
+    if (!secondRow) throw new Error("second plan row is missing");
+    await fireEvent.click(secondRow);
+
+    expect(
+      screen.getAllByRole("button", { name: "Remove Bench Press" })
+    ).toHaveLength(1);
+
+    await fireEvent.input(screen.getByLabelText("Name"), {
+      target: { value: "Leg Day" },
+    });
+    await clickSubmit(screen.getByRole("button", { name: /save plan/i }));
+
+    await waitFor(() => {
+      expect(createPlan).toHaveBeenCalledWith(
+        expect.objectContaining({
+          exercises: [expect.objectContaining({ exerciseId: exercise.id })],
+        })
+      );
+    });
+    const input = vi.mocked(createPlan).mock.calls.at(-1)?.[0];
+    expect(input?.exercises).toHaveLength(1);
   });
 
   it("edits a plan from the plan list", async () => {
@@ -1034,11 +1083,12 @@ describe("GymView", () => {
     expect(await startScreenReady()).toBeInTheDocument();
   });
 
-  it("prefills plan targets from exercise defaults", async () => {
+  it("creates a plan with the selected exercise", async () => {
+    vi.mocked(listAllExercises).mockResolvedValueOnce([exercise, extraExercise]);
     vi.mocked(createPlan).mockResolvedValueOnce({
       ...plan,
       id: "plan-2",
-      name: "Default Plan",
+      name: "Leg Day",
     });
 
     render(GymView);
@@ -1047,48 +1097,23 @@ describe("GymView", () => {
     await openManagement();
     await fireEvent.click(screen.getByRole("button", { name: /create plan/i }));
 
-    expect(screen.getByLabelText("Sets")).toHaveValue(4);
-    expect(screen.getByLabelText("Reps")).toHaveValue(8);
-    expect(screen.getByLabelText("Weight (kg, optional)")).toHaveValue(80);
-    expect(
-      screen.getByRole("button", { name: "Remove Bench Press" })
-    ).toBeInTheDocument();
-
+    await fireEvent.change(screen.getByLabelText("Exercise"), {
+      target: { value: extraExercise.id },
+    });
     await fireEvent.input(screen.getByLabelText("Name"), {
-      target: { value: "Default Plan" },
+      target: { value: "Leg Day" },
     });
     await clickSubmit(screen.getByRole("button", { name: /save plan/i }));
 
     await waitFor(() => {
       expect(createPlan).toHaveBeenCalledWith(
         expect.objectContaining({
-          exercises: [expect.objectContaining({ exerciseId: expect.any(String) })],
+          exercises: [
+            expect.objectContaining({ exerciseId: extraExercise.id }),
+          ],
         })
       );
     });
-    const input = vi.mocked(createPlan).mock.calls.at(-1)?.[0];
-    expect(input?.exercises[0]).not.toHaveProperty("targetSets");
-    expect(input?.exercises[0]).not.toHaveProperty("targetReps");
-    expect(input?.exercises[0]).not.toHaveProperty("targetWeightKg");
-  });
-
-  it("prefills changed plan rows from the selected exercise defaults", async () => {
-    vi.mocked(listAllExercises).mockResolvedValueOnce([exercise, extraExercise]);
-
-    render(GymView);
-
-    await startScreenReady();
-    await openManagement();
-    await fireEvent.click(screen.getByRole("button", { name: /create plan/i }));
-    expect(screen.getByLabelText("Sets")).toHaveValue(4);
-
-    await fireEvent.change(screen.getByLabelText("Exercise"), {
-      target: { value: extraExercise.id },
-    });
-
-    expect(screen.getByLabelText("Sets")).toHaveValue(5);
-    expect(screen.getByLabelText("Reps")).toHaveValue(5);
-    expect(screen.getByLabelText("Weight (kg, optional)")).toHaveValue(100);
   });
 
   it("creates an exercise in the register", async () => {
