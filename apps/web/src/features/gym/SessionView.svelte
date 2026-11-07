@@ -45,8 +45,9 @@
   let error = $state<string | null>(null);
   let finishButton = $state<HTMLButtonElement | null>(null);
   let timerPreset = $state(loadPreset());
-  let remaining = $state(0);
-  let timerRunning = $state(false);
+  const initialRemaining = remainingFrom(loadEnd());
+  let remaining = $state(initialRemaining);
+  let timerRunning = $state(initialRemaining > 0);
   let showTimerOptions = $state(false);
   let hiddenSetIds = $state<Set<string>>(new Set());
   let pendingUndos = $state<LoggedSet[]>([]);
@@ -77,6 +78,22 @@
     } catch {
       return DEFAULT_REST_PRESET;
     }
+  }
+
+  function loadEnd(): number | null {
+    try {
+      const stored = presetStorage()?.getItem(REST_END_KEY);
+      const end = Number(stored);
+      return stored != null && Number.isFinite(end) && end > 0 ? end : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function remainingFrom(end: number | null): number {
+    return end === null
+      ? 0
+      : Math.max(0, Math.ceil((end - Date.now()) / 1000));
   }
 
   function storeEnd(end: number | null) {

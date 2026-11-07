@@ -168,6 +168,28 @@ describe("SessionBar", () => {
     ).toHaveAttribute("aria-pressed", "true");
   });
 
+  it("resumes the countdown from the stored end timestamp", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-11-07T10:00:00.000Z"));
+    presetStorage()?.setItem(REST_END_KEY, String(Date.now() + 90_000));
+
+    renderSession();
+    expect(timerButton()).toHaveTextContent("1:30");
+
+    await vi.advanceTimersByTimeAsync(3000);
+    expect(timerButton()).toHaveTextContent("1:27");
+  });
+
+  it("shows zero when the stored end timestamp has passed", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-11-07T10:00:00.000Z"));
+    presetStorage()?.setItem(REST_END_KEY, String(Date.now() - 5_000));
+
+    renderSession();
+
+    expect(timerButton()).toHaveTextContent("0:00");
+  });
+
   it("stores the end timestamp when a logged set starts the countdown", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-11-07T10:00:00.000Z"));
