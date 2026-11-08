@@ -6,15 +6,19 @@ published as public GHCR packages (ADR-0035).
 
 ## Pipeline
 
-Pull requests run `checks` and `infra`. A push to `main` runs:
+Pull requests run `checks`, `infra`, and `security`. A push to `main` runs:
 
 1. `checks` — typecheck, lint, tests against a Postgres service, web build.
-2. `infra` — actionlint, kubeconform, and shellcheck for workflows, manifests, and the
+2. `security` — `bun audit --audit-level=high` against the checked-in lockfile. The job is
+   allowed to fail: it reports dependency advisories without gating image builds or
+   deploys. The current known finding is `deepmerge-ts` (high) through `@prisma/config`;
+   it cannot be fixed within the declared dependency ranges.
+3. `infra` — actionlint, kubeconform, and shellcheck for workflows, manifests, and the
    deploy script.
-3. `images` — builds `linux/arm64` images and pushes them to GHCR:
+4. `images` — builds `linux/arm64` images and pushes them to GHCR:
    - `ghcr.io/marculm/gymos-api:sha-<commit>`
    - `ghcr.io/marculm/gymos-web:sha-<commit>`
-4. `deploy` — runs only when the repository variable `DEPLOY_ENABLED` is `true`; joins the
+5. `deploy` — runs only when the repository variable `DEPLOY_ENABLED` is `true`; joins the
    tailnet as an ephemeral `tag:ci` node and runs
    `/srv/gymos/deploy/k8s/deploy.sh <commit>` on the VM over Tailscale SSH.
 

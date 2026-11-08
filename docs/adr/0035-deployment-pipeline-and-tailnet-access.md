@@ -40,6 +40,11 @@ clean checkout.
 - Pull requests run checks and infrastructure lint: Bun install, Prisma generate,
   `prisma migrate deploy` against a Postgres service container, typecheck, `lint:all`,
   tests, the web build, actionlint, kubeconform, and shellcheck.
+- A separate `security` job runs `bun audit --audit-level=high` on every pull request and
+  push to `main`. It is not a dependency of the `images` or `deploy` jobs, so an audit
+  failure is visible in the run without blocking image publication or deployment. The job
+  is expected to fail while the known high-severity `deepmerge-ts` advisory reaches the
+  workspace through `@prisma/config` and cannot be fixed within the declared ranges.
 - Pushes to `main` run the same checks, build and push `linux/arm64` images, and then
   deploy. The deploy job runs only on `main`, only after checks and images succeed, only
   when the repository variable `DEPLOY_ENABLED` is `true`, and is serialized by a
@@ -89,6 +94,9 @@ clean checkout.
   for a private, tailnet-only deployment; secrets must never reach an image.
 - Dockerfile errors surface only on `main`, because images are not built on pull requests.
   This is accepted to save CI minutes.
+- Dependency advisories are visible but do not gate deployment. The `security` job stays
+  red until the vulnerable dependency is upgraded, so a red run is not by itself a merge
+  blocker; reviewers must check that job.
 - An application rollback after a destructive migration requires restoring the database
   from backup.
 - The stack runs as a single replica with in-cluster Postgres and one PVC. There is no high

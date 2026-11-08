@@ -243,7 +243,7 @@ GymOS/
 │   ├── docker/          # Compose: PostgreSQL and optional full stack
 │   └── k8s/             # K3s manifests and deploy script
 ├── .github/
-│   └── workflows/       # CI: checks, images, deploy
+│   └── workflows/       # CI: checks, security, images, deploy
 ├── docs/
 │   ├── adr/             # Architecture Decision Records (MADR format)
 │   └── known-issues.md  # Known limitations and deferred work
