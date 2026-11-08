@@ -70,6 +70,7 @@
   function applyFilters() {
     expandedId = null;
     detail = null;
+    resetEdit();
     sessions = [];
     totalElements = 0;
     page = 0;
@@ -81,11 +82,13 @@
       expandedId = null;
       detail = null;
       detailLoading = false;
+      resetEdit();
       return;
     }
 
     expandedId = id;
     detail = null;
+    resetEdit();
     detailLoading = true;
     error = null;
 
@@ -107,15 +110,15 @@
     plans.find((plan) => plan.id === detail?.planId) ?? null
   );
 
+  function resetEdit() {
+    editingSetId = null;
+    editError = null;
+  }
+
   function startEdit(set: LoggedSet) {
     editingSetId = set.id;
     editReps = set.reps;
     editWeightKg = set.weightKg;
-    editError = null;
-  }
-
-  function cancelEdit() {
-    editingSetId = null;
     editError = null;
   }
 
@@ -126,13 +129,15 @@
       return;
     }
 
+    const sessionId = detail.id;
     editPending = true;
     editError = null;
     try {
-      const updated = await updateSet(detail.id, set.id, {
+      const updated = await updateSet(sessionId, set.id, {
         reps: Number(editReps),
         weightKg: Number(editWeightKg),
       });
+      if (!detail) return;
       detail = {
         ...detail,
         sets: detail.sets.map((entry) =>
@@ -383,7 +388,7 @@
                             class="btn btn-ghost"
                             disabled={editPending}
                             aria-label={`Cancel editing set ${set.setNumber} for ${group.name}`}
-                            onclick={cancelEdit}
+                            onclick={resetEdit}
                           >
                             Cancel
                           </button>

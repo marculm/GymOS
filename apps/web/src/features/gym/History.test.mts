@@ -273,6 +273,38 @@ describe("History", () => {
     ).toBeEnabled();
   });
 
+  it("does not reopen an abandoned edit after collapsing the session", async () => {
+    vi.mocked(listSessions).mockResolvedValue(page([pushSession], 0, 1));
+    vi.mocked(getSession).mockResolvedValue(detail);
+
+    renderHistory();
+
+    await fireEvent.click(
+      await screen.findByRole("button", { name: /view push day/i })
+    );
+    await fireEvent.click(
+      await screen.findByRole("button", {
+        name: "Edit set 1 for Bench Press",
+      })
+    );
+    await fireEvent.input(
+      screen.getByLabelText("Reps for set 1 of Bench Press"),
+      { target: { value: "9" } }
+    );
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Hide Push Day" })
+    );
+    await fireEvent.click(
+      screen.getByRole("button", { name: "View Push Day" })
+    );
+
+    expect(await screen.findByText("8 × 80 kg")).toBeInTheDocument();
+    expect(
+      screen.queryByLabelText("Reps for set 1 of Bench Press")
+    ).not.toBeInTheDocument();
+  });
+
   it("cancels editing a set without saving", async () => {
     vi.mocked(listSessions).mockResolvedValue(page([pushSession], 0, 1));
     vi.mocked(getSession).mockResolvedValue(detail);
