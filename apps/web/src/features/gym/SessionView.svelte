@@ -14,6 +14,7 @@
     enablePush,
     isPushSubscribed,
     isPushSupported,
+    syncRestTimer,
   } from "../../push.mts";
   import ExerciseForm from "./ExerciseForm.svelte";
   import { formatWeight } from "./format.mts";
@@ -122,6 +123,7 @@
     remaining = timerPreset;
     timerRunning = true;
     storeEnd(endsAt);
+    void syncRestTimer(endsAt);
   }
 
   async function refreshPushState() {
@@ -138,11 +140,14 @@
       if (pushEnabled) {
         await disablePush();
         pushEnabled = false;
+        void syncRestTimer(null);
       } else {
         pushEnabled = await enablePush();
         if (!pushEnabled) {
           error =
             "Notifications are unavailable. The in-app timer still works.";
+        } else if (timerRunning && endsAt !== null) {
+          void syncRestTimer(endsAt);
         }
       }
     } catch (pushError) {
@@ -165,11 +170,16 @@
     startTimer();
   }
 
-  function stopTimer() {
+  function clearTimer() {
     remaining = 0;
     timerRunning = false;
     endsAt = null;
     storeEnd(null);
+  }
+
+  function stopTimer() {
+    clearTimer();
+    void syncRestTimer(null);
   }
 
   function toggleTimer() {
@@ -181,7 +191,7 @@
     if (!timerRunning) return;
     const id = setInterval(() => {
       remaining = remainingFrom(endsAt);
-      if (remaining === 0) stopTimer();
+      if (remaining === 0) clearTimer();
     }, 1000);
     return () => clearInterval(id);
   });

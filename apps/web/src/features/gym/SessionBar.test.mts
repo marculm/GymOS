@@ -364,6 +364,41 @@ describe("SessionBar", () => {
     ).toHaveAttribute("aria-pressed", "false");
   });
 
+  it("registers the rest timer end with the API", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-11-07T10:00:00.000Z"));
+
+    const { onLogSet } = renderSession();
+    await logSet(onLogSet);
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(push.syncRestTimer).toHaveBeenCalledWith(Date.now() + 120_000);
+  });
+
+  it("cancels the server timer when the user stops it", async () => {
+    vi.useFakeTimers();
+
+    renderSession();
+    await fireEvent.click(timerButton());
+    await fireEvent.click(within(bar()).getByRole("button", { name: "Reset" }));
+    await fireEvent.click(within(bar()).getByRole("button", { name: "Stop" }));
+
+    expect(push.syncRestTimer).toHaveBeenLastCalledWith(null);
+  });
+
+  it("does not cancel the server timer when the countdown reaches zero", async () => {
+    vi.useFakeTimers();
+
+    renderSession();
+    await fireEvent.click(timerButton());
+    await fireEvent.click(within(bar()).getByRole("button", { name: "Reset" }));
+
+    await vi.advanceTimersByTimeAsync(120_000);
+
+    expect(timerButton()).toHaveTextContent("0:00");
+    expect(push.syncRestTimer).not.toHaveBeenCalledWith(null);
+  });
+
   it("stops and resets the countdown", async () => {
     vi.useFakeTimers();
 
