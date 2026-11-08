@@ -21,8 +21,8 @@ fail in the image builds.
 
 The root `typecheck` and `test` scripts run `bun --filter @gymos/api db:generate` before
 their existing commands. Generating before every check also picks up schema changes made
-since the last install. The explicit generate step in CI stays in place; running it twice
-is harmless.
+since the last install. The explicit generate step in CI stays in place; repeated runs
+are harmless.
 
 ## Consequences
 
