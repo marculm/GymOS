@@ -18,8 +18,8 @@ this decision covers deletion only.
 - `DELETE /api/gym/sessions/:id/sets/:setId` deletes one set owned by the current user.
   The set must belong to the session named in the path; a set from another session or
   another user is reported as `404`, like a missing session.
-- A completed session is immutable. Deleting from it returns `409` with the same
-  `SessionCompletedError` mapping used when logging to it.
+- A completed session's sets cannot be deleted. Deleting from it returns `409` with the
+  same `SessionCompletedError` mapping used when logging to it.
 - The delete, the ownership check, and the renumbering run in one serializable
   transaction. After the delete, the remaining sets of that exercise are renumbered
   from `1` in ascending order, so the numbering stays contiguous and the unique
@@ -52,4 +52,4 @@ this decision covers deletion only.
   done state follows the new count (ADR-0019, ADR-0029).
 - The API contract gains one route and no schema change. Client state mirrors the
   server's renumbering for immediate feedback; a later read returns the same result.
-- Editing a logged set still requires the separate change in #6.
+- Editing reps and weight in a completed session is defined in ADR-0043.
