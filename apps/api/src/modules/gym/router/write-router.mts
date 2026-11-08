@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { container } from "../../../container.mts";
+import { createProblemDetails } from "../../../problem-details.mts";
 import type { AppEnv } from "../../../security/current-user.mts";
 import { createBaseUrl } from "./create-base-url.mts";
 import { statuscode } from "./statuscode.mts";
@@ -17,6 +18,21 @@ import {
 export const writeRouter = new Hono<AppEnv>();
 
 const { writeService } = container;
+
+writeRouter.use("*", async (c, next) => {
+  if (c.req.method !== "POST" && c.req.method !== "PUT") {
+    return next();
+  }
+  const mediaType = c.req
+    .header("content-type")
+    ?.split(";")[0]
+    ?.trim()
+    .toLowerCase();
+  if (mediaType !== "application/json") {
+    return createProblemDetails(c, 415, "Content-Type must be application/json");
+  }
+  await next();
+});
 
 writeRouter.post("/exercises", async (c) => {
   const input = CreateExerciseSchema.parse(await c.req.json());
