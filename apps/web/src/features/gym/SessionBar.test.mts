@@ -13,6 +13,16 @@ import type {
   WorkoutSessionDetail,
 } from "@gymos/shared";
 import SessionView from "./SessionView.svelte";
+import * as push from "../../push.mts";
+
+vi.mock("../../push.mts", () => ({
+  isPushSupported: vi.fn(() => true),
+  isPushSubscribed: vi.fn(async () => false),
+  notificationPermission: vi.fn(() => "default"),
+  enablePush: vi.fn(async () => true),
+  disablePush: vi.fn(async () => undefined),
+  syncRestTimer: vi.fn(async () => undefined),
+}));
 
 const REST_PRESET_KEY = "gymos.restTimerSeconds";
 const REST_END_KEY = "gymos.restTimerEndsAt";
@@ -111,12 +121,18 @@ async function logSet(onLogSet: ReturnType<typeof vi.fn>) {
 
 describe("SessionBar", () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     window.sessionStorage.clear();
     try {
       window.localStorage.clear();
     } catch {
       // localStorage is unavailable in some test environments.
     }
+    vi.mocked(push.isPushSupported).mockReturnValue(true);
+    vi.mocked(push.isPushSubscribed).mockResolvedValue(false);
+    vi.mocked(push.enablePush).mockResolvedValue(true);
+    vi.mocked(push.disablePush).mockResolvedValue(undefined);
+    vi.mocked(push.syncRestTimer).mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -285,6 +301,67 @@ describe("SessionBar", () => {
 
     await fireEvent.click(within(bar()).getByRole("button", { name: "Stop" }));
     expect(presetStorage()?.getItem(REST_END_KEY)).toBeNull();
+  });
+
+  it("hides the notification bell when push is unsupported", () => {
+    vi.mocked(push.isPushSupported).mockReturnValue(false);
+
+    renderSession();
+
+    expect(
+      screen.queryByRole("button", { name: "Rest notifications" })
+    ).not.toBeInTheDocument();
+  });
+
+  it("asks for notification permission from the session bar", async () => {
+    renderSession();
+    const bell = screen.getByRole("button", { name: "Rest notifications" });
+    expect(bell).toHaveAttribute("aria-pressed", "false");
+
+    await fireEvent.click(bell);
+
+    await waitFor(() => expect(push.enablePush).toHaveBeenCalledOnce());
+    await waitFor(() => expect(bell).toHaveAttribute("aria-pressed", "true"));
+  });
+
+  it("restores the bell when notifications are already enabled", async () => {
+    vi.mocked(push.isPushSubscribed).mockResolvedValue(true);
+
+    renderSession();
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "Rest notifications" })
+      ).toHaveAttribute("aria-pressed", "true")
+    );
+  });
+
+  it("turns notifications off from the session bar", async () => {
+    vi.mocked(push.isPushSubscribed).mockResolvedValue(true);
+    renderSession();
+    const bell = screen.getByRole("button", { name: "Rest notifications" });
+    await waitFor(() => expect(bell).toHaveAttribute("aria-pressed", "true"));
+
+    await fireEvent.click(bell);
+
+    await waitFor(() => expect(push.disablePush).toHaveBeenCalledOnce());
+    expect(bell).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("keeps the in-app timer when notifications cannot be enabled", async () => {
+    vi.mocked(push.enablePush).mockResolvedValue(false);
+    renderSession();
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Rest notifications" })
+    );
+
+    await waitFor(() =>
+      expect(screen.getByRole("alert")).toHaveTextContent(/in-app timer/i)
+    );
+    expect(
+      screen.getByRole("button", { name: "Rest notifications" })
+    ).toHaveAttribute("aria-pressed", "false");
   });
 
   it("stops and resets the countdown", async () => {
