@@ -14,10 +14,13 @@ import {
 } from "../helpers.mts";
 
 let exerciseId: string;
+let exerciseName: string;
 
 beforeAll(async () => {
   await createTestUser();
-  exerciseId = (await firstExercise()).id;
+  const exercise = await firstExercise();
+  exerciseId = exercise.id;
+  exerciseName = exercise.name;
 });
 
 beforeEach(clearTestUserData);
@@ -225,12 +228,14 @@ describe("Gym session routes", () => {
 
     const updated = (await res.json()) as {
       id: string;
+      exerciseName: string;
       setNumber: number;
       reps: number;
       weightKg: number;
     };
     expect(updated).toMatchObject({
       id: first,
+      exerciseName,
       setNumber: 1,
       reps: 12,
       weightKg: 42.5,
@@ -247,6 +252,29 @@ describe("Gym session routes", () => {
       weightKg: 42.5,
     });
     expect(data.sets[1]).toMatchObject({ setNumber: 2, reps: 10, weightKg: 20 });
+  });
+
+  it("does not recalculate exercise defaults when a completed set is corrected", async () => {
+    const session = await startSession();
+    const setId = await loggedSetId(session.id);
+    await postJson(`/api/gym/sessions/${session.id}/complete`, {});
+
+    const before = await prisma.exercise.findUniqueOrThrow({
+      where: { id: exerciseId },
+    });
+
+    const res = await updateSet(session.id, setId, {
+      reps: 12,
+      weightKg: 42.5,
+    });
+    expect(res.status).toBe(200);
+
+    const after = await prisma.exercise.findUniqueOrThrow({
+      where: { id: exerciseId },
+    });
+    expect(after.defaultWeightKg).toBe(before.defaultWeightKg);
+    expect(after.defaultReps).toBe(before.defaultReps);
+    expect(after.defaultSets).toBe(before.defaultSets);
   });
 
   it("rejects editing a set in an active session", async () => {
