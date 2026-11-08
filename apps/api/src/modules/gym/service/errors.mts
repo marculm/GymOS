@@ -4,6 +4,8 @@ export class ActiveSessionExistsError extends Error {}
 
 export class SessionCompletedError extends Error {}
 
+export class SessionNotCompletedError extends Error {}
+
 export class DuplicateSetError extends Error {}
 
 export class DuplicatePlanNameError extends Error {}

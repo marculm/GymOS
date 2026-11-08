@@ -22,6 +22,7 @@ import {
   DuplicateSetError,
   NotFoundError,
   SessionCompletedError,
+  SessionNotCompletedError,
   UnknownExerciseError,
   UnknownPlanError,
 } from "./errors.mts";
@@ -231,6 +232,10 @@ export class GymWriteService {
         return result.set;
       case "not_found":
         throw new NotFoundError("Session or set not found");
+      case "active":
+        throw new SessionNotCompletedError(
+          "Only completed sessions can be edited"
+        );
     }
   }
 

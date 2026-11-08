@@ -249,6 +249,55 @@ describe("Gym session routes", () => {
     expect(data.sets[1]).toMatchObject({ setNumber: 2, reps: 10, weightKg: 20 });
   });
 
+  it("rejects editing a set in an active session", async () => {
+    const session = await startSession();
+    const setId = await loggedSetId(session.id);
+
+    const res = await updateSet(session.id, setId, {
+      reps: 12,
+      weightKg: 42.5,
+    });
+    expect(res.status).toBe(409);
+    expect(res.headers.get("content-type")).toContain(
+      "application/problem+json"
+    );
+    const data = (await res.json()) as { detail: string };
+    expect(data.detail).toContain("completed");
+
+    const detail = await app.request(`/api/gym/sessions/${session.id}`);
+    const body = (await detail.json()) as {
+      sets: Array<{ reps: number; weightKg: number }>;
+    };
+    expect(body.sets[0]).toMatchObject({ reps: 10, weightKg: 20 });
+  });
+
+  it("keeps set identity when extra fields are sent", async () => {
+    const session = await startSession();
+    const first = await loggedSetId(session.id);
+    await loggedSetId(session.id);
+    await postJson(`/api/gym/sessions/${session.id}/complete`, {});
+
+    const res = await updateSet(session.id, first, {
+      reps: 12,
+      weightKg: 42.5,
+      setNumber: 9,
+      exerciseId: "00000000-0000-4000-8000-000000000099",
+    });
+    expect(res.status).toBe(200);
+
+    const updated = (await res.json()) as {
+      exerciseId: string;
+      setNumber: number;
+    };
+    expect(updated).toMatchObject({ exerciseId, setNumber: 1 });
+
+    const detail = await app.request(`/api/gym/sessions/${session.id}`);
+    const data = (await detail.json()) as {
+      sets: Array<{ setNumber: number }>;
+    };
+    expect(data.sets.map((set) => set.setNumber)).toEqual([1, 2]);
+  });
+
   it("returns 404 when updating a set outside the completed session", async () => {
     const first = await startSession();
     const setId = await loggedSetId(first.id);
@@ -739,6 +788,13 @@ describe("Gym session routes", () => {
 
       await expect(
         container.writeService.deleteSet(other.id, session.id, setId)
+      ).rejects.toBeInstanceOf(NotFoundError);
+
+      await expect(
+        container.writeService.updateSet(other.id, session.id, setId, {
+          reps: 10,
+          weightKg: 20,
+        })
       ).rejects.toBeInstanceOf(NotFoundError);
 
       const detail = await app.request(`/api/gym/sessions/${session.id}`);

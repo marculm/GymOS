@@ -35,7 +35,8 @@ export type DeleteSetResult =
 
 export type UpdateSetResult =
   | { kind: "updated"; set: LoggedSet }
-  | { kind: "not_found" };
+  | { kind: "not_found" }
+  | { kind: "active" };
 
 export class SessionRepository {
   async findActive(userId: string): Promise<WorkoutSessionDetail | null> {
@@ -217,7 +218,7 @@ export class SessionRepository {
     return withSerializableRetry(async (tx) => {
       const session = await tx.workoutSession.findFirst({
         where: { id: sessionId, userId },
-        select: { id: true },
+        select: { id: true, completedAt: true },
       });
       if (!session) return { kind: "not_found" } as const;
 
@@ -226,6 +227,7 @@ export class SessionRepository {
         select: { id: true },
       });
       if (!set) return { kind: "not_found" } as const;
+      if (!session.completedAt) return { kind: "active" } as const;
 
       const updated = await tx.workoutSet.update({
         where: { id: setId },

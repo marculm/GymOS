@@ -22,6 +22,7 @@ import {
   DuplicateSetError,
   NotFoundError,
   SessionCompletedError,
+  SessionNotCompletedError,
   UnknownExerciseError,
   UnknownPlanError,
 } from "./modules/gym/service/errors.mts";
@@ -72,6 +73,9 @@ app.onError((err, c) => {
     return createProblemDetails(c, 409, err.message);
   }
   if (err instanceof SessionCompletedError) {
+    return createProblemDetails(c, 409, err.message);
+  }
+  if (err instanceof SessionNotCompletedError) {
     return createProblemDetails(c, 409, err.message);
   }
   if (err instanceof DuplicateSetError) {

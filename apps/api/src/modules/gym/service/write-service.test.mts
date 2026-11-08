@@ -19,6 +19,7 @@ import {
   DuplicateSetError,
   NotFoundError,
   SessionCompletedError,
+  SessionNotCompletedError,
   UnknownExerciseError,
   UnknownPlanError,
 } from "./errors.mts";
@@ -442,10 +443,13 @@ describe("GymWriteService", () => {
     );
   });
 
-  it("maps an updateSet not-found result to an error", async () => {
+  it.each([
+    ["not_found", NotFoundError],
+    ["active", SessionNotCompletedError],
+  ] as const)("maps updateSet result %s to an error", async (kind, error) => {
     const { service, sessionRepository } = createService();
     sessionRepository.updateSet.mockResolvedValueOnce({
-      kind: "not_found",
+      kind,
     } as UpdateSetResult);
 
     await expect(
@@ -453,7 +457,7 @@ describe("GymWriteService", () => {
         reps: 12,
         weightKg: 42.5,
       })
-    ).rejects.toBeInstanceOf(NotFoundError);
+    ).rejects.toBeInstanceOf(error);
   });
 
   it("returns a completed session", async () => {
