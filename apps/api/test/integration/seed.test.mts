@@ -38,6 +38,15 @@ describe("seed", () => {
     ).toBe(3);
   });
 
+  it("does not recreate a deleted starter plan on a later run", async () => {
+    runSeed();
+    await prisma.workoutPlan.deleteMany({ where: { user: { email } } });
+
+    runSeed();
+
+    expect(await prisma.workoutPlan.count({ where: { user: { email } } })).toBe(0);
+  });
+
   it("provisions the starter data on first owner creation", async () => {
     runSeed();
 
