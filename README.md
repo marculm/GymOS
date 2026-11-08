@@ -117,9 +117,8 @@ rollback, and backup steps.
 
 Deployments are gated by the repository variable `DEPLOY_ENABLED`. Set it to `true` after
 the VM and Tailscale access are ready; until then, merges build and publish images but skip
-the deploy job. The `security` job still runs and is expected to fail on the known Prisma
-advisory, so the run shows red even when deployment is skipped. Set it to `false` to pause
-deployments.
+the deploy job. The `security` job still runs and reports its result even when deployment
+is skipped. Set it to `false` to pause deployments.
 
 ### VM operations
 

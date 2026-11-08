@@ -10,10 +10,9 @@ Pull requests run `checks`, `infra`, and `security`. A push to `main` runs:
 
 1. `checks` — typecheck, lint, tests against a Postgres service, web build.
 2. `security` — `bun audit --audit-level=high` against the checked-in lockfile. A failure
-   is reported as a failed check but is not a required gate for `images` or `deploy`. The
-   current known finding is `deepmerge-ts` (high) through `@prisma/config`; it cannot be
-   fixed within the declared dependency ranges, so this job is expected to fail until
-   Prisma updates it.
+   is reported as a failed check but is not a required gate for `images` or `deploy`. A
+   Bun override forces `deepmerge-ts@^8.0.2` so the job passes; the override is temporary
+   until Prisma is upgraded (#101).
 3. `infra` — actionlint, kubeconform, and shellcheck for workflows, manifests, and the
    deploy script.
 4. `images` — builds `linux/arm64` images and pushes them to GHCR:
@@ -25,9 +24,9 @@ Pull requests run `checks`, `infra`, and `security`. A push to `main` runs:
 
 A merge publishes images and deploys only when `DEPLOY_ENABLED` is `true`; otherwise the
 deploy job is skipped while images are still published. The `security` job runs regardless
-and is expected to fail on the known Prisma advisory, so the run shows red even when
-deployment is skipped. Enable deployments after the VM and Tailscale access are ready
-(step 9). Each image is also tagged `latest`; deployments use the immutable commit tag.
+and reports its result even when deployment is skipped. Enable deployments after the VM and
+Tailscale access are ready (step 9). Each image is also tagged `latest`; deployments use
+the immutable commit tag.
 
 ## Local full stack
 
