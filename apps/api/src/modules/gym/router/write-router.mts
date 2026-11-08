@@ -23,7 +23,12 @@ writeRouter.use("*", async (c, next) => {
   if (c.req.method !== "POST" && c.req.method !== "PUT") {
     return next();
   }
-  if (!c.req.header("content-type")?.toLowerCase().startsWith("application/json")) {
+  const mediaType = c.req
+    .header("content-type")
+    ?.split(";")[0]
+    ?.trim()
+    .toLowerCase();
+  if (mediaType !== "application/json") {
     return createProblemDetails(c, 415, "Content-Type must be application/json");
   }
   await next();

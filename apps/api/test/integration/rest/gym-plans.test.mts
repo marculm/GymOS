@@ -103,6 +103,16 @@ describe("Gym plan routes", () => {
     expect(await prisma.workoutPlan.count({ where: { name } })).toBe(0);
   });
 
+  it("rejects a non-JSON media type with 415", async () => {
+    const res = await app.request("/api/gym/plans", {
+      method: "POST",
+      headers: { "Content-Type": "application/json-patch+json" },
+      body: JSON.stringify(planBody("Patch")),
+    });
+
+    expect(res.status).toBe(415);
+  });
+
   it("lists created plans as a page", async () => {
     await postJson(planBody("Listed Plan"));
 
