@@ -27,7 +27,7 @@ export class RestTimerRepository {
     });
   }
 
-  async deleteById(id: string): Promise<void> {
-    await prisma.restTimer.deleteMany({ where: { id } });
+  async deleteIfUnchanged(id: string, endAt: Date): Promise<void> {
+    await prisma.restTimer.deleteMany({ where: { id, endAt } });
   }
 }

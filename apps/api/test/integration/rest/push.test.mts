@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { app } from "../../../src/app.mts";
 import { prisma } from "../../../src/config/prisma-client.mts";
+import { RestTimerRepository } from "../../../src/modules/push/repository/rest-timer-repository.mts";
 import {
   TEST_EMAIL,
   cleanupTestUser,
@@ -165,6 +166,28 @@ describe("push API", () => {
     expect(
       await prisma.restTimer.count({ where: { userId: await currentUserId() } })
     ).toBe(0);
+  });
+
+  it("deletes a rest timer only if it still has the scheduled end", async () => {
+    const userId = await currentUserId();
+    const endAt = new Date(Date.now() + 120_000);
+    const restarted = new Date(Date.now() + 180_000);
+    const timer = await prisma.restTimer.create({ data: { userId, endAt } });
+    await prisma.restTimer.update({
+      where: { id: timer.id },
+      data: { endAt: restarted },
+    });
+
+    const repository = new RestTimerRepository();
+    await repository.deleteIfUnchanged(timer.id, endAt);
+    expect(
+      await prisma.restTimer.findUnique({ where: { id: timer.id } })
+    ).not.toBeNull();
+
+    await repository.deleteIfUnchanged(timer.id, restarted);
+    expect(
+      await prisma.restTimer.findUnique({ where: { id: timer.id } })
+    ).toBeNull();
   });
 
   it("rejects a malformed rest timer", async () => {

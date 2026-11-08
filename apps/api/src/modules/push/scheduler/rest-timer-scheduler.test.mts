@@ -8,7 +8,7 @@ function createScheduler(
 ) {
   const timers = {
     findDue: vi.fn().mockResolvedValue(due),
-    deleteById: vi.fn().mockResolvedValue(undefined),
+    deleteIfUnchanged: vi.fn().mockResolvedValue(undefined),
   };
 
   return {
@@ -36,8 +36,16 @@ describe("RestTimerScheduler", () => {
     expect(timers.findDue).toHaveBeenCalledExactlyOnceWith(now);
     expect(sendRestOver).toHaveBeenNthCalledWith(1, "user-1");
     expect(sendRestOver).toHaveBeenNthCalledWith(2, "user-2");
-    expect(timers.deleteById).toHaveBeenNthCalledWith(1, "timer-1");
-    expect(timers.deleteById).toHaveBeenNthCalledWith(2, "timer-2");
+    expect(timers.deleteIfUnchanged).toHaveBeenNthCalledWith(
+      1,
+      "timer-1",
+      now
+    );
+    expect(timers.deleteIfUnchanged).toHaveBeenNthCalledWith(
+      2,
+      "timer-2",
+      now
+    );
   });
 
   it("deletes a timer even when its push fails", async () => {
@@ -50,7 +58,34 @@ describe("RestTimerScheduler", () => {
     await scheduler.tick();
 
     expect(sendRestOver).toHaveBeenCalledOnce();
-    expect(timers.deleteById).toHaveBeenCalledExactlyOnceWith("timer-1");
+    expect(timers.deleteIfUnchanged).toHaveBeenCalledExactlyOnceWith(
+      "timer-1",
+      due[0]?.endAt
+    );
+  });
+
+  it("keeps a timer that was restarted while the push was in flight", async () => {
+    const endAt = new Date("2026-11-08T10:00:00.000Z");
+    const restarted = new Date("2026-11-08T10:02:00.000Z");
+    let currentEndAt: Date | null = endAt;
+    const timers = {
+      findDue: vi
+        .fn()
+        .mockResolvedValue([{ id: "timer-1", userId: "user-1", endAt }]),
+      deleteIfUnchanged: vi.fn(async (_id: string, snapshot: Date) => {
+        if (snapshot.getTime() === currentEndAt?.getTime()) {
+          currentEndAt = null;
+        }
+      }),
+    };
+    const sendRestOver = vi.fn(async () => {
+      currentEndAt = restarted;
+    });
+    const scheduler = new RestTimerScheduler(timers, { sendRestOver });
+
+    await scheduler.tick();
+
+    expect(currentEndAt).toEqual(restarted);
   });
 
   it("does not overlap ticks while one is running", async () => {
@@ -61,7 +96,7 @@ describe("RestTimerScheduler", () => {
           resolveFindDue = resolve;
         })
     );
-    const timers = { findDue, deleteById: vi.fn() };
+    const timers = { findDue, deleteIfUnchanged: vi.fn() };
     const scheduler = new RestTimerScheduler(timers, {
       sendRestOver: vi.fn(),
     });

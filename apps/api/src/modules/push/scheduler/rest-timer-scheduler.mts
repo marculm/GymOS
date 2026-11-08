@@ -2,7 +2,10 @@ import { getLogger } from "../../../logger/logger.mts";
 import type { RestTimerRepository } from "../repository/rest-timer-repository.mts";
 import type { PushService } from "../service/push-service.mts";
 
-type RestTimerSource = Pick<RestTimerRepository, "findDue" | "deleteById">;
+type RestTimerSource = Pick<
+  RestTimerRepository,
+  "findDue" | "deleteIfUnchanged"
+>;
 type RestPushSender = Pick<PushService, "sendRestOver">;
 
 const logger = getLogger("RestTimerScheduler");
@@ -46,7 +49,7 @@ export class RestTimerScheduler {
             "Rest timer push failed"
           );
         } finally {
-          await this.timers.deleteById(timer.id);
+          await this.timers.deleteIfUnchanged(timer.id, timer.endAt);
         }
       }
     } catch (error) {

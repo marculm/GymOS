@@ -40,9 +40,10 @@ Push delivery can be delayed by a few seconds by the browser's push service.
 - The API stores push subscriptions (`push_subscriptions`) and at most one pending rest
   timer per user (`rest_timers`, unique `userId`). A scheduler in the API process polls
   due timers about once per second and sends the `Rest is over` notification to every
-  subscription of that user. Sent timers are deleted; a subscription the push service
-  reports as gone (404/410) is removed. A failed send is logged and the timer is deleted
-  so it is not retried every tick.
+  subscription of that user. A sent timer is deleted only while its `endAt` still matches
+  the value the scheduler read, so a timer the user restarted during the send survives; a
+  subscription the push service reports as gone (404/410) is removed. A failed send is
+  logged and the timer is deleted so it is not retried every tick.
 - VAPID configuration comes from `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, and
   `VAPID_SUBJECT`. When the key pair is missing, push stays disabled: the public-key and
   subscription endpoints return `503`, the scheduler is not started, and the client keeps
