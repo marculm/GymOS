@@ -34,8 +34,8 @@ backend checks session state and writes in one serializable transaction.
   accessible name that includes the set number and exercise name.
 - A correction does not recalculate exercise defaults, which were derived when the
   session completed (ADR-0039); the next completed session updates them again. Progress
-  and personal records read logged sets directly, so they reflect the correction
-  immediately.
+  and personal records read logged sets directly, so a fresh load reflects the
+  correction.
 
 ## Consequences
 
