@@ -88,7 +88,10 @@ describe("Gym plan routes", () => {
     const name = `Cross Site ${crypto.randomUUID()}`;
     const res = await app.request("/api/gym/plans", {
       method: "POST",
-      headers: { "Content-Type": "text/plain" },
+      headers: {
+        "Content-Type": "text/plain",
+        Origin: "https://evil.example",
+      },
       body: JSON.stringify(planBody(name)),
     });
 
