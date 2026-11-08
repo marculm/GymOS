@@ -54,6 +54,11 @@ Nutrition, the AI recipe extractor, authentication, and offline logging are not 
    ```
    *(Adjust passwords/ports in `.env` if needed).*
 
+   Web push is optional. To enable rest timer notifications, generate VAPID keys with
+   `bunx web-push generate-vapid-keys` and set `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`,
+   and `VAPID_SUBJECT` in `.env` (see `.env.example`). Without them the API keeps push
+   disabled and the in-app timer is used.
+
 3. **Start local database & seed data:**
    ```bash
    bun run db:up         # Starts PostgreSQL 17 in Docker (Port 5433)
@@ -62,11 +67,6 @@ Nutrition, the AI recipe extractor, authentication, and offline logging are not 
    ```
 
    The seed provisions the user configured by `GYMOS_USER_EMAIL` (default `demo@gymos.app`). On first provision it also creates the starter exercises and Push Day plan; later runs leave renamed or deleted starter rows alone. To provision a custom owner, set `GYMOS_USER_EMAIL` in `.env` before running the seed (ADR-0023).
-
-   Web push is optional. To enable rest timer notifications, generate VAPID keys with
-   `bunx web-push generate-vapid-keys` and set `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`,
-   and `VAPID_SUBJECT` in `.env` (see `.env.example`). Without them the API keeps push
-   disabled and the in-app timer is used.
 
 4. **Start development servers:**
    ```bash
