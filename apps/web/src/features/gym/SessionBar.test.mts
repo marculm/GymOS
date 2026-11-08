@@ -234,6 +234,7 @@ describe("SessionBar", () => {
     await waitFor(() => expect(onComplete).toHaveBeenCalled());
 
     expect(presetStorage()?.getItem(REST_END_KEY)).toBeNull();
+    expect(push.syncRestTimer).toHaveBeenLastCalledWith(null);
   });
 
   it("clears the end timestamp when the countdown reaches zero", async () => {
