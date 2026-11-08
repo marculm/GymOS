@@ -24,6 +24,8 @@ The **Gym Tracker** slice is implemented:
 - Collapse completed planned exercises into a visible done state, with a manual toggle
   on every card (ADR-0019, ADR-0029)
 - Keep Finish workout and a rest timer always reachable in a session bar (ADR-0036)
+- Grant notification permission from the session bar and receive a web push when the
+  rest timer ends while the app is in the background (ADR-0044)
 - Finish workouts and review history (details, filters, load-more) in a collapsible
   section at the bottom of the Gym page, with progress analytics above it (ADR-0032,
   ADR-0033)
@@ -60,6 +62,11 @@ Nutrition, the AI recipe extractor, authentication, and offline logging are not 
    ```
 
    The seed provisions the user configured by `GYMOS_USER_EMAIL` (default `demo@gymos.app`). On first provision it also creates the starter exercises and Push Day plan; later runs leave renamed or deleted starter rows alone. To provision a custom owner, set `GYMOS_USER_EMAIL` in `.env` before running the seed (ADR-0023).
+
+   Web push is optional. To enable rest timer notifications, generate VAPID keys with
+   `bunx web-push generate-vapid-keys` and set `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`,
+   and `VAPID_SUBJECT` in `.env` (see `.env.example`). Without them the API keeps push
+   disabled and the in-app timer is used.
 
 4. **Start development servers:**
    ```bash
@@ -224,6 +231,11 @@ full contract.
 | `PUT` | `/api/gym/sessions/:id/sets/:setId` | Correct the reps and weight of a set in a completed session |
 | `DELETE` | `/api/gym/sessions/:id/sets/:setId` | Delete a set in an active session and renumber the rest |
 | `POST` | `/api/gym/sessions/:id/complete` | Finish a session; updates exercise weight and rep defaults from the last two workouts |
+| `GET` | `/api/push/vapid-public-key` | VAPID public key for the browser subscription |
+| `POST` | `/api/push/subscriptions` | Store a push subscription (`{ endpoint, keys: { p256dh, auth } }`) |
+| `DELETE` | `/api/push/subscriptions?endpoint=` | Remove a push subscription |
+| `PUT` | `/api/push/rest-timer` | Register the rest timer end (`{ endAt }`) |
+| `DELETE` | `/api/push/rest-timer` | Cancel the pending rest timer push |
 
 `GET /health/liveness`, `GET /health/readiness`, and `GET /prometheus` are available for
 operations. There is no authentication; the API resolves a single user from

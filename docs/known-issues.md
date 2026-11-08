@@ -36,3 +36,8 @@ These are known, non-blocking issues. They do not affect the core flow: create a
 - **The first deploy needs public GHCR packages and `DEPLOY_ENABLED=true`.** The repository is private, so the first push creates private packages; the deploy job is skipped until the variable is set, and then fails at the image pull until the packages are public. See `docs/deployment.md` steps 7 and 9.
 - **The K3s/Tailscale deploy path is unverified** until the VM is provisioned. The manifests and deploy script are validated statically in CI (`kubeconform`, `actionlint`, `shellcheck`).
 - **The metrics endpoint is not routed** by the ingress; `/prometheus` remains reachable only inside the cluster.
+- **Web push needs HTTPS and an installed PWA on iOS.** iOS 16.4+ requires the app on the
+  Home Screen, and the browser push service may deliver a few seconds late. Without
+  permission or support the in-app rest timer is the only notification (ADR-0044).
+- **Rest timer pushes assume one API replica.** The scheduler runs inside the API
+  process; multiple replicas would send duplicate notifications (ADR-0044).
