@@ -84,6 +84,22 @@ describe("Gym plan routes", () => {
     expect(res.headers.get("location")).toContain(`/api/gym/plans/${plan.id}`);
   });
 
+  it("rejects a text/plain POST with 415 and does not write", async () => {
+    const name = `Cross Site ${crypto.randomUUID()}`;
+    const res = await app.request("/api/gym/plans", {
+      method: "POST",
+      headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify(planBody(name)),
+    });
+
+    expect(res.status).toBe(415);
+    expect(res.headers.get("content-type")).toContain("application/problem+json");
+    const data = (await res.json()) as { title: string; status: number };
+    expect(data).toMatchObject({ title: "Unsupported Media Type", status: 415 });
+
+    expect(await prisma.workoutPlan.count({ where: { name } })).toBe(0);
+  });
+
   it("lists created plans as a page", async () => {
     await postJson(planBody("Listed Plan"));
 
