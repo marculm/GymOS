@@ -32,6 +32,8 @@ editable rows (ADR-0024), so reruns must not resurrect rows the owner renamed or
 - Renaming or deleting a seeded exercise or the starter plan is permanent; the next
   deploy does not recreate it.
 - Changing `GYMOS_USER_EMAIL` after seeding requires running the seed again to
-  provision the new owner. The previous user and its data remain.
+  provision the new owner. That first provision re-runs the starter seed, which can
+  recreate renamed starter exercises under their original names and can reference
+  soft-deleted exercises. The previous user and its data remain.
 - The seed imports `config/env.mts`, so it applies the same validation and fallback
   rules as the API.
