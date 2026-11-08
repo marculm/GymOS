@@ -43,7 +43,8 @@ Push delivery can be delayed by a few seconds by the browser's push service.
   subscription of that user. A sent timer is deleted only while its `endAt` still matches
   the value the scheduler read, so a timer the user restarted during the send survives; a
   subscription the push service reports as gone (404/410) is removed. A failed send is
-  logged and the timer is deleted so it is not retried every tick.
+  logged and the timer is deleted so it is not retried every tick. A timer more than five
+  minutes past due is discarded instead of notifying late, for example after API downtime.
 - VAPID configuration comes from `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, and
   `VAPID_SUBJECT`. When the key pair is missing, push stays disabled: the public-key and
   subscription endpoints return `503`, the scheduler is not started, and the client keeps

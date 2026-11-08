@@ -64,6 +64,21 @@ describe("RestTimerScheduler", () => {
     );
   });
 
+  it("discards a timer that is too old to notify", async () => {
+    const now = new Date("2026-11-08T10:00:00.000Z");
+    const endAt = new Date("2026-11-08T09:50:00.000Z");
+    const due = [{ id: "timer-1", userId: "user-1", endAt }];
+    const { scheduler, timers, sendRestOver } = createScheduler(due);
+
+    await scheduler.tick(now);
+
+    expect(sendRestOver).not.toHaveBeenCalled();
+    expect(timers.deleteIfUnchanged).toHaveBeenCalledExactlyOnceWith(
+      "timer-1",
+      endAt
+    );
+  });
+
   it("keeps a timer that was restarted while the push was in flight", async () => {
     const endAt = new Date("2026-11-08T10:00:00.000Z");
     const restarted = new Date("2026-11-08T10:02:00.000Z");
@@ -83,7 +98,7 @@ describe("RestTimerScheduler", () => {
     });
     const scheduler = new RestTimerScheduler(timers, { sendRestOver });
 
-    await scheduler.tick();
+    await scheduler.tick(endAt);
 
     expect(currentEndAt).toEqual(restarted);
   });

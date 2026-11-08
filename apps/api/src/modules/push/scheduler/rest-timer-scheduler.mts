@@ -9,6 +9,7 @@ type RestTimerSource = Pick<
 type RestPushSender = Pick<PushService, "sendRestOver">;
 
 const logger = getLogger("RestTimerScheduler");
+const STALE_AFTER_MS = 5 * 60 * 1000;
 
 export class RestTimerScheduler {
   private timer: ReturnType<typeof setInterval> | null = null;
@@ -37,6 +38,15 @@ export class RestTimerScheduler {
     try {
       const due = await this.timers.findDue(now);
       for (const timer of due) {
+        if (now.getTime() - timer.endAt.getTime() > STALE_AFTER_MS) {
+          await this.timers.deleteIfUnchanged(timer.id, timer.endAt);
+          logger.info(
+            { timerId: timer.id },
+            "Discarded stale rest timer"
+          );
+          continue;
+        }
+
         try {
           await this.push.sendRestOver(timer.userId);
           logger.info(
