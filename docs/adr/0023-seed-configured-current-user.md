@@ -11,6 +11,9 @@ The seed created only `demo@gymos.app`, while the API resolves the current user 
 first request failed with `500` from `CurrentUserService`, and the error pointed to a
 seed that could not create that user.
 
+The migrate Job runs `db:setup`, which seeds on every deploy. Seeded rows are ordinary
+editable rows (ADR-0024), so reruns must not resurrect rows the owner renamed or deleted.
+
 ## Decision
 
 - `apps/api/prisma/seed.mts` resolves the owner with `currentUserEmail()`, the same
@@ -18,12 +21,16 @@ seed that could not create that user.
 - `demo@gymos.app` remains the default address through `GYMOS_USER_EMAIL`. When another
   address is configured, no separate demo user is seeded.
 - The starter `Push Day` plan belongs to the provisioned owner.
-- The seed stays idempotent: the user, exercises, and plan are upserted.
+- The owner is upserted on every run, so the configured user always exists.
+- Starter exercises and the starter `Push Day` plan are created only when the owner is
+  first provisioned. Later runs leave the exercise catalog and plans untouched.
 - A custom owner is provisioned by setting `GYMOS_USER_EMAIL` before `bun run db:seed`.
 
 ## Consequences
 
 - Running the seed with a custom `GYMOS_USER_EMAIL` produces a usable first-run state.
+- Renaming or deleting a seeded exercise or the starter plan is permanent; the next
+  deploy does not recreate it.
 - Changing `GYMOS_USER_EMAIL` after seeding requires running the seed again to
   provision the new owner. The previous user and its data remain.
 - The seed imports `config/env.mts`, so it applies the same validation and fallback

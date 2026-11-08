@@ -56,10 +56,10 @@ Nutrition, the AI recipe extractor, authentication, and offline logging are not 
    ```bash
    bun run db:up         # Starts PostgreSQL 17 in Docker (Port 5433)
    bun run db:migrate    # Applies Prisma migrations
-   bun run db:seed       # Populates exercises, the configured owner & Push Day plan
+   bun run db:seed       # Provisions the owner; adds starter data on first run
    ```
 
-   The seed provisions the user configured by `GYMOS_USER_EMAIL` (default `demo@gymos.app`), including the starter Push Day plan. To provision a custom owner, set `GYMOS_USER_EMAIL` in `.env` before running the seed (ADR-0023).
+   The seed provisions the user configured by `GYMOS_USER_EMAIL` (default `demo@gymos.app`). On first provision it also creates the starter exercises and Push Day plan; later runs leave renamed or deleted starter rows alone. To provision a custom owner, set `GYMOS_USER_EMAIL` in `.env` before running the seed (ADR-0023).
 
 4. **Start development servers:**
    ```bash
@@ -95,7 +95,7 @@ Nutrition, the AI recipe extractor, authentication, and offline logging are not 
 | `bun run db:up` | Starts the PostgreSQL Docker container |
 | `bun run db:down` | Stops the PostgreSQL container |
 | `bun run db:migrate` | Runs pending Prisma migrations |
-| `bun run db:seed` | Seeds exercises, the configured owner, and a Push Day plan |
+| `bun run db:seed` | Provisions the configured owner; seeds starter data on first provision |
 | `bun run db:studio` | Opens Prisma Studio GUI at [http://localhost:5555](http://localhost:5555) |
 
 ### Code Quality & Validation

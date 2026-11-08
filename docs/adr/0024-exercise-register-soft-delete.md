@@ -17,7 +17,9 @@ a rename may change historical display.
 - `Exercise` gains `defaultSets` (integer, default 3), `defaultReps` (integer, default
   8), `defaultWeightKg` (nullable float), and `deletedAt` (nullable timestamp).
 - Exercises are global to the single-user MVP (ADR-0009). Seed exercises are ordinary
-  rows and can be edited and deleted like user-created ones.
+  rows and can be edited and deleted like user-created ones. The seed creates them only
+  when it first provisions the owner and leaves renamed or deleted rows alone on later
+  runs (ADR-0023).
 - Deletion is soft: `DELETE /api/gym/exercises/:id` sets `deletedAt`. No exercise route
   hard-deletes a row, and `WorkoutSet`/`WorkoutPlanExercise` keep `onDelete: Restrict`.
 - The register lists only rows with `deletedAt IS NULL`. Creating a plan rejects
@@ -39,7 +41,8 @@ a rename may change historical display.
 - The frontend can show deleted exercises wherever a plan entry or logged set already
   references them, while hiding them from the register and new-plan selection.
 - There is no restore action; a deleted exercise stays hidden and its name stays
-  reserved by the unique constraint (tracked in `docs/known-issues.md`).
+  reserved by the unique constraint (tracked in `docs/known-issues.md`). Deploying the
+  seed again does not bring it back.
 - Renames are visible retroactively in workout history.
 - The register and the session share one exercise form, so validation, pending state, and
   error messages cannot drift between them.
