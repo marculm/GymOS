@@ -100,6 +100,8 @@ apps/api/
     ├── index.mts
     ├── container.mts
     ├── problem-details.mts
+    ├── lib/
+    │   └── require-json.mts
     ├── admin/
     │   └── health-router.mts
     ├── config/
