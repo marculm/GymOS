@@ -1,0 +1,113 @@
+name: "Claude Code Issue Implementer"
+
+on:
+  issues:
+    types: [labeled]
+
+concurrency:
+  group: claude-issue-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  implement:
+    # Sicherheits-Check: Nur ausführen, wenn das Label 'auto-implement' vergeben wurde
+    if: github.event.label.name == 'auto-implement'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    permissions:
+      contents: read
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: gymos
+          POSTGRES_PASSWORD: gymos
+          POSTGRES_DB: gymos
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U gymos -d gymos"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://gymos:gymos@localhost:5432/gymos?schema=public
+      GYMOS_USER_EMAIL: demo@gymos.app
+      ISSUE_NUMBER: ${{ github.event.issue.number }}
+      GH_TOKEN: ${{ secrets.CLAUDE_GH_TOKEN }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.CLAUDE_GH_TOKEN }}
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Claude Code CLI
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Install Claude Plugins
+        run: |
+          claude plugin marketplace add anthropics/claude-plugins-official
+          claude plugin install superpowers@claude-plugins-official -y
+          claude plugin marketplace add DietrichGebert/ponytail
+          claude plugin install ponytail@ponytail -y
+
+      - name: Prepare Workspace
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          bun install --frozen-lockfile
+          bun --filter @gymos/api db:generate
+          bun --filter @gymos/api db:migrate:deploy
+          bun --filter @gymos/api db:seed
+
+      - name: Run Claude Code
+        env:
+          ANTHROPIC_BASE_URL: "https://api.deepseek.com/anthropic"
+          ANTHROPIC_AUTH_TOKEN: ${{ secrets.DEEPSEEK_API_KEY }}
+          ANTHROPIC_MODEL: "deepseek-flash[1m]"
+          ANTHROPIC_DEFAULT_OPUS_MODEL: "deepseek-flash[1m]"
+          ANTHROPIC_DEFAULT_SONNET_MODEL: "deepseek-flash[1m]"
+          ANTHROPIC_DEFAULT_HAIKU_MODEL: "deepseek-flash"
+          CLAUDE_CODE_SUBAGENT_MODEL: "deepseek-flash"
+          CLAUDE_CODE_EFFORT_LEVEL: "max"
+          CLAUDE_CODE_AUTO_COMPACT_WINDOW: "786432"
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+        run: |
+          claude -p --dangerously-skip-permissions \
+            "Implement GitHub issue #$ISSUE_NUMBER end-to-end by invoking the 'issue-to-pr' skill with the Skill tool and following it.
+
+          Issue title: $ISSUE_TITLE
+          Issue body:
+          $ISSUE_BODY
+
+          CI context:
+          - This checkout is already isolated. Skip the worktree step (step 2): create branch feature/<N>-<slug> directly from origin/main, and skip step 10.
+          - Nobody can answer questions. On any stop condition, stop and report what is missing instead of guessing.
+          - Load and follow AGENTS.md. Keep commits sliced by behavior with '#<N>: <verb> <target>' messages; never bundle everything with 'git add .'.
+          - Use superpowers:test-driven-development while implementing and run superpowers:requesting-code-review plus ponytail:ponytail-review (ponytail level full) before the PR.
+          - Never read or write .env files.
+          - Push the branch and open the PR with 'Closes #$ISSUE_NUMBER' as the skill describes; AGENTS.md permits pushing inside this workflow."
+
+      - name: Verify PR
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "Uncommitted changes left behind:"
+            git status --short
+            exit 1
+          fi
+          gh pr list --state open --json body --jq '.[].body' \
+            | grep -qE "Closes #${ISSUE_NUMBER}([^0-9]|$)" \
+            || { echo "No open PR closes #$ISSUE_NUMBER"; exit 1; }
