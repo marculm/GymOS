@@ -9,10 +9,11 @@ published as public GHCR packages (ADR-0035).
 Pull requests run `checks`, `infra`, and `security`. A push to `main` runs:
 
 1. `checks` — typecheck, lint, tests against a Postgres service, web build.
-2. `security` — `bun audit --audit-level=high` against the checked-in lockfile. The job is
-   allowed to fail: it reports dependency advisories without gating image builds or
-   deploys. The current known finding is `deepmerge-ts` (high) through `@prisma/config`;
-   it cannot be fixed within the declared dependency ranges.
+2. `security` — `bun audit --audit-level=high` against the checked-in lockfile. A failure
+   is reported as a failed check but is not a required gate for `images` or `deploy`. The
+   current known finding is `deepmerge-ts` (high) through `@prisma/config`; it cannot be
+   fixed within the declared dependency ranges, so this job is expected to fail until
+   Prisma updates it.
 3. `infra` — actionlint, kubeconform, and shellcheck for workflows, manifests, and the
    deploy script.
 4. `images` — builds `linux/arm64` images and pushes them to GHCR:
@@ -23,9 +24,10 @@ Pull requests run `checks`, `infra`, and `security`. A push to `main` runs:
    `/srv/gymos/deploy/k8s/deploy.sh <commit>` on the VM over Tailscale SSH.
 
 A merge publishes images and deploys only when `DEPLOY_ENABLED` is `true`; otherwise the
-deploy job is skipped and the run stays green. Enable it after the VM and Tailscale access
-are ready (step 9). Each image is also tagged `latest`; deployments use the immutable
-commit tag.
+deploy job is skipped while images are still published. The `security` job runs regardless
+and is expected to fail on the known Prisma advisory, so the run shows red even when
+deployment is skipped. Enable deployments after the VM and Tailscale access are ready
+(step 9). Each image is also tagged `latest`; deployments use the immutable commit tag.
 
 ## Local full stack
 

@@ -48,8 +48,9 @@ clean checkout.
 - Pushes to `main` run the same checks, build and push `linux/arm64` images, and then
   deploy. The deploy job runs only on `main`, only after checks and images succeed, only
   when the repository variable `DEPLOY_ENABLED` is `true`, and is serialized by a
-  concurrency group. Without the variable, the deploy job is skipped and the run stays
-  green.
+  concurrency group. Without the variable, the deploy job is skipped while images still
+  publish; the `security` job still runs and its expected failure marks the run red (see
+  Consequences).
 - The deploy job joins the tailnet as an ephemeral `tag:ci` node through the Tailscale
   GitHub action and authenticates with `tailscale ssh`. No SSH private key is stored in
   GitHub. Access is granted by a tailnet ACL and revoked by changing the ACL or removing
