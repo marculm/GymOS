@@ -36,6 +36,10 @@ export class RestTimerScheduler {
       for (const timer of due) {
         try {
           await this.push.sendRestOver(timer.userId);
+          logger.info(
+            { timerId: timer.id, userId: timer.userId },
+            "Rest timer push dispatched"
+          );
         } catch (error) {
           logger.error(
             { err: error, timerId: timer.id },

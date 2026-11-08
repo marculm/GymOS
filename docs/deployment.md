@@ -288,8 +288,9 @@ For the local `app` profile, add the three variables to the `api` service enviro
 4. Switch to another app before the countdown ends.
 5. The "Rest is over" notification should appear when rest ends. Tapping it focuses or
    opens GymOS. Delivery may be a few seconds late.
-6. Stop a timer or finish the workout and confirm the pending timer is gone in the API
-   logs (`kubectl -n gymos logs deploy/gymos-api --tail=50 -f`).
+6. The API logs `Rest timer push dispatched` and deletes the pending timer after the
+   push. Stop a timer or finish the workout and confirm the timer is cancelled with
+   `kubectl -n gymos logs deploy/gymos-api --tail=50 -f`.
 
 Desktop Chrome can also send a local test notification from DevTools → Application →
 Service Workers → Push, which bypasses the API and the scheduler.
