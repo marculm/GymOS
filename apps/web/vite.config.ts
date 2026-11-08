@@ -11,7 +11,13 @@ export default defineConfig({
     svelte(),
     VitePWA({
       registerType: "autoUpdate",
+      strategies: "injectManifest",
+      srcDir: "src",
+      filename: "sw.ts",
       manifest: pwaManifest,
+      injectManifest: {
+        globPatterns: ["**/*.{js,css,html,png,svg,ico,webmanifest}"],
+      },
     }),
   ],
   server: {
