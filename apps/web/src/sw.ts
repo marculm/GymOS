@@ -7,6 +7,15 @@ declare const self: ServiceWorkerGlobalScope & {
 
 precacheAndRoute(self.__WB_MANIFEST);
 
+// Keep the autoUpdate behavior the generated service worker had.
+self.addEventListener("install", () => {
+  void self.skipWaiting();
+});
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil(self.clients.claim());
+});
+
 const DEFAULT_NOTIFICATION = {
   title: "Rest is over",
   body: "Time for your next set.",
