@@ -11,7 +11,14 @@ export default defineConfig({
     svelte(),
     VitePWA({
       registerType: "autoUpdate",
+      strategies: "injectManifest",
+      srcDir: "src",
+      // The plugin only compiles service-worker sources named with a .ts extension.
+      filename: "sw.ts",
       manifest: pwaManifest,
+      injectManifest: {
+        globPatterns: ["**/*.{js,css,html,png,svg,ico,webmanifest}"],
+      },
     }),
   ],
   server: {

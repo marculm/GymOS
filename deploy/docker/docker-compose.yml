@@ -45,6 +45,10 @@ services:
       PORT: 3000
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       GYMOS_USER_EMAIL: ${GYMOS_USER_EMAIL:-demo@gymos.app}
+      # Optional web push; uncomment all three with generated keys to enable it.
+      # VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      # VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      # VAPID_SUBJECT: ${VAPID_SUBJECT:-}
     depends_on:
       migrate:
         condition: service_completed_successfully

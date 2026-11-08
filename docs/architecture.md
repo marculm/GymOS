@@ -100,6 +100,8 @@ apps/api/
     ├── index.mts
     ├── container.mts
     ├── problem-details.mts
+    ├── lib/
+    │   └── require-json.mts
     ├── admin/
     │   └── health-router.mts
     ├── config/
@@ -148,6 +150,15 @@ apps/api/
         │       ├── transaction.mts
         │       ├── where-builder.mts
         │       └── mapping.mts
+        ├── push/
+        │   ├── index.mts
+        │   ├── notifier/web-push-notifier.mts
+        │   ├── repository/rest-timer-repository.mts
+        │   ├── repository/subscription-repository.mts
+        │   ├── router/read-router.mts
+        │   ├── router/write-router.mts
+        │   ├── scheduler/rest-timer-scheduler.mts
+        │   └── service/push-service.mts
         ├── nutrition/
         │   ├── index.mts
         │   └── router/read-router.mts
@@ -223,6 +234,10 @@ Services are classes with constructor injection:
 - `GymWriteService` handles commands: create, edit, and soft-delete exercises; create,
   edit, and delete plans; set rotation; start session; log set; complete session. It may
   receive the read service for read-side checks.
+- `PushService` stores push subscriptions and the single pending rest timer per user, and
+  sends the rest-over notification to each subscription. `RestTimerScheduler` polls due
+  timers once per second from `index.mts`, deletes each after sending, and prunes
+  subscriptions the push service reports as gone (ADR-0044).
 - Dependencies, includes, and the logger are `readonly #private` fields.
 - Each class uses `getLogger(ClassName.name)`.
 - Services are stateless. The container creates one instance each.
@@ -280,11 +295,12 @@ All client errors use RFC 9457 Problem Details with
 | `UnknownPlanError` | `422` |
 | `ZodError` | `422` |
 | `CurrentUserNotFoundError` | `500` |
+| `PushNotConfiguredError` | `503` |
 | anything else | `500`, logged with the error object |
 
-The gym write router returns `415 Unsupported Media Type` for `POST` and `PUT` requests
-without `Content-Type: application/json`; malformed JSON still returns `400`. Services and
-repositories do not import `HTTPException`. See ADR-0015.
+The gym and push write routers return `415 Unsupported Media Type` for `POST` and `PUT`
+requests without `Content-Type: application/json`; malformed JSON still returns `400`.
+Services and repositories do not import `HTTPException`. See ADR-0015.
 
 ### 3.9 Pagination and Filtering
 
@@ -326,6 +342,8 @@ once with a Zod schema and fails fast on invalid values:
 - `GYMOS_USER_EMAIL`: email, default `demo@gymos.app`
 - `LOG_LEVEL`: Pino level
 - `CORS_ORIGINS`: comma-separated origins
+- `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`: optional web push key pair;
+  push is disabled unless both keys are set (ADR-0044)
 
 Other configuration modules:
 
@@ -514,7 +532,15 @@ returns `null` for a `404`.
 
 ### 4.5 PWA
 
-- `vite-plugin-pwa` with `registerType: "autoUpdate"`.
+- `vite-plugin-pwa` with `registerType: "autoUpdate"` and the `injectManifest`
+  strategy. The custom service worker (`src/sw.ts`) precaches the app shell and handles
+  `push` and `notificationclick` (ADR-0044).
+- The session bar offers a bell toggle. Granting permission subscribes the browser with
+  the VAPID public key from the API and stores the subscription server-side. While the
+  rest timer runs, the session view registers its end timestamp with the API and cancels
+  it on stop or finish. Reaching zero locally does not cancel it, so a backgrounded app
+  still receives the push. Unsupported browsers and missing permission keep the in-app
+  timer.
 - Manifest: name, short name, theme color, background color, 192/512 icons, a maskable
   icon, and an Apple touch icon (`apps/web/public/`).
 - `src/pwa.test.mts` fails when a manifest icon or the Apple touch icon is missing or
@@ -536,7 +562,8 @@ returns `null` for a `404`.
 
 `packages/shared` is the single source of truth for data contracts (ADR-0005):
 
-- Zod schemas for exercises, workout plans, sessions, sets, nutrition, and recipes.
+- Zod schemas for exercises, workout plans, sessions, sets, push subscriptions and rest
+  timers, nutrition, and recipes.
 - Inferred TypeScript types exported from the same files.
 - No imports from `apps/*`.
 - Source files use `.mts`; package `main`, `types`, and `exports` point to
@@ -611,7 +638,8 @@ The target architecture deliberately excludes:
 - **TOML configuration.** `config/env.mts` is the single configuration source.
 - **File logging.** Containers log to stdout.
 - **Application-level TLS.** The reverse proxy/ingress terminates TLS (ADR-0008).
-- **Mail notifications.** No notification feature exists.
+- **Email and non-rest notifications.** Web push is limited to the rest timer
+  (ADR-0044).
 - **A dev HTTP router.** Seeding and tests use scripts and helpers.
 - **Offline data synchronization and multi-user accounts.** Deferred (ADR-0009,
   ADR-0012).
@@ -664,3 +692,4 @@ The target architecture deliberately excludes:
 | [0040](adr/0040-tabbed-gym-gallery.md) | Tabbed Gym gallery |
 | [0041](adr/0041-set-form-enter-and-hover.md) | Set form Enter submission and guarded hover |
 | [0043](adr/0043-edit-logged-set.md) | Edit a logged set in completed history |
+| [0044](adr/0044-web-push-rest-timer.md) | Web push when the rest timer ends |

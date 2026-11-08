@@ -242,6 +242,59 @@ gh variable set DEPLOY_ENABLED --body true --repo marculm/GymOS
 The next merge to `main` deploys. To deploy the current main immediately, re-run the latest
 main workflow. Set the variable to `false` to pause deployments.
 
+## Web push notifications
+
+The rest timer can send a Web Push when it ends (ADR-0044). Push is optional: without
+VAPID keys the API returns `503` on the push endpoints, does not start the scheduler, and
+the in-app timer remains the fallback.
+
+Generate a key pair once, outside the repository:
+
+```bash
+bunx web-push generate-vapid-keys
+```
+
+Add the values to the cluster configuration:
+
+- `VAPID_PUBLIC_KEY` and `VAPID_SUBJECT` in `deploy/k8s/configmap.yaml`.
+- `VAPID_PRIVATE_KEY` in the secret; `deploy/k8s/secret.example.yaml` is the template.
+
+Edit the configmap in git and merge it before the next deploy, because `deploy.sh`
+reapplies the file and overwrites live edits. Add the private key to the live secret
+without replacing the existing database values:
+
+```bash
+kubectl -n gymos edit secret gymos-secrets
+# Add VAPID_PRIVATE_KEY under stringData and keep the existing POSTGRES_PASSWORD and
+# DATABASE_URL entries.
+kubectl -n gymos rollout restart deployment/gymos-api
+```
+
+Never commit the private key. The scheduler runs inside the API process, which assumes
+the single replica in `deploy/k8s/api.yaml`.
+
+Requirements: HTTPS and, on iOS 16.4+, the PWA installed to the Home Screen. Delivery
+can be a few seconds late.
+
+For the local `app` profile, add the three variables to the `api` service environment in
+`deploy/docker/docker-compose.yml` (see the commented lines there).
+
+### Manual push test
+
+1. Open the deployed app over HTTPS and install it to the Home Screen on iOS (Share →
+   Add to Home Screen). Desktop Chrome works on `http://localhost:8080`.
+2. Start a workout, log a set, or tap the rest timer and choose a preset.
+3. Tap the bell in the session bar and allow notifications.
+4. Switch to another app before the countdown ends.
+5. The "Rest is over" notification should appear when rest ends. Tapping it focuses or
+   opens GymOS. Delivery may be a few seconds late.
+6. The API logs `Rest timer push dispatched` and deletes the pending timer after the
+   push. Stop a timer or finish the workout and confirm the timer is cancelled with
+   `kubectl -n gymos logs deploy/gymos-api --tail=50 -f`.
+
+Desktop Chrome can also send a local test notification from DevTools → Application →
+Service Workers → Push, which bypasses the API and the scheduler.
+
 ## Deploy and rollback
 
 The pipeline deploys automatically after a merge to `main` when `DEPLOY_ENABLED` is

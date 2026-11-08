@@ -13,6 +13,15 @@ import type {
   WorkoutSessionDetail,
 } from "@gymos/shared";
 import SessionView from "./SessionView.svelte";
+import * as push from "../../push.mts";
+
+vi.mock("../../push.mts", () => ({
+  isPushSupported: vi.fn(() => true),
+  isPushSubscribed: vi.fn(async () => false),
+  enablePush: vi.fn(async () => true),
+  disablePush: vi.fn(async () => undefined),
+  syncRestTimer: vi.fn(async () => undefined),
+}));
 
 const REST_PRESET_KEY = "gymos.restTimerSeconds";
 const REST_END_KEY = "gymos.restTimerEndsAt";
@@ -111,12 +120,18 @@ async function logSet(onLogSet: ReturnType<typeof vi.fn>) {
 
 describe("SessionBar", () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     window.sessionStorage.clear();
     try {
       window.localStorage.clear();
     } catch {
       // localStorage is unavailable in some test environments.
     }
+    vi.mocked(push.isPushSupported).mockReturnValue(true);
+    vi.mocked(push.isPushSubscribed).mockResolvedValue(false);
+    vi.mocked(push.enablePush).mockResolvedValue(true);
+    vi.mocked(push.disablePush).mockResolvedValue(undefined);
+    vi.mocked(push.syncRestTimer).mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -219,6 +234,7 @@ describe("SessionBar", () => {
     await waitFor(() => expect(onComplete).toHaveBeenCalled());
 
     expect(presetStorage()?.getItem(REST_END_KEY)).toBeNull();
+    expect(push.syncRestTimer).toHaveBeenLastCalledWith(null);
   });
 
   it("clears the end timestamp when the countdown reaches zero", async () => {
@@ -285,6 +301,102 @@ describe("SessionBar", () => {
 
     await fireEvent.click(within(bar()).getByRole("button", { name: "Stop" }));
     expect(presetStorage()?.getItem(REST_END_KEY)).toBeNull();
+  });
+
+  it("hides the notification bell when push is unsupported", () => {
+    vi.mocked(push.isPushSupported).mockReturnValue(false);
+
+    renderSession();
+
+    expect(
+      screen.queryByRole("button", { name: "Rest notifications" })
+    ).not.toBeInTheDocument();
+  });
+
+  it("asks for notification permission from the session bar", async () => {
+    renderSession();
+    const bell = screen.getByRole("button", { name: "Rest notifications" });
+    expect(bell).toHaveAttribute("aria-pressed", "false");
+
+    await fireEvent.click(bell);
+
+    await waitFor(() => expect(push.enablePush).toHaveBeenCalledOnce());
+    await waitFor(() => expect(bell).toHaveAttribute("aria-pressed", "true"));
+  });
+
+  it("restores the bell when notifications are already enabled", async () => {
+    vi.mocked(push.isPushSubscribed).mockResolvedValue(true);
+
+    renderSession();
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "Rest notifications" })
+      ).toHaveAttribute("aria-pressed", "true")
+    );
+  });
+
+  it("turns notifications off from the session bar", async () => {
+    vi.mocked(push.isPushSubscribed).mockResolvedValue(true);
+    renderSession();
+    const bell = screen.getByRole("button", { name: "Rest notifications" });
+    await waitFor(() => expect(bell).toHaveAttribute("aria-pressed", "true"));
+
+    await fireEvent.click(bell);
+
+    await waitFor(() => expect(push.disablePush).toHaveBeenCalledOnce());
+    expect(bell).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("keeps the in-app timer when notifications cannot be enabled", async () => {
+    vi.mocked(push.enablePush).mockResolvedValue(false);
+    renderSession();
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Rest notifications" })
+    );
+
+    await waitFor(() =>
+      expect(screen.getByRole("alert")).toHaveTextContent(/in-app timer/i)
+    );
+    expect(
+      screen.getByRole("button", { name: "Rest notifications" })
+    ).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("registers the rest timer end with the API", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-11-07T10:00:00.000Z"));
+
+    const { onLogSet } = renderSession();
+    await logSet(onLogSet);
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(push.syncRestTimer).toHaveBeenCalledWith(Date.now() + 120_000);
+  });
+
+  it("cancels the server timer when the user stops it", async () => {
+    vi.useFakeTimers();
+
+    renderSession();
+    await fireEvent.click(timerButton());
+    await fireEvent.click(within(bar()).getByRole("button", { name: "Reset" }));
+    await fireEvent.click(within(bar()).getByRole("button", { name: "Stop" }));
+
+    expect(push.syncRestTimer).toHaveBeenLastCalledWith(null);
+  });
+
+  it("does not cancel the server timer when the countdown reaches zero", async () => {
+    vi.useFakeTimers();
+
+    renderSession();
+    await fireEvent.click(timerButton());
+    await fireEvent.click(within(bar()).getByRole("button", { name: "Reset" }));
+
+    await vi.advanceTimersByTimeAsync(120_000);
+
+    expect(timerButton()).toHaveTextContent("0:00");
+    expect(push.syncRestTimer).not.toHaveBeenCalledWith(null);
   });
 
   it("stops and resets the countdown", async () => {

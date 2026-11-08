@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { onDestroy, tick } from "svelte";
+  import { onDestroy, onMount, tick } from "svelte";
+  import { Bell, BellOff } from "lucide-svelte";
   import type {
     CreateExerciseInput,
     CreateWorkoutSetInput,
@@ -8,6 +9,13 @@
     WorkoutPlan,
     WorkoutSessionDetail,
   } from "@gymos/shared";
+  import {
+    disablePush,
+    enablePush,
+    isPushSubscribed,
+    isPushSupported,
+    syncRestTimer,
+  } from "../../push.mts";
   import ExerciseForm from "./ExerciseForm.svelte";
   import { formatWeight } from "./format.mts";
   import SetLogForm from "./SetLogForm.svelte";
@@ -51,6 +59,9 @@
   let remaining = $state(initialRemaining);
   let timerRunning = $state(initialRemaining > 0);
   let showTimerOptions = $state(false);
+  let pushSupported = $state(isPushSupported());
+  let pushEnabled = $state(false);
+  let pushPending = $state(false);
   let hiddenSetIds = $state<Set<string>>(new Set());
   let pendingUndos = $state<LoggedSet[]>([]);
   const deleteTimers = new Map<string, ReturnType<typeof setTimeout>>();
@@ -112,6 +123,41 @@
     remaining = timerPreset;
     timerRunning = true;
     storeEnd(endsAt);
+    void syncRestTimer(endsAt);
+  }
+
+  async function refreshPushState() {
+    pushSupported = isPushSupported();
+    pushEnabled = await isPushSubscribed();
+  }
+
+  async function togglePush() {
+    if (pushPending || !pushSupported) return;
+
+    pushPending = true;
+    error = null;
+    try {
+      if (pushEnabled) {
+        await disablePush();
+        pushEnabled = false;
+        void syncRestTimer(null);
+      } else {
+        pushEnabled = await enablePush();
+        if (!pushEnabled) {
+          error =
+            "Notifications are unavailable. The in-app timer still works.";
+        } else if (timerRunning && endsAt !== null) {
+          void syncRestTimer(endsAt);
+        }
+      }
+    } catch (pushError) {
+      error =
+        pushError instanceof Error
+          ? pushError.message
+          : "Could not change notification settings";
+    } finally {
+      pushPending = false;
+    }
   }
 
   function selectPreset(preset: number) {
@@ -124,11 +170,16 @@
     startTimer();
   }
 
-  function stopTimer() {
+  function clearTimer() {
     remaining = 0;
     timerRunning = false;
     endsAt = null;
     storeEnd(null);
+  }
+
+  function stopTimer() {
+    clearTimer();
+    void syncRestTimer(null);
   }
 
   function toggleTimer() {
@@ -140,9 +191,13 @@
     if (!timerRunning) return;
     const id = setInterval(() => {
       remaining = remainingFrom(endsAt);
-      if (remaining === 0) stopTimer();
+      if (remaining === 0) clearTimer();
     }, 1000);
     return () => clearInterval(id);
+  });
+
+  onMount(() => {
+    void refreshPushState();
   });
 
   const completed = $derived(session.completedAt !== null);
@@ -694,6 +749,22 @@
     </div>
 
     <div class="row">
+      {#if pushSupported}
+        <button
+          type="button"
+          class="btn btn-ghost session-notifications"
+          aria-label="Rest notifications"
+          aria-pressed={pushEnabled}
+          disabled={pushPending}
+          onclick={() => void togglePush()}
+        >
+          {#if pushEnabled}
+            <BellOff size={18} aria-hidden="true" />
+          {:else}
+            <Bell size={18} aria-hidden="true" />
+          {/if}
+        </button>
+      {/if}
       <button
         type="button"
         class="btn btn-ghost session-timer"

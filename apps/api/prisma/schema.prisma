@@ -18,6 +18,8 @@ model User {
   recipes         Recipe[]
   plans           WorkoutPlan[]
   rotationItems   WorkoutRotationItem[]
+  pushSubscriptions PushSubscription[]
+  restTimers      RestTimer[]
 
   @@map("users")
 }
@@ -145,4 +147,29 @@ model WorkoutRotationItem {
   @@unique([userId, planId])
   @@index([planId])
   @@map("workout_rotation_items")
+}
+
+model PushSubscription {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("push_subscriptions")
+}
+
+model RestTimer {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endAt     DateTime
+  createdAt DateTime @default(now())
+
+  @@unique([userId])
+  @@index([endAt])
+  @@map("rest_timers")
 }
