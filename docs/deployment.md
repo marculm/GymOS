@@ -259,12 +259,14 @@ Add the values to the cluster configuration:
 - `VAPID_PUBLIC_KEY` and `VAPID_SUBJECT` in `deploy/k8s/configmap.yaml`.
 - `VAPID_PRIVATE_KEY` in the secret; `deploy/k8s/secret.example.yaml` is the template.
 
-Apply the configuration and restart the API:
+Edit the configmap in git and merge it before the next deploy, because `deploy.sh`
+reapplies the file and overwrites live edits. Add the private key to the live secret
+without replacing the existing database values:
 
 ```bash
-kubectl apply -f /srv/gymos/deploy/k8s/configmap.yaml
-# Re-apply the secret after adding VAPID_PRIVATE_KEY.
-kubectl apply -f /tmp/gymos-secret.yaml
+kubectl -n gymos edit secret gymos-secrets
+# Add VAPID_PRIVATE_KEY under stringData and keep the existing POSTGRES_PASSWORD and
+# DATABASE_URL entries.
 kubectl -n gymos rollout restart deployment/gymos-api
 ```
 
