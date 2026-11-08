@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-import { PushSubscriptionExpiredError } from "../errors.mts";
+import {
+  PushNotConfiguredError,
+  PushSubscriptionExpiredError,
+} from "../errors.mts";
 import type { PushSubscriptionRecord } from "../repository/subscription-repository.mts";
 import { PushService } from "./push-service.mts";
 import { REST_OVER_PAYLOAD } from "../notifier/web-push-notifier.mts";
@@ -73,5 +76,24 @@ describe("PushService", () => {
 
     expect(send).toHaveBeenCalledTimes(2);
     expect(subscriptions.deleteById).not.toHaveBeenCalled();
+  });
+
+  it("stays disabled without a VAPID key pair", async () => {
+    const subscriptions = {
+      upsert: vi.fn(),
+      deleteByEndpoint: vi.fn(),
+      findByUserId: vi.fn(),
+      deleteById: vi.fn(),
+    };
+    const restTimers = { upsert: vi.fn(), deleteForUser: vi.fn() };
+    const service = new PushService(subscriptions, restTimers, null, null);
+
+    expect(service.isConfigured()).toBe(false);
+    expect(() => service.getPublicKey()).toThrow(PushNotConfiguredError);
+    await expect(
+      service.setRestTimer("user-1", new Date())
+    ).rejects.toBeInstanceOf(PushNotConfiguredError);
+    await service.sendRestOver("user-1");
+    expect(subscriptions.findByUserId).not.toHaveBeenCalled();
   });
 });
