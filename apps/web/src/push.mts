@@ -10,10 +10,6 @@ export function isPushSupported(): boolean {
   );
 }
 
-export function notificationPermission(): NotificationPermission | null {
-  return isPushSupported() ? Notification.permission : null;
-}
-
 function urlBase64ToUint8Array(value: string): Uint8Array<ArrayBuffer> {
   const padding = "=".repeat((4 - (value.length % 4)) % 4);
   const base64 = (value + padding).replace(/-/g, "+").replace(/_/g, "/");

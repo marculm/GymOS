@@ -18,7 +18,6 @@ import * as push from "../../push.mts";
 vi.mock("../../push.mts", () => ({
   isPushSupported: vi.fn(() => true),
   isPushSubscribed: vi.fn(async () => false),
-  notificationPermission: vi.fn(() => "default"),
   enablePush: vi.fn(async () => true),
   disablePush: vi.fn(async () => undefined),
   syncRestTimer: vi.fn(async () => undefined),
