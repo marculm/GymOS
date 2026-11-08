@@ -60,7 +60,7 @@ describe("createWebPushNotifier", () => {
         keys: { p256dh: subscription.p256dh, auth: subscription.auth },
       },
       JSON.stringify(REST_OVER_PAYLOAD),
-      { urgency: "high", TTL: 60 }
+      { urgency: "high", TTL: 60, timeout: 10_000 }
     );
   });
 

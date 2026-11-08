@@ -34,7 +34,7 @@ export function createWebPushNotifier(config: VapidConfig): PushNotifier {
             keys: { p256dh: subscription.p256dh, auth: subscription.auth },
           },
           JSON.stringify(payload),
-          { urgency: "high", TTL: 60 }
+          { urgency: "high", TTL: 60, timeout: 10_000 }
         );
       } catch (error) {
         if (
