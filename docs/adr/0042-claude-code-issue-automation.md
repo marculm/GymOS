@@ -27,9 +27,11 @@ implementation must push a branch and open a PR.
   the skill skips its worktree step; stop conditions report instead of asking.
 - Claude commits in behavior slices per the skill, pushes the branch, and opens the PR with
   `Closes #N`.
-- A PAT (`CLAUDE_GH_TOKEN`) is used for checkout, `gh`, and push instead of `GITHUB_TOKEN`.
-  This lets `gh project` update the project board and makes pushed commits trigger CI, which
-  `GITHUB_TOKEN` pushes do not. The PAT needs `repo`, `workflow`, and `project` scopes.
+- A classic PAT (`CLAUDE_GH_TOKEN`) is used for checkout, `gh`, and push instead of
+  `GITHUB_TOKEN`. This lets `gh project` update the project board and makes pushed commits
+  trigger CI, which `GITHUB_TOKEN` pushes do not. A classic PAT is required because
+  fine-grained PATs cannot access user-owned Projects v2. The PAT needs `repo` and
+  `project`; without `workflow`, pushes that change `.github/workflows/*` are rejected.
 - A final step fails the run when uncommitted changes remain or no open PR closes the issue.
 
 ## Consequences
