@@ -234,6 +234,45 @@ describe("History", () => {
     expect(screen.getByText("6 × 85 kg")).toBeInTheDocument();
   });
 
+  it("keeps the edit open and shows an error when saving fails", async () => {
+    vi.mocked(listSessions).mockResolvedValue(page([pushSession], 0, 1));
+    vi.mocked(getSession).mockResolvedValue(detail);
+    vi.mocked(updateSet).mockRejectedValue(new Error("Weight is invalid"));
+
+    renderHistory();
+
+    await fireEvent.click(
+      await screen.findByRole("button", { name: /view push day/i })
+    );
+    await fireEvent.click(
+      await screen.findByRole("button", {
+        name: "Edit set 1 for Bench Press",
+      })
+    );
+
+    await fireEvent.input(
+      screen.getByLabelText("Reps for set 1 of Bench Press"),
+      { target: { value: "9" } }
+    );
+    await fireEvent.input(
+      screen.getByLabelText("Weight for set 1 of Bench Press"),
+      { target: { value: "82.5" } }
+    );
+    await fireEvent.submit(
+      screen.getByRole("form", { name: "Edit set 1 for Bench Press" })
+    );
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Weight is invalid"
+    );
+    expect(
+      screen.getByLabelText("Reps for set 1 of Bench Press")
+    ).toHaveValue(9);
+    expect(
+      screen.getByRole("button", { name: "Save set 1 for Bench Press" })
+    ).toBeEnabled();
+  });
+
   it("cancels editing a set without saving", async () => {
     vi.mocked(listSessions).mockResolvedValue(page([pushSession], 0, 1));
     vi.mocked(getSession).mockResolvedValue(detail);

@@ -30,6 +30,7 @@
   let editReps = $state<string | number | null>("");
   let editWeightKg = $state<string | number | null>("");
   let editPending = $state(false);
+  let editError = $state<string | null>(null);
 
   function messageOf(value: unknown): string {
     return value instanceof Error ? value.message : "Something went wrong";
@@ -110,10 +111,12 @@
     editingSetId = set.id;
     editReps = set.reps;
     editWeightKg = set.weightKg;
+    editError = null;
   }
 
   function cancelEdit() {
     editingSetId = null;
+    editError = null;
   }
 
   async function saveEdit(set: LoggedSet, event: SubmitEvent) {
@@ -124,6 +127,7 @@
     }
 
     editPending = true;
+    editError = null;
     try {
       const updated = await updateSet(detail.id, set.id, {
         reps: Number(editReps),
@@ -136,6 +140,11 @@
         ),
       };
       editingSetId = null;
+    } catch (saveError) {
+      editError =
+        saveError instanceof Error
+          ? saveError.message
+          : "Could not update the set";
     } finally {
       editPending = false;
     }
@@ -357,6 +366,9 @@
                             />
                           </label>
                         </div>
+                        {#if editError}
+                          <p class="error" role="alert">{editError}</p>
+                        {/if}
                         <div class="row">
                           <button
                             type="submit"
