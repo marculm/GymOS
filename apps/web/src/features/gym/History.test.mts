@@ -14,11 +14,12 @@ import type {
   WorkoutSessionSummary,
 } from "@gymos/shared";
 import History from "./History.svelte";
-import { getSession, listSessions } from "../../api/gym.mts";
+import { getSession, listSessions, updateSet } from "../../api/gym.mts";
 
 vi.mock("../../api/gym.mts", () => ({
   listSessions: vi.fn(),
   getSession: vi.fn(),
+  updateSet: vi.fn(),
 }));
 
 const exercise: Exercise = {
@@ -185,6 +186,77 @@ describe("History", () => {
     if (!detailContent) throw new Error("session detail is missing");
     expect(within(detailContent).getByText(/60 min/)).toBeInTheDocument();
     expect(getSession).toHaveBeenCalledWith("session-1");
+  });
+
+  it("edits a set in a completed session", async () => {
+    vi.mocked(listSessions).mockResolvedValue(page([pushSession], 0, 1));
+    vi.mocked(getSession).mockResolvedValue(detail);
+    const firstSet = detail.sets[0];
+    if (!firstSet) throw new Error("detail fixture is missing a set");
+    vi.mocked(updateSet).mockResolvedValue({
+      ...firstSet,
+      reps: 9,
+      weightKg: 82.5,
+    });
+
+    renderHistory();
+
+    await fireEvent.click(
+      await screen.findByRole("button", { name: /view push day/i })
+    );
+    await fireEvent.click(
+      await screen.findByRole("button", {
+        name: "Edit set 1 for Bench Press",
+      })
+    );
+
+    const reps = screen.getByLabelText("Reps for set 1 of Bench Press");
+    const weight = screen.getByLabelText("Weight for set 1 of Bench Press");
+    expect(reps).toHaveValue(8);
+    expect(weight).toHaveValue(80);
+
+    await fireEvent.input(reps, { target: { value: "9" } });
+    await fireEvent.input(weight, { target: { value: "82.5" } });
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Save set 1 for Bench Press" })
+    );
+
+    await waitFor(() => {
+      expect(updateSet).toHaveBeenCalledWith("session-1", "set-1", {
+        reps: 9,
+        weightKg: 82.5,
+      });
+    });
+    expect(await screen.findByText("9 × 82.5 kg")).toBeInTheDocument();
+    expect(
+      screen.queryByLabelText("Reps for set 1 of Bench Press")
+    ).not.toBeInTheDocument();
+    expect(screen.getByText("6 × 85 kg")).toBeInTheDocument();
+  });
+
+  it("cancels editing a set without saving", async () => {
+    vi.mocked(listSessions).mockResolvedValue(page([pushSession], 0, 1));
+    vi.mocked(getSession).mockResolvedValue(detail);
+
+    renderHistory();
+
+    await fireEvent.click(
+      await screen.findByRole("button", { name: /view push day/i })
+    );
+    await fireEvent.click(
+      await screen.findByRole("button", {
+        name: "Edit set 2 for Bench Press",
+      })
+    );
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Cancel editing set 2 for Bench Press" })
+    );
+
+    expect(updateSet).not.toHaveBeenCalled();
+    expect(
+      screen.queryByLabelText("Reps for set 2 of Bench Press")
+    ).not.toBeInTheDocument();
+    expect(screen.getByText("6 × 85 kg")).toBeInTheDocument();
   });
 
   it("displays weights with up to two decimals", async () => {
