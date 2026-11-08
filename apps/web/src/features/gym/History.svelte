@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onMount, tick } from "svelte";
   import type {
     LoggedSet,
     WorkoutPlan,
@@ -115,6 +115,12 @@
     editError = null;
   }
 
+  async function closeEdit(setId: string) {
+    resetEdit();
+    await tick();
+    document.getElementById(`edit-set-${setId}`)?.focus();
+  }
+
   function startEdit(set: LoggedSet) {
     editingSetId = set.id;
     editReps = set.reps;
@@ -144,7 +150,7 @@
           entry.id === updated.id ? updated : entry
         ),
       };
-      editingSetId = null;
+      await closeEdit(set.id);
     } catch (saveError) {
       editError =
         saveError instanceof Error
@@ -388,7 +394,7 @@
                             class="btn btn-ghost"
                             disabled={editPending}
                             aria-label={`Cancel editing set ${set.setNumber} for ${group.name}`}
-                            onclick={resetEdit}
+                            onclick={() => void closeEdit(set.id)}
                           >
                             Cancel
                           </button>
@@ -401,6 +407,7 @@
                           {set.reps} × {formatWeight(set.weightKg)} kg
                         </span>
                         <button
+                          id={`edit-set-${set.id}`}
                           type="button"
                           class="btn btn-ghost"
                           aria-label={`Edit set ${set.setNumber} for ${group.name}`}

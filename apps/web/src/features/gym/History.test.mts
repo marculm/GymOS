@@ -232,6 +232,11 @@ describe("History", () => {
       screen.queryByLabelText("Reps for set 1 of Bench Press")
     ).not.toBeInTheDocument();
     expect(screen.getByText("6 × 85 kg")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: "Edit set 1 for Bench Press" })
+      ).toHaveFocus();
+    });
   });
 
   it("keeps the edit open and shows an error when saving fails", async () => {
@@ -328,6 +333,11 @@ describe("History", () => {
       screen.queryByLabelText("Reps for set 2 of Bench Press")
     ).not.toBeInTheDocument();
     expect(screen.getByText("6 × 85 kg")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: "Edit set 2 for Bench Press" })
+      ).toHaveFocus();
+    });
   });
 
   it("displays weights with up to two decimals", async () => {
