@@ -59,6 +59,7 @@ async function main() {
 
   // 1. Create the user the API resolves from GYMOS_USER_EMAIL
   const ownerEmail = currentUserEmail();
+  const existingOwner = await prisma.user.findUnique({ where: { email: ownerEmail } });
   const owner = await prisma.user.upsert({
     where: { email: ownerEmail },
     update: {},
@@ -68,6 +69,12 @@ async function main() {
     },
   });
   console.log(`👤 Owner: ${owner.email} (${owner.id})`);
+
+  // Seeded rows are editable (ADR-0024): a rename or delete must survive reruns.
+  if (existingOwner) {
+    console.log("🌱 Starter data already provisioned; leaving exercises and plans as-is.");
+    return;
+  }
 
   // 2. Seed exercises
   const exercisesByName = new Map<string, { id: string }>();
