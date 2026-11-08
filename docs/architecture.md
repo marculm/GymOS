@@ -200,6 +200,9 @@ Router responsibilities:
 
 - Parse and validate input with Zod schemas from `router/validation.mts`. Schemas are
   composed from `packages/shared` contracts (ADR-0005).
+- Reject `POST` and `PUT` requests without `Content-Type: application/json` with `415`
+  problem details before parsing the body (ADR-0015). `DELETE` has no body and is not
+  checked.
 - Map the HTTP DTO to the service input where the two differ (defaults, nullable
   fields).
 - Parse pagination and filter query parameters.
@@ -279,7 +282,9 @@ All client errors use RFC 9457 Problem Details with
 | `CurrentUserNotFoundError` | `500` |
 | anything else | `500`, logged with the error object |
 
-Services and repositories do not import `HTTPException`. See ADR-0015.
+The gym write router returns `415 Unsupported Media Type` for `POST` and `PUT` requests
+without `Content-Type: application/json`; malformed JSON still returns `400`. Services and
+repositories do not import `HTTPException`. See ADR-0015.
 
 ### 3.9 Pagination and Filtering
 

@@ -48,6 +48,16 @@ collections.
   exists.
 - Errors never return `{ error }`.
 
+### Request bodies
+
+- `POST` and `PUT` requests to the gym write routes must declare
+  `Content-Type: application/json`; otherwise the API returns `415 Unsupported Media Type`
+  problem details without reading or persisting the body.
+- `DELETE` requests carry no body and are not checked.
+- This blocks the CORS "simple request" path: a cross-site `text/plain` write skips the
+  preflight and would otherwise reach the route, which matters because the API has no
+  authentication (ADR-0009).
+
 ### Not adopted
 
 - ETag, `If-Match`, `304`, `412`, and `428` resource versioning. Concurrency is handled
@@ -60,6 +70,8 @@ collections.
 
 - The web client and its tests must parse problem details, consume `Page<T>`, handle a
   `404` for the active session, and stop reading envelopes.
+- The web client already sends `Content-Type: application/json`, so the content-type rule
+  needs no client change.
 - Error handling and pagination are defined in one place instead of per route.
 - The API contract is documented in `docs/architecture.md` and is stable for the web
   client.
