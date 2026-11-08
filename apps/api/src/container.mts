@@ -5,6 +5,7 @@ import { RotationRepository } from "./modules/gym/repository/rotation-repository
 import { SessionRepository } from "./modules/gym/repository/session-repository.mts";
 import { GymReadService } from "./modules/gym/service/read-service.mts";
 import { GymWriteService } from "./modules/gym/service/write-service.mts";
+import { createWebPushNotifier } from "./modules/push/notifier/web-push-notifier.mts";
 import { RestTimerRepository } from "./modules/push/repository/rest-timer-repository.mts";
 import { PushSubscriptionRepository } from "./modules/push/repository/subscription-repository.mts";
 import { PushService } from "./modules/push/service/push-service.mts";
@@ -29,15 +30,19 @@ const writeService = new GymWriteService(
   readService
 );
 
+const restTimerRepository = new RestTimerRepository();
+const vapid = vapidConfig();
 const pushService = new PushService(
   new PushSubscriptionRepository(),
-  new RestTimerRepository(),
-  vapidConfig()?.publicKey ?? null
+  restTimerRepository,
+  vapid ? createWebPushNotifier(vapid) : null,
+  vapid?.publicKey ?? null
 );
 
 export const container = {
   readService,
   writeService,
   pushService,
+  restTimerRepository,
   currentUserService: new CurrentUserService(),
 };

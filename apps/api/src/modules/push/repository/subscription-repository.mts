@@ -33,4 +33,12 @@ export class PushSubscriptionRepository {
   async deleteByEndpoint(userId: string, endpoint: string): Promise<void> {
     await prisma.pushSubscription.deleteMany({ where: { userId, endpoint } });
   }
+
+  async findByUserId(userId: string): Promise<PushSubscriptionRecord[]> {
+    return prisma.pushSubscription.findMany({ where: { userId } });
+  }
+
+  async deleteById(id: string): Promise<void> {
+    await prisma.pushSubscription.deleteMany({ where: { id } });
+  }
 }
