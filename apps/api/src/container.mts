@@ -5,6 +5,7 @@ import { RotationRepository } from "./modules/gym/repository/rotation-repository
 import { SessionRepository } from "./modules/gym/repository/session-repository.mts";
 import { GymReadService } from "./modules/gym/service/read-service.mts";
 import { GymWriteService } from "./modules/gym/service/write-service.mts";
+import { RestTimerRepository } from "./modules/push/repository/rest-timer-repository.mts";
 import { PushSubscriptionRepository } from "./modules/push/repository/subscription-repository.mts";
 import { PushService } from "./modules/push/service/push-service.mts";
 import { CurrentUserService } from "./security/current-user.mts";
@@ -30,6 +31,7 @@ const writeService = new GymWriteService(
 
 const pushService = new PushService(
   new PushSubscriptionRepository(),
+  new RestTimerRepository(),
   vapidConfig()?.publicKey ?? null
 );
 

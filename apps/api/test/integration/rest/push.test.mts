@@ -113,4 +113,67 @@ describe("push API", () => {
 
     expect(response.status).toBe(422);
   });
+
+  it("stores the pending rest timer", async () => {
+    const endAt = new Date(Date.now() + 120_000).toISOString();
+
+    const response = await app.request("/api/push/rest-timer", {
+      method: "PUT",
+      headers: jsonHeaders,
+      body: JSON.stringify({ endAt }),
+    });
+
+    expect(response.status).toBe(204);
+    const stored = await prisma.restTimer.findMany({
+      where: { userId: await currentUserId() },
+    });
+    expect(stored).toHaveLength(1);
+    expect(stored[0]?.endAt.toISOString()).toBe(endAt);
+  });
+
+  it("replaces the pending rest timer for the same user", async () => {
+    const first = new Date(Date.now() + 120_000).toISOString();
+    const second = new Date(Date.now() + 180_000).toISOString();
+
+    for (const endAt of [first, second]) {
+      await app.request("/api/push/rest-timer", {
+        method: "PUT",
+        headers: jsonHeaders,
+        body: JSON.stringify({ endAt }),
+      });
+    }
+
+    const stored = await prisma.restTimer.findMany({
+      where: { userId: await currentUserId() },
+    });
+    expect(stored).toHaveLength(1);
+    expect(stored[0]?.endAt.toISOString()).toBe(second);
+  });
+
+  it("cancels the pending rest timer", async () => {
+    await app.request("/api/push/rest-timer", {
+      method: "PUT",
+      headers: jsonHeaders,
+      body: JSON.stringify({ endAt: new Date().toISOString() }),
+    });
+
+    const response = await app.request("/api/push/rest-timer", {
+      method: "DELETE",
+    });
+
+    expect(response.status).toBe(204);
+    expect(
+      await prisma.restTimer.count({ where: { userId: await currentUserId() } })
+    ).toBe(0);
+  });
+
+  it("rejects a malformed rest timer", async () => {
+    const response = await app.request("/api/push/rest-timer", {
+      method: "PUT",
+      headers: jsonHeaders,
+      body: JSON.stringify({ endAt: "soon" }),
+    });
+
+    expect(response.status).toBe(422);
+  });
 });

@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import {
   CreatePushSubscriptionSchema,
   PushSubscriptionQuerySchema,
+  SetRestTimerSchema,
 } from "@gymos/shared";
 import { container } from "../../../container.mts";
 import { createProblemDetails } from "../../../problem-details.mts";
@@ -35,5 +36,16 @@ writeRouter.post("/subscriptions", async (c) => {
 writeRouter.delete("/subscriptions", async (c) => {
   const query = PushSubscriptionQuerySchema.parse(c.req.query());
   await pushService.unsubscribe(c.get("user").id, query.endpoint);
+  return c.body(null, 204);
+});
+
+writeRouter.put("/rest-timer", async (c) => {
+  const input = SetRestTimerSchema.parse(await c.req.json());
+  await pushService.setRestTimer(c.get("user").id, new Date(input.endAt));
+  return c.body(null, 204);
+});
+
+writeRouter.delete("/rest-timer", async (c) => {
+  await pushService.cancelRestTimer(c.get("user").id);
   return c.body(null, 204);
 });
