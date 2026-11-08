@@ -9,6 +9,7 @@ import type {
   UpdateExerciseInput,
   UpdateWorkoutPlanInput,
   UpdateWorkoutRotationInput,
+  UpdateWorkoutSetInput,
   WorkoutPlan,
   WorkoutProgress,
   WorkoutRotation,
@@ -143,6 +144,17 @@ export function addSet(
   input: CreateWorkoutSetInput
 ): Promise<LoggedSet> {
   return api.post<LoggedSet>(`/gym/sessions/${sessionId}/sets`, input);
+}
+
+export function updateSet(
+  sessionId: string,
+  setId: string,
+  input: UpdateWorkoutSetInput
+): Promise<LoggedSet> {
+  return api.put<LoggedSet>(
+    `/gym/sessions/${sessionId}/sets/${setId}`,
+    input
+  );
 }
 
 export function deleteSet(sessionId: string, setId: string): Promise<void> {

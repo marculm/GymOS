@@ -268,6 +268,7 @@ All client errors use RFC 9457 Problem Details with
 | `NotFoundError` | `404` |
 | `ActiveSessionExistsError` | `409` |
 | `SessionCompletedError` | `409` |
+| `SessionNotCompletedError` | `409` |
 | `DuplicateSetError` | `409` |
 | `DuplicatePlanNameError` | `409` |
 | `DuplicateExerciseNameError` | `409` |
@@ -484,8 +485,9 @@ apps/web/
 - While the session is active, each set row offers a confirmed Delete action and a left
   swipe that removes it immediately with a 5-second undo window. The API deletes the set
   and renumbers the remaining sets of that exercise in one transaction; the client
-  mirrors the renumbering without reloading (ADR-0037). Completed sessions remain
-  read-only.
+  mirrors the renumbering without reloading (ADR-0037). Completed sessions do not allow
+  deletion; each history set row offers an inline edit for reps and weight instead, and
+  the corrected set replaces the row without reloading (ADR-0043).
 - After a start conflict (`409`), the screen re-reads the active session; if none exists,
   it retries the start once or shows a message (ADR-0019).
 - Plan start actions include the plan name, errors render in `role="alert"` live regions,
@@ -656,3 +658,4 @@ The target architecture deliberately excludes:
 | [0039](adr/0039-exercise-defaults-from-workouts.md) | Exercise defaults from recent workouts |
 | [0040](adr/0040-tabbed-gym-gallery.md) | Tabbed Gym gallery |
 | [0041](adr/0041-set-form-enter-and-hover.md) | Set form Enter submission and guarded hover |
+| [0043](adr/0043-edit-logged-set.md) | Edit a logged set in completed history |

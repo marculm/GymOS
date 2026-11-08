@@ -14,10 +14,13 @@ import {
 } from "../helpers.mts";
 
 let exerciseId: string;
+let exerciseName: string;
 
 beforeAll(async () => {
   await createTestUser();
-  exerciseId = (await firstExercise()).id;
+  const exercise = await firstExercise();
+  exerciseId = exercise.id;
+  exerciseName = exercise.name;
 });
 
 beforeEach(clearTestUserData);
@@ -66,6 +69,14 @@ async function logSet(sessionId: string, overrides: Record<string, unknown> = {}
 function deleteSet(sessionId: string, setId: string) {
   return app.request(`/api/gym/sessions/${sessionId}/sets/${setId}`, {
     method: "DELETE",
+  });
+}
+
+function updateSet(sessionId: string, setId: string, body: unknown) {
+  return app.request(`/api/gym/sessions/${sessionId}/sets/${setId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
   });
 }
 
@@ -201,6 +212,174 @@ describe("Gym session routes", () => {
       setId
     );
     expect(unknownSession.status).toBe(404);
+  });
+
+  it("updates reps and weight of a set in a completed session", async () => {
+    const session = await startSession();
+    const first = await loggedSetId(session.id);
+    await loggedSetId(session.id);
+    await postJson(`/api/gym/sessions/${session.id}/complete`, {});
+
+    const res = await updateSet(session.id, first, {
+      reps: 12,
+      weightKg: 42.5,
+    });
+    expect(res.status).toBe(200);
+
+    const updated = (await res.json()) as {
+      id: string;
+      exerciseName: string;
+      setNumber: number;
+      reps: number;
+      weightKg: number;
+    };
+    expect(updated).toMatchObject({
+      id: first,
+      exerciseName,
+      setNumber: 1,
+      reps: 12,
+      weightKg: 42.5,
+    });
+
+    const detail = await app.request(`/api/gym/sessions/${session.id}`);
+    const data = (await detail.json()) as {
+      sets: Array<{ id: string; setNumber: number; reps: number; weightKg: number }>;
+    };
+    expect(data.sets[0]).toMatchObject({
+      id: first,
+      setNumber: 1,
+      reps: 12,
+      weightKg: 42.5,
+    });
+    expect(data.sets[1]).toMatchObject({ setNumber: 2, reps: 10, weightKg: 20 });
+  });
+
+  it("does not recalculate exercise defaults when a completed set is corrected", async () => {
+    const session = await startSession();
+    const setId = await loggedSetId(session.id);
+    await postJson(`/api/gym/sessions/${session.id}/complete`, {});
+
+    const before = await prisma.exercise.findUniqueOrThrow({
+      where: { id: exerciseId },
+    });
+
+    const res = await updateSet(session.id, setId, {
+      reps: 12,
+      weightKg: 42.5,
+    });
+    expect(res.status).toBe(200);
+
+    const after = await prisma.exercise.findUniqueOrThrow({
+      where: { id: exerciseId },
+    });
+    expect(after.defaultWeightKg).toBe(before.defaultWeightKg);
+    expect(after.defaultReps).toBe(before.defaultReps);
+    expect(after.defaultSets).toBe(before.defaultSets);
+  });
+
+  it("rejects editing a set in an active session", async () => {
+    const session = await startSession();
+    const setId = await loggedSetId(session.id);
+
+    const res = await updateSet(session.id, setId, {
+      reps: 12,
+      weightKg: 42.5,
+    });
+    expect(res.status).toBe(409);
+    expect(res.headers.get("content-type")).toContain(
+      "application/problem+json"
+    );
+    const data = (await res.json()) as { detail: string };
+    expect(data.detail).toContain("completed");
+
+    const detail = await app.request(`/api/gym/sessions/${session.id}`);
+    const body = (await detail.json()) as {
+      sets: Array<{ reps: number; weightKg: number }>;
+    };
+    expect(body.sets[0]).toMatchObject({ reps: 10, weightKg: 20 });
+  });
+
+  it("keeps set identity when extra fields are sent", async () => {
+    const session = await startSession();
+    const first = await loggedSetId(session.id);
+    await loggedSetId(session.id);
+    await postJson(`/api/gym/sessions/${session.id}/complete`, {});
+
+    const res = await updateSet(session.id, first, {
+      reps: 12,
+      weightKg: 42.5,
+      setNumber: 9,
+      exerciseId: "00000000-0000-4000-8000-000000000099",
+    });
+    expect(res.status).toBe(200);
+
+    const updated = (await res.json()) as {
+      exerciseId: string;
+      setNumber: number;
+    };
+    expect(updated).toMatchObject({ exerciseId, setNumber: 1 });
+
+    const detail = await app.request(`/api/gym/sessions/${session.id}`);
+    const data = (await detail.json()) as {
+      sets: Array<{ setNumber: number }>;
+    };
+    expect(data.sets.map((set) => set.setNumber)).toEqual([1, 2]);
+  });
+
+  it("returns 404 when updating a set outside the completed session", async () => {
+    const first = await startSession();
+    const setId = await loggedSetId(first.id);
+    await postJson(`/api/gym/sessions/${first.id}/complete`, {});
+
+    const second = await startSession();
+    await postJson(`/api/gym/sessions/${second.id}/complete`, {});
+
+    const outside = await updateSet(second.id, setId, {
+      reps: 12,
+      weightKg: 42.5,
+    });
+    expect(outside.status).toBe(404);
+    expect(outside.headers.get("content-type")).toContain(
+      "application/problem+json"
+    );
+
+    const missing = await updateSet(
+      second.id,
+      "00000000-0000-4000-8000-000000000099",
+      { reps: 12, weightKg: 42.5 }
+    );
+    expect(missing.status).toBe(404);
+
+    const unknownSession = await updateSet(
+      "00000000-0000-4000-8000-000000000098",
+      setId,
+      { reps: 12, weightKg: 42.5 }
+    );
+    expect(unknownSession.status).toBe(404);
+  });
+
+  it("rejects out-of-range corrections with a 422 problem", async () => {
+    const session = await startSession();
+    const setId = await loggedSetId(session.id);
+    await postJson(`/api/gym/sessions/${session.id}/complete`, {});
+
+    const repsRes = await updateSet(session.id, setId, { reps: 0, weightKg: 20 });
+    expect(repsRes.status).toBe(422);
+    expect(repsRes.headers.get("content-type")).toContain(
+      "application/problem+json"
+    );
+
+    const weightRes = await updateSet(session.id, setId, {
+      reps: 10,
+      weightKg: 1000.5,
+    });
+    expect(weightRes.status).toBe(422);
+
+    const detail = await app.request(`/api/gym/sessions/${session.id}`);
+    const data = (await detail.json()) as {
+      sets: Array<{ reps: number; weightKg: number }>;
+    };
+    expect(data.sets[0]).toMatchObject({ reps: 10, weightKg: 20 });
   });
 
   it("keeps set numbers unique under concurrent posts", async () => {
@@ -637,6 +816,13 @@ describe("Gym session routes", () => {
 
       await expect(
         container.writeService.deleteSet(other.id, session.id, setId)
+      ).rejects.toBeInstanceOf(NotFoundError);
+
+      await expect(
+        container.writeService.updateSet(other.id, session.id, setId, {
+          reps: 10,
+          weightKg: 20,
+        })
       ).rejects.toBeInstanceOf(NotFoundError);
 
       const detail = await app.request(`/api/gym/sessions/${session.id}`);

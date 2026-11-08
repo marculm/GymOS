@@ -1,12 +1,13 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onMount, tick } from "svelte";
   import type {
     LoggedSet,
     WorkoutPlan,
     WorkoutSessionDetail,
     WorkoutSessionSummary,
   } from "@gymos/shared";
-  import { getSession, listSessions } from "../../api/gym.mts";
+  import { MAX_SET_REPS, MAX_SET_WEIGHT_KG } from "@gymos/shared/limits";
+  import { getSession, listSessions, updateSet } from "../../api/gym.mts";
   import { formatWeight } from "./format.mts";
 
   let { plans }: { plans: WorkoutPlan[] } = $props();
@@ -25,6 +26,11 @@
   let detail = $state<WorkoutSessionDetail | null>(null);
   let detailLoading = $state(false);
   let loadId = 0;
+  let editingSetId = $state<string | null>(null);
+  let editReps = $state<string | number | null>("");
+  let editWeightKg = $state<string | number | null>("");
+  let editPending = $state(false);
+  let editError = $state<string | null>(null);
 
   function messageOf(value: unknown): string {
     return value instanceof Error ? value.message : "Something went wrong";
@@ -64,6 +70,7 @@
   function applyFilters() {
     expandedId = null;
     detail = null;
+    resetEdit();
     sessions = [];
     totalElements = 0;
     page = 0;
@@ -75,11 +82,13 @@
       expandedId = null;
       detail = null;
       detailLoading = false;
+      resetEdit();
       return;
     }
 
     expandedId = id;
     detail = null;
+    resetEdit();
     detailLoading = true;
     error = null;
 
@@ -100,6 +109,62 @@
   const detailPlan = $derived(
     plans.find((plan) => plan.id === detail?.planId) ?? null
   );
+
+  function resetEdit() {
+    editingSetId = null;
+    editError = null;
+  }
+
+  async function closeEdit(setId: string) {
+    resetEdit();
+    await tick();
+    document.getElementById(`edit-set-${setId}`)?.focus();
+  }
+
+  async function startEdit(set: LoggedSet) {
+    editingSetId = set.id;
+    editReps = set.reps;
+    editWeightKg = set.weightKg;
+    editError = null;
+    await tick();
+    document.getElementById(`edit-reps-${set.id}`)?.focus();
+  }
+
+  async function saveEdit(set: LoggedSet, event: SubmitEvent) {
+    event.preventDefault();
+    if (!detail || editPending) return;
+    if (editReps === "" || editWeightKg === "" || editReps == null || editWeightKg == null) {
+      return;
+    }
+
+    const sessionId = detail.id;
+    editPending = true;
+    editError = null;
+    let updated: LoggedSet | null = null;
+    try {
+      updated = await updateSet(sessionId, set.id, {
+        reps: Number(editReps),
+        weightKg: Number(editWeightKg),
+      });
+    } catch (saveError) {
+      editError =
+        saveError instanceof Error
+          ? saveError.message
+          : "Could not update the set";
+    } finally {
+      editPending = false;
+    }
+
+    if (!updated || !detail) return;
+    const savedSet = updated;
+    detail = {
+      ...detail,
+      sets: detail.sets.map((entry) =>
+        entry.id === savedSet.id ? savedSet : entry
+      ),
+    };
+    await closeEdit(set.id);
+  }
 
   function firstSetTime(group: { sets: LoggedSet[] }): number {
     return group.sets[0] ? Date.parse(group.sets[0].createdAt) : 0;
@@ -284,10 +349,83 @@
                 <div class="stack">
                   <h4 class="card-title">{group.name}</h4>
                   {#each group.sets as set (set.id)}
-                    <p class="set-row">
-                      <span class="badge">Set {set.setNumber}</span>
-                      <span>{set.reps} × {formatWeight(set.weightKg)} kg</span>
-                    </p>
+                    {#if editingSetId === set.id}
+                      <form
+                        class="stack"
+                        aria-label={`Edit set ${set.setNumber} for ${group.name}`}
+                        onsubmit={(event) => void saveEdit(set, event)}
+                      >
+                        <div class="row set-fields">
+                          <label class="field set-field">
+                            <span class="label">Reps</span>
+                            <input
+                              id={`edit-reps-${set.id}`}
+                              class="input"
+                              type="number"
+                              min={1}
+                              max={MAX_SET_REPS}
+                              required
+                              aria-label={`Reps for set ${set.setNumber} of ${group.name}`}
+                              disabled={editPending}
+                              bind:value={editReps}
+                            />
+                          </label>
+                          <label class="field set-field">
+                            <span class="label">Weight (kg)</span>
+                            <input
+                              class="input"
+                              type="number"
+                              min={0}
+                              max={MAX_SET_WEIGHT_KG}
+                              step={0.01}
+                              required
+                              aria-label={`Weight for set ${set.setNumber} of ${group.name}`}
+                              disabled={editPending}
+                              bind:value={editWeightKg}
+                            />
+                          </label>
+                        </div>
+                        {#if editError}
+                          <p class="error" role="alert">{editError}</p>
+                        {/if}
+                        <div class="row">
+                          <button
+                            type="submit"
+                            class="btn btn-primary"
+                            disabled={editPending}
+                            aria-label={`Save set ${set.setNumber} for ${group.name}`}
+                          >
+                            Save
+                          </button>
+                          <button
+                            type="button"
+                            class="btn btn-ghost"
+                            disabled={editPending}
+                            aria-label={`Cancel editing set ${set.setNumber} for ${group.name}`}
+                            onclick={() => void closeEdit(set.id)}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </form>
+                    {:else}
+                      <p class="set-row">
+                        <span class="badge">Set {set.setNumber}</span>
+                        <span class="grow">
+                          {set.reps} × {formatWeight(set.weightKg)} kg
+                        </span>
+                        <button
+                          id={`edit-set-${set.id}`}
+                          type="button"
+                          class="btn btn-ghost"
+                          disabled={editPending}
+                          aria-label={`Edit set ${set.setNumber} for ${group.name}`}
+                          onclick={() => void startEdit(set)}
+                        >
+                          Edit
+                        </button>
+                      </p>
+                    {/if}
                   {/each}
                 </div>
               {/each}
