@@ -40,11 +40,17 @@ clean checkout.
 - Pull requests run checks and infrastructure lint: Bun install, Prisma generate,
   `prisma migrate deploy` against a Postgres service container, typecheck, `lint:all`,
   tests, the web build, actionlint, kubeconform, and shellcheck.
+- A separate `security` job runs `bun audit --audit-level=high` on every pull request and
+  push to `main`. It is not a dependency of the `images` or `deploy` jobs, so an audit
+  failure is visible in the run without blocking image publication or deployment. A Bun
+  override forces `deepmerge-ts@^8.0.2` to clear the high-severity advisory that reaches
+  the workspace through `@prisma/config`; the override is temporary until Prisma is
+  upgraded (#101).
 - Pushes to `main` run the same checks, build and push `linux/arm64` images, and then
   deploy. The deploy job runs only on `main`, only after checks and images succeed, only
   when the repository variable `DEPLOY_ENABLED` is `true`, and is serialized by a
-  concurrency group. Without the variable, the deploy job is skipped and the run stays
-  green.
+  concurrency group. Without the variable, the deploy job is skipped while images still
+  publish; the `security` job still runs and reports the audit result (see Consequences).
 - The deploy job joins the tailnet as an ephemeral `tag:ci` node through the Tailscale
   GitHub action and authenticates with `tailscale ssh`. No SSH private key is stored in
   GitHub. Access is granted by a tailnet ACL and revoked by changing the ACL or removing
@@ -89,6 +95,10 @@ clean checkout.
   for a private, tailnet-only deployment; secrets must never reach an image.
 - Dockerfile errors surface only on `main`, because images are not built on pull requests.
   This is accepted to save CI minutes.
+- Dependency advisories are visible but do not gate deployment. The `security` job reports
+  findings without blocking merges, so reviewers must check that job. The current
+  `deepmerge-ts` advisory is silenced by a temporary override that is removed when Prisma
+  is upgraded (#101).
 - An application rollback after a destructive migration requires restoring the database
   from backup.
 - The stack runs as a single replica with in-cluster Postgres and one PVC. There is no high

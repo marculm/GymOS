@@ -117,7 +117,8 @@ rollback, and backup steps.
 
 Deployments are gated by the repository variable `DEPLOY_ENABLED`. Set it to `true` after
 the VM and Tailscale access are ready; until then, merges build and publish images but skip
-the deploy job, keeping the run green. Set it to `false` to pause deployments.
+the deploy job. The `security` job still runs and reports its result even when deployment
+is skipped. Set it to `false` to pause deployments.
 
 ### VM operations
 
@@ -243,7 +244,7 @@ GymOS/
 │   ├── docker/          # Compose: PostgreSQL and optional full stack
 │   └── k8s/             # K3s manifests and deploy script
 ├── .github/
-│   └── workflows/       # CI: checks, images, deploy
+│   └── workflows/       # CI: checks, security, infra, images, deploy
 ├── docs/
 │   ├── adr/             # Architecture Decision Records (MADR format)
 │   └── known-issues.md  # Known limitations and deferred work

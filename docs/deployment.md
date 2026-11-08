@@ -6,22 +6,27 @@ published as public GHCR packages (ADR-0035).
 
 ## Pipeline
 
-Pull requests run `checks` and `infra`. A push to `main` runs:
+Pull requests run `checks`, `infra`, and `security`. A push to `main` runs:
 
 1. `checks` — typecheck, lint, tests against a Postgres service, web build.
-2. `infra` — actionlint, kubeconform, and shellcheck for workflows, manifests, and the
+2. `security` — `bun audit --audit-level=high` against the checked-in lockfile. A failure
+   is reported as a failed check but is not a required gate for `images` or `deploy`. A
+   Bun override forces `deepmerge-ts@^8.0.2` so the job passes; the override is temporary
+   until Prisma is upgraded (#101).
+3. `infra` — actionlint, kubeconform, and shellcheck for workflows, manifests, and the
    deploy script.
-3. `images` — builds `linux/arm64` images and pushes them to GHCR:
+4. `images` — builds `linux/arm64` images and pushes them to GHCR:
    - `ghcr.io/marculm/gymos-api:sha-<commit>`
    - `ghcr.io/marculm/gymos-web:sha-<commit>`
-4. `deploy` — runs only when the repository variable `DEPLOY_ENABLED` is `true`; joins the
+5. `deploy` — runs only when the repository variable `DEPLOY_ENABLED` is `true`; joins the
    tailnet as an ephemeral `tag:ci` node and runs
    `/srv/gymos/deploy/k8s/deploy.sh <commit>` on the VM over Tailscale SSH.
 
 A merge publishes images and deploys only when `DEPLOY_ENABLED` is `true`; otherwise the
-deploy job is skipped and the run stays green. Enable it after the VM and Tailscale access
-are ready (step 9). Each image is also tagged `latest`; deployments use the immutable
-commit tag.
+deploy job is skipped while images are still published. The `security` job runs regardless
+and reports its result even when deployment is skipped. Enable deployments after the VM and
+Tailscale access are ready (step 9). Each image is also tagged `latest`; deployments use
+the immutable commit tag.
 
 ## Local full stack
 
