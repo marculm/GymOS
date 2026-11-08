@@ -121,11 +121,13 @@
     document.getElementById(`edit-set-${setId}`)?.focus();
   }
 
-  function startEdit(set: LoggedSet) {
+  async function startEdit(set: LoggedSet) {
     editingSetId = set.id;
     editReps = set.reps;
     editWeightKg = set.weightKg;
     editError = null;
+    await tick();
+    document.getElementById(`edit-reps-${set.id}`)?.focus();
   }
 
   async function saveEdit(set: LoggedSet, event: SubmitEvent) {
@@ -357,6 +359,7 @@
                           <label class="field set-field">
                             <span class="label">Reps</span>
                             <input
+                              id={`edit-reps-${set.id}`}
                               class="input"
                               type="number"
                               min={1}
@@ -415,7 +418,7 @@
                           class="btn btn-ghost"
                           disabled={editPending}
                           aria-label={`Edit set ${set.setNumber} for ${group.name}`}
-                          onclick={() => startEdit(set)}
+                          onclick={() => void startEdit(set)}
                         >
                           Edit
                         </button>

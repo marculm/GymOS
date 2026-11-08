@@ -279,6 +279,26 @@ describe("History", () => {
     ).toBeEnabled();
   });
 
+  it("focuses the reps field when editing opens", async () => {
+    vi.mocked(listSessions).mockResolvedValue(page([pushSession], 0, 1));
+    vi.mocked(getSession).mockResolvedValue(detail);
+
+    renderHistory();
+
+    await fireEvent.click(
+      await screen.findByRole("button", { name: /view push day/i })
+    );
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Edit set 1 for Bench Press" })
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByLabelText("Reps for set 1 of Bench Press")
+      ).toHaveFocus();
+    });
+  });
+
   it("disables other set edits while a save is pending", async () => {
     let resolveSave!: (set: LoggedSet) => void;
     vi.mocked(listSessions).mockResolvedValue(page([pushSession], 0, 1));
