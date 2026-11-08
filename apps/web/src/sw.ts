@@ -1,11 +1,15 @@
 /// <reference lib="webworker" />
-import { precacheAndRoute } from "workbox-precaching";
+import {
+  cleanupOutdatedCaches,
+  precacheAndRoute,
+} from "workbox-precaching";
 
 declare const self: ServiceWorkerGlobalScope & {
   __WB_MANIFEST: Parameters<typeof precacheAndRoute>[0];
 };
 
 precacheAndRoute(self.__WB_MANIFEST);
+cleanupOutdatedCaches();
 
 // Keep the autoUpdate behavior the generated service worker had.
 self.addEventListener("install", () => {

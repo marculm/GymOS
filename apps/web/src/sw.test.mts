@@ -1,6 +1,9 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("workbox-precaching", () => ({ precacheAndRoute: vi.fn() }));
+vi.mock("workbox-precaching", () => ({
+  precacheAndRoute: vi.fn(),
+  cleanupOutdatedCaches: vi.fn(),
+}));
 
 type WorkerListener = (event: unknown) => void;
 
