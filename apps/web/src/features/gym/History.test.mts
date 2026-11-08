@@ -8,6 +8,7 @@ import {
 } from "@testing-library/svelte";
 import type {
   Exercise,
+  LoggedSet,
   Page,
   WorkoutPlan,
   WorkoutSessionDetail,
@@ -276,6 +277,48 @@ describe("History", () => {
     expect(
       screen.getByRole("button", { name: "Save set 1 for Bench Press" })
     ).toBeEnabled();
+  });
+
+  it("disables other set edits while a save is pending", async () => {
+    let resolveSave!: (set: LoggedSet) => void;
+    vi.mocked(listSessions).mockResolvedValue(page([pushSession], 0, 1));
+    vi.mocked(getSession).mockResolvedValue(detail);
+    vi.mocked(updateSet).mockReturnValue(
+      new Promise((resolve) => {
+        resolveSave = resolve;
+      })
+    );
+
+    renderHistory();
+
+    await fireEvent.click(
+      await screen.findByRole("button", { name: /view push day/i })
+    );
+    await fireEvent.click(
+      await screen.findByRole("button", {
+        name: "Edit set 1 for Bench Press",
+      })
+    );
+    await fireEvent.input(
+      screen.getByLabelText("Reps for set 1 of Bench Press"),
+      { target: { value: "9" } }
+    );
+    await fireEvent.input(
+      screen.getByLabelText("Weight for set 1 of Bench Press"),
+      { target: { value: "82.5" } }
+    );
+    await fireEvent.submit(
+      screen.getByRole("form", { name: "Edit set 1 for Bench Press" })
+    );
+
+    expect(
+      screen.getByRole("button", { name: "Edit set 2 for Bench Press" })
+    ).toBeDisabled();
+
+    const firstSet = detail.sets[0];
+    if (!firstSet) throw new Error("detail fixture is missing a set");
+    resolveSave({ ...firstSet, reps: 9, weightKg: 82.5 });
+    expect(await screen.findByText("9 × 82.5 kg")).toBeInTheDocument();
   });
 
   it("does not reopen an abandoned edit after collapsing the session", async () => {

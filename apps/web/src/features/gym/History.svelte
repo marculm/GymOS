@@ -138,19 +138,12 @@
     const sessionId = detail.id;
     editPending = true;
     editError = null;
+    let updated: LoggedSet | null = null;
     try {
-      const updated = await updateSet(sessionId, set.id, {
+      updated = await updateSet(sessionId, set.id, {
         reps: Number(editReps),
         weightKg: Number(editWeightKg),
       });
-      if (!detail) return;
-      detail = {
-        ...detail,
-        sets: detail.sets.map((entry) =>
-          entry.id === updated.id ? updated : entry
-        ),
-      };
-      await closeEdit(set.id);
     } catch (saveError) {
       editError =
         saveError instanceof Error
@@ -159,6 +152,16 @@
     } finally {
       editPending = false;
     }
+
+    if (!updated || !detail) return;
+    const savedSet = updated;
+    detail = {
+      ...detail,
+      sets: detail.sets.map((entry) =>
+        entry.id === savedSet.id ? savedSet : entry
+      ),
+    };
+    await closeEdit(set.id);
   }
 
   function firstSetTime(group: { sets: LoggedSet[] }): number {
@@ -410,6 +413,7 @@
                           id={`edit-set-${set.id}`}
                           type="button"
                           class="btn btn-ghost"
+                          disabled={editPending}
                           aria-label={`Edit set ${set.setNumber} for ${group.name}`}
                           onclick={() => startEdit(set)}
                         >
