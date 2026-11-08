@@ -33,6 +33,10 @@ export type DeleteSetResult =
   | { kind: "not_found" }
   | { kind: "completed" };
 
+export type UpdateSetResult =
+  | { kind: "updated"; set: LoggedSet }
+  | { kind: "not_found" };
+
 export class SessionRepository {
   async findActive(userId: string): Promise<WorkoutSessionDetail | null> {
     const session = await prisma.workoutSession.findFirst({
@@ -201,6 +205,34 @@ export class SessionRepository {
       }
 
       return { kind: "deleted" } as const;
+    });
+  }
+
+  async updateSet(
+    userId: string,
+    sessionId: string,
+    setId: string,
+    input: { reps: number; weightKg: number }
+  ): Promise<UpdateSetResult> {
+    return withSerializableRetry(async (tx) => {
+      const session = await tx.workoutSession.findFirst({
+        where: { id: sessionId, userId },
+        select: { id: true },
+      });
+      if (!session) return { kind: "not_found" } as const;
+
+      const set = await tx.workoutSet.findFirst({
+        where: { id: setId, workoutSessionId: sessionId },
+        select: { id: true },
+      });
+      if (!set) return { kind: "not_found" } as const;
+
+      const updated = await tx.workoutSet.update({
+        where: { id: setId },
+        data: { reps: input.reps, weightKg: input.weightKg },
+        include: { exercise: { select: { name: true } } },
+      });
+      return { kind: "updated", set: toSet(updated) } as const;
     });
   }
 

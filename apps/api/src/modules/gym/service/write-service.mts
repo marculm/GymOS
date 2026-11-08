@@ -8,6 +8,7 @@ import type {
   UpdateExerciseInput,
   UpdateWorkoutPlanInput,
   UpdateWorkoutRotationInput,
+  UpdateWorkoutSetInput,
   WorkoutPlan,
   WorkoutRotation,
   WorkoutSessionDetail,
@@ -37,7 +38,7 @@ type PlanWriter = Pick<
 type RotationWriter = Pick<RotationRepository, "replace">;
 type SessionWriter = Pick<
   SessionRepository,
-  "createIfNoActive" | "logSet" | "completeIfOpen" | "deleteSet"
+  "createIfNoActive" | "logSet" | "completeIfOpen" | "deleteSet" | "updateSet"
 >;
 type RotationReader = Pick<GymReadService, "getRotation">;
 
@@ -209,6 +210,27 @@ export class GymWriteService {
         throw new NotFoundError("Session or set not found");
       case "completed":
         throw new SessionCompletedError("Session is already completed");
+    }
+  }
+
+  async updateSet(
+    userId: string,
+    sessionId: string,
+    setId: string,
+    input: UpdateWorkoutSetInput
+  ): Promise<LoggedSet> {
+    const result = await this.sessionRepository.updateSet(
+      userId,
+      sessionId,
+      setId,
+      input
+    );
+
+    switch (result.kind) {
+      case "updated":
+        return result.set;
+      case "not_found":
+        throw new NotFoundError("Session or set not found");
     }
   }
 

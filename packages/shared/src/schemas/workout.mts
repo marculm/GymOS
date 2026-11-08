@@ -106,6 +106,10 @@ export const CreateWorkoutSetSchema = z.object({
   weightKg: z.number().nonnegative().max(MAX_SET_WEIGHT_KG),
 });
 
+export const UpdateWorkoutSetSchema = CreateWorkoutSetSchema.omit({
+  exerciseId: true,
+});
+
 export const LoggedSetSchema = z.object({
   id: z.string().uuid(),
   exerciseId: z.string().uuid(),
@@ -165,6 +169,7 @@ export type UpdateWorkoutRotationInput = z.infer<typeof UpdateWorkoutRotationSch
 export type WorkoutRotation = z.infer<typeof WorkoutRotationSchema>;
 export type CreateWorkoutSessionInput = z.infer<typeof CreateWorkoutSessionSchema>;
 export type CreateWorkoutSetInput = z.infer<typeof CreateWorkoutSetSchema>;
+export type UpdateWorkoutSetInput = z.infer<typeof UpdateWorkoutSetSchema>;
 export type LoggedSet = z.infer<typeof LoggedSetSchema>;
 export type WorkoutSessionDetail = z.infer<typeof WorkoutSessionDetailSchema>;
 export type WorkoutSessionSummary = z.infer<typeof WorkoutSessionSummarySchema>;

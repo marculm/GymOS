@@ -11,6 +11,7 @@ import type {
   CompleteSessionResult,
   DeleteSetResult,
   LogSetResult,
+  UpdateSetResult,
 } from "../repository/session-repository.mts";
 import {
   ActiveSessionExistsError,
@@ -104,6 +105,14 @@ function createService() {
     deleteSet: vi.fn(
       async (_userId: string, _sessionId: string, _setId: string) =>
         ({ kind: "deleted" }) as DeleteSetResult
+    ),
+    updateSet: vi.fn(
+      async (
+        _userId: string,
+        _sessionId: string,
+        _setId: string,
+        _input: { reps: number; weightKg: number }
+      ) => ({ kind: "updated", set: loggedSet }) as UpdateSetResult
     ),
   };
 
@@ -414,6 +423,37 @@ describe("GymWriteService", () => {
     await expect(
       service.deleteSet("user-1", "session-1", "set-1")
     ).rejects.toBeInstanceOf(error);
+  });
+
+  it("updates a logged set", async () => {
+    const { service, sessionRepository } = createService();
+
+    await expect(
+      service.updateSet("user-1", "session-1", "set-1", {
+        reps: 12,
+        weightKg: 42.5,
+      })
+    ).resolves.toEqual(loggedSet);
+    expect(sessionRepository.updateSet).toHaveBeenCalledWith(
+      "user-1",
+      "session-1",
+      "set-1",
+      { reps: 12, weightKg: 42.5 }
+    );
+  });
+
+  it("maps an updateSet not-found result to an error", async () => {
+    const { service, sessionRepository } = createService();
+    sessionRepository.updateSet.mockResolvedValueOnce({
+      kind: "not_found",
+    } as UpdateSetResult);
+
+    await expect(
+      service.updateSet("user-1", "session-1", "set-1", {
+        reps: 12,
+        weightKg: 42.5,
+      })
+    ).rejects.toBeInstanceOf(NotFoundError);
   });
 
   it("returns a completed session", async () => {
