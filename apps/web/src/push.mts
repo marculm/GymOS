@@ -10,6 +10,27 @@ export function isPushSupported(): boolean {
   );
 }
 
+const SERVICE_WORKER_READY_TIMEOUT_MS = 10_000;
+
+function readyRegistration(): Promise<ServiceWorkerRegistration | null> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(
+      () => resolve(null),
+      SERVICE_WORKER_READY_TIMEOUT_MS
+    );
+    navigator.serviceWorker.ready.then(
+      (registration) => {
+        clearTimeout(timer);
+        resolve(registration);
+      },
+      () => {
+        clearTimeout(timer);
+        resolve(null);
+      }
+    );
+  });
+}
+
 function urlBase64ToUint8Array(value: string): Uint8Array<ArrayBuffer> {
   const padding = "=".repeat((4 - (value.length % 4)) % 4);
   const base64 = (value + padding).replace(/-/g, "+").replace(/_/g, "/");
@@ -39,7 +60,8 @@ export async function enablePush(): Promise<boolean> {
   if (permission !== "granted") return false;
 
   const { publicKey } = await api.get<VapidPublicKey>("/push/vapid-public-key");
-  const registration = await navigator.serviceWorker.ready;
+  const registration = await readyRegistration();
+  if (!registration) return false;
   const existing = await registration.pushManager.getSubscription();
   const subscription =
     existing ??

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { api } from "./api/client.mts";
 import {
   disablePush,
@@ -24,6 +24,7 @@ const subscriptionJson = {
 function createRegistration(overrides: {
   existing?: boolean;
   permission?: NotificationPermission;
+  ready?: Promise<ServiceWorkerRegistration>;
 } = {}) {
   const unsubscribe = vi.fn().mockResolvedValue(true);
   const subscription = {
@@ -40,7 +41,7 @@ function createRegistration(overrides: {
   } as unknown as ServiceWorkerRegistration;
   const serviceWorker = {
     getRegistration: vi.fn().mockResolvedValue(registration),
-    ready: Promise.resolve(registration),
+    ready: overrides.ready ?? Promise.resolve(registration),
   } as unknown as ServiceWorkerContainer;
 
   Object.defineProperty(navigator, "serviceWorker", {
@@ -69,6 +70,10 @@ describe("push client", () => {
     vi.clearAllMocks();
   });
 
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("reports push as unsupported without PushManager", () => {
     Reflect.deleteProperty(window, "PushManager");
 
@@ -90,6 +95,17 @@ describe("push client", () => {
       })
     );
     expect(api.post).toHaveBeenCalledWith("/push/subscriptions", subscriptionJson);
+  });
+
+  it("gives up when no service worker becomes ready", async () => {
+    vi.useFakeTimers();
+    createRegistration({ ready: new Promise(() => {}) });
+    vi.mocked(api.get).mockResolvedValue({ publicKey: "public-key" });
+
+    const result = enablePush();
+    await vi.advanceTimersByTimeAsync(10_000);
+
+    expect(await result).toBe(false);
   });
 
   it("does not subscribe when permission is denied", async () => {
