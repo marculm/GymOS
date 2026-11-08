@@ -334,6 +334,12 @@ describe("History", () => {
     expect(
       screen.getByRole("button", { name: "Edit set 2 for Bench Press" })
     ).toBeDisabled();
+    expect(
+      screen.getByLabelText("Reps for set 1 of Bench Press")
+    ).toBeDisabled();
+    expect(
+      screen.getByLabelText("Weight for set 1 of Bench Press")
+    ).toBeDisabled();
 
     const firstSet = detail.sets[0];
     if (!firstSet) throw new Error("detail fixture is missing a set");

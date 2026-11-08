@@ -366,6 +366,7 @@
                               max={MAX_SET_REPS}
                               required
                               aria-label={`Reps for set ${set.setNumber} of ${group.name}`}
+                              disabled={editPending}
                               bind:value={editReps}
                             />
                           </label>
@@ -379,6 +380,7 @@
                               step={0.01}
                               required
                               aria-label={`Weight for set ${set.setNumber} of ${group.name}`}
+                              disabled={editPending}
                               bind:value={editWeightKg}
                             />
                           </label>
