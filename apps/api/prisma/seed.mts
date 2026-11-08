@@ -59,54 +59,73 @@ async function main() {
 
   // 1. Create the user the API resolves from GYMOS_USER_EMAIL
   const ownerEmail = currentUserEmail();
-  const owner = await prisma.user.upsert({
-    where: { email: ownerEmail },
-    update: {},
-    create: {
-      email: ownerEmail,
-      name: ownerEmail === "demo@gymos.app" ? "Demo Athlete" : "GymOS Owner",
-    },
-  });
-  console.log(`👤 Owner: ${owner.email} (${owner.id})`);
-
-  // 2. Seed exercises
-  const exercisesByName = new Map<string, { id: string }>();
-  for (const exercise of DEFAULT_EXERCISES) {
-    const seeded = await prisma.exercise.upsert({
-      where: { name: exercise.name },
-      update: {},
-      create: exercise,
-    });
-    exercisesByName.set(seeded.name, seeded);
-  }
-  console.log(`🏋️ Seeded ${DEFAULT_EXERCISES.length} default exercises.`);
-
-  const requireExercise = (name: string) => {
-    const exercise = exercisesByName.get(name);
-    if (!exercise) {
-      throw new Error(`Missing seeded exercise: ${name}`);
-    }
-    return exercise;
+  const ownerData = {
+    email: ownerEmail,
+    name: ownerEmail === "demo@gymos.app" ? "Demo Athlete" : "GymOS Owner",
   };
+  const existingOwner = await prisma.user.findUnique({ where: { email: ownerEmail } });
 
-  // 3. Seed starter training plan
-  const pushDay = await prisma.workoutPlan.upsert({
-    where: { userId_name: { userId: owner.id, name: "Push Day" } },
-    update: {},
-    create: {
-      userId: owner.id,
-      name: "Push Day",
-      description: "Chest, shoulders, and triceps",
-      exercises: {
-        create: [
-          { exerciseId: requireExercise("Barbell Bench Press").id, position: 0 },
-          { exerciseId: requireExercise("Overhead Shoulder Press").id, position: 1 },
-          { exerciseId: requireExercise("Tricep Rope Pushdown").id, position: 2 },
-        ],
+  if (existingOwner) {
+    const owner = await prisma.user.upsert({
+      where: { email: ownerEmail },
+      update: {},
+      create: ownerData,
+    });
+    console.log(`👤 Owner: ${owner.email} (${owner.id})`);
+    // Seeded rows are editable (ADR-0024): a rename or delete must survive reruns.
+    console.log("🌱 Starter data already provisioned; leaving exercises and plans as-is.");
+    return;
+  }
+
+  // First provision commits as one transaction, so a failed run cannot leave an
+  // owner without starter data.
+  await prisma.$transaction(async (tx) => {
+    const owner = await tx.user.upsert({
+      where: { email: ownerEmail },
+      update: {},
+      create: ownerData,
+    });
+    console.log(`👤 Owner: ${owner.email} (${owner.id})`);
+
+    // 2. Seed exercises
+    const exercisesByName = new Map<string, { id: string }>();
+    for (const exercise of DEFAULT_EXERCISES) {
+      const seeded = await tx.exercise.upsert({
+        where: { name: exercise.name },
+        update: {},
+        create: exercise,
+      });
+      exercisesByName.set(seeded.name, seeded);
+    }
+    console.log(`🏋️ Seeded ${DEFAULT_EXERCISES.length} default exercises.`);
+
+    const requireExercise = (name: string) => {
+      const exercise = exercisesByName.get(name);
+      if (!exercise) {
+        throw new Error(`Missing seeded exercise: ${name}`);
+      }
+      return exercise;
+    };
+
+    // 3. Seed starter training plan
+    const pushDay = await tx.workoutPlan.upsert({
+      where: { userId_name: { userId: owner.id, name: "Push Day" } },
+      update: {},
+      create: {
+        userId: owner.id,
+        name: "Push Day",
+        description: "Chest, shoulders, and triceps",
+        exercises: {
+          create: [
+            { exerciseId: requireExercise("Barbell Bench Press").id, position: 0 },
+            { exerciseId: requireExercise("Overhead Shoulder Press").id, position: 1 },
+            { exerciseId: requireExercise("Tricep Rope Pushdown").id, position: 2 },
+          ],
+        },
       },
-    },
+    });
+    console.log(`🏋️ Starter plan: ${pushDay.name}`);
   });
-  console.log(`🏋️ Starter plan: ${pushDay.name}`);
 
   console.log("✅ Database seeding complete!");
 }

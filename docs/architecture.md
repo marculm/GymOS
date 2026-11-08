@@ -360,8 +360,8 @@ at the reverse proxy before public exposure. See ADR-0016.
 
 `security/current-user.mts` resolves the single user from `GYMOS_USER_EMAIL` and throws
 `CurrentUserNotFoundError` when the seeded user is missing. `prisma/seed.mts` provisions
-that same email with `currentUserEmail()` and upserts the starter plan for it, so a
-configured address is usable after seeding (ADR-0023). A router middleware resolves the
+that same email with `currentUserEmail()` and creates the starter exercises and plan only
+on first provision, so a configured address is usable after seeding (ADR-0023). A router middleware resolves the
 user once per request and stores it on the Hono context; routers pass `user.id` to
 services. Services never resolve identity themselves.
 

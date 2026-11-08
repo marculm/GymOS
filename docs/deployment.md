@@ -38,9 +38,10 @@ docker compose --env-file .env -f deploy/docker/docker-compose.yml \
   --profile app up -d --build
 ```
 
-The `migrate` service applies migrations and seeds the configured owner before the API
-starts. Open <http://localhost:8080>; the web container proxies `/api` and `/health` to
-the API. Postgres is exposed on `localhost:5433`.
+The `migrate` service applies migrations and provisions the configured owner before the
+API starts; the starter exercises and Push Day plan are seeded only on first provision.
+Open <http://localhost:8080>; the web container proxies `/api` and `/health` to the API.
+Postgres is exposed on `localhost:5433`.
 
 The profile uses the same `gymos-postgres` container name as the development database, so
 stop the development stack first. `docker compose ... --profile app down` stops the full
@@ -192,7 +193,8 @@ The password in `POSTGRES_PASSWORD` and `DATABASE_URL` must match. URL-encode it
 
 `GYMOS_USER_EMAIL` lives in `deploy/k8s/configmap.yaml`. Change it in git and merge before
 the first deploy; `deploy.sh` applies the manifest on every deploy, so live edits are
-overwritten. The migration Job seeds this owner idempotently.
+overwritten. The migration Job provisions this owner on every run and seeds the starter
+data only when the owner is first created.
 
 ### 7. GHCR visibility and first deploy
 
