@@ -16,6 +16,7 @@ import {
   setRotation,
   updateExercise,
   updatePlan,
+  updateSet,
 } from "./gym.mts";
 
 afterEach(() => {
@@ -266,6 +267,35 @@ describe("gym api client", () => {
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/gym/sessions/session-1/sets/set-2",
       expect.objectContaining({ method: "DELETE" })
+    );
+  });
+
+  it("updates a set", async () => {
+    const set = {
+      id: "set-1",
+      exerciseId: "exercise-1",
+      exerciseName: "Bench Press",
+      setNumber: 1,
+      reps: 12,
+      weightKg: 42.5,
+      createdAt: "2026-10-26T18:05:00.000Z",
+    };
+    const fetchMock = mockFetch(
+      new Response(JSON.stringify(set), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })
+    );
+
+    await expect(
+      updateSet("session-1", "set-1", { reps: 12, weightKg: 42.5 })
+    ).resolves.toEqual(set);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/gym/sessions/session-1/sets/set-1",
+      expect.objectContaining({
+        method: "PUT",
+        body: JSON.stringify({ reps: 12, weightKg: 42.5 }),
+      })
     );
   });
 
