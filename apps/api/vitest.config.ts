@@ -1,4 +1,7 @@
 import { defineConfig } from "vitest/config";
+import { generateVAPIDKeys } from "web-push";
+
+const vapidKeys = generateVAPIDKeys();
 
 export default defineConfig({
   test: {
@@ -8,10 +11,9 @@ export default defineConfig({
     // write conflicts from making the suite flaky.
     fileParallelism: false,
     env: {
-      // Throwaway key pair generated with web-push; tests never reach a push service.
-      VAPID_PUBLIC_KEY:
-        "BPMKLwfRXt3h5uTo5OGK_vqMOvkecHOxCS48dX1lv72q1OvZwnPfla49Bp0NPrhQE5lMwrSGfEaZf5UyfvYz794",
-      VAPID_PRIVATE_KEY: "GjxYHPPpZ5pYllCf_muvNp2Msfnk5hMDIHhTZ-N3xpY",
+      // Generated per run so no VAPID key material is committed.
+      VAPID_PUBLIC_KEY: vapidKeys.publicKey,
+      VAPID_PRIVATE_KEY: vapidKeys.privateKey,
       VAPID_SUBJECT: "mailto:test@gymos.app",
     },
   },
