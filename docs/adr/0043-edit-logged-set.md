@@ -33,9 +33,9 @@ backend checks session state and writes in one serializable transaction.
   failure keeps the form open and shows a `role="alert"` message. Every control has an
   accessible name that includes the set number and exercise name.
 - A correction does not recalculate exercise defaults, which were derived when the
-  session completed (ADR-0039); the next completed session updates them again. Progress
-  and personal records read logged sets directly, so a fresh load reflects the
-  correction.
+  session completed (ADR-0039); the defaults change only when that exercise next appears
+  in a completed session. Progress and personal records read logged sets directly, so a
+  fresh load reflects the correction.
 
 ## Consequences
 

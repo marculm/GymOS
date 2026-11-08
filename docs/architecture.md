@@ -268,6 +268,7 @@ All client errors use RFC 9457 Problem Details with
 | `NotFoundError` | `404` |
 | `ActiveSessionExistsError` | `409` |
 | `SessionCompletedError` | `409` |
+| `SessionNotCompletedError` | `409` |
 | `DuplicateSetError` | `409` |
 | `DuplicatePlanNameError` | `409` |
 | `DuplicateExerciseNameError` | `409` |
