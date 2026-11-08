@@ -7,9 +7,27 @@ const EnvSchema = z.object({
   GYMOS_USER_EMAIL: z.email().default("demo@gymos.app"),
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).optional(),
   CORS_ORIGINS: z.string().default("http://localhost:5173"),
+  VAPID_PUBLIC_KEY: z.string().min(1).optional(),
+  VAPID_PRIVATE_KEY: z.string().min(1).optional(),
+  VAPID_SUBJECT: z.string().min(1).default("mailto:admin@gymos.app"),
 });
 
 export const env = EnvSchema.parse(process.env);
+
+export type VapidConfig = {
+  publicKey: string;
+  privateKey: string;
+  subject: string;
+};
+
+export function vapidConfig(): VapidConfig | null {
+  if (!env.VAPID_PUBLIC_KEY || !env.VAPID_PRIVATE_KEY) return null;
+  return {
+    publicKey: env.VAPID_PUBLIC_KEY,
+    privateKey: env.VAPID_PRIVATE_KEY,
+    subject: env.VAPID_SUBJECT,
+  };
+}
 
 const CurrentUserEmailSchema = z.email();
 

@@ -28,6 +28,8 @@ import {
 } from "./modules/gym/service/errors.mts";
 import { gymModule } from "./modules/gym/index.mts";
 import { nutritionModule } from "./modules/nutrition/index.mts";
+import { PushNotConfiguredError } from "./modules/push/errors.mts";
+import { pushModule } from "./modules/push/index.mts";
 import { createProblemDetails } from "./problem-details.mts";
 import { CurrentUserNotFoundError } from "./security/errors.mts";
 
@@ -52,6 +54,7 @@ app.route(paths.prometheus, prometheusRouter);
 app.route(paths.gym, gymModule);
 app.route(paths.nutrition, nutritionModule);
 app.route(paths.extractor, extractorModule);
+app.route(paths.push, pushModule);
 
 if (env.NODE_ENV === "development") {
   showRoutes(app, { verbose: true });
@@ -98,6 +101,9 @@ app.onError((err, c) => {
   }
   if (err instanceof CurrentUserNotFoundError) {
     return createProblemDetails(c, 500, err.message);
+  }
+  if (err instanceof PushNotConfiguredError) {
+    return createProblemDetails(c, 503, err.message);
   }
 
   logger.error({ err }, "Unhandled error");
