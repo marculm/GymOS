@@ -14,6 +14,7 @@ describe("createShutdown", () => {
       exit: () => {
         calls.push("exit");
       },
+      logError: vi.fn(),
     });
 
     await shutdown();
@@ -31,6 +32,7 @@ describe("createShutdown", () => {
       stopServer,
       disconnect,
       exit: vi.fn(),
+      logError: vi.fn(),
     });
 
     const shutdownDone = shutdown();
@@ -50,7 +52,12 @@ describe("createShutdown", () => {
     const stopServer = vi.fn(() => stopping);
     const disconnect = vi.fn();
     const exit = vi.fn();
-    const shutdown = createShutdown({ stopServer, disconnect, exit });
+    const shutdown = createShutdown({
+      stopServer,
+      disconnect,
+      exit,
+      logError: vi.fn(),
+    });
 
     const first = shutdown();
     const repeated = shutdown();
@@ -60,6 +67,42 @@ describe("createShutdown", () => {
 
     expect(stopServer).toHaveBeenCalledOnce();
     expect(disconnect).toHaveBeenCalledOnce();
+    expect(exit).toHaveBeenCalledOnce();
+  });
+
+  it("disconnects and exits when the server fails to stop", async () => {
+    const error = new Error("stop failed");
+    const disconnect = vi.fn();
+    const exit = vi.fn();
+    const logError = vi.fn();
+    const shutdown = createShutdown({
+      stopServer: vi.fn().mockRejectedValue(error),
+      disconnect,
+      exit,
+      logError,
+    });
+
+    await shutdown();
+
+    expect(logError).toHaveBeenCalledExactlyOnceWith(error);
+    expect(disconnect).toHaveBeenCalledOnce();
+    expect(exit).toHaveBeenCalledOnce();
+  });
+
+  it("exits when the database fails to disconnect", async () => {
+    const error = new Error("disconnect failed");
+    const exit = vi.fn();
+    const logError = vi.fn();
+    const shutdown = createShutdown({
+      stopServer: vi.fn(),
+      disconnect: vi.fn().mockRejectedValue(error),
+      exit,
+      logError,
+    });
+
+    await shutdown();
+
+    expect(logError).toHaveBeenCalledExactlyOnceWith(error);
     expect(exit).toHaveBeenCalledOnce();
   });
 });

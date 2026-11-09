@@ -30,6 +30,7 @@ const shutdown = createShutdown({
   },
   disconnect: disconnectDB,
   exit: () => process.exit(0),
+  logError: (error) => logger.error({ err: error }, "Shutdown step failed"),
 });
 
 process.on("SIGINT", shutdown);
