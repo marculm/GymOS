@@ -43,4 +43,23 @@ describe("createShutdown", () => {
 
     expect(disconnect).toHaveBeenCalledOnce();
   });
+
+  it("runs shutdown once for repeated signals", async () => {
+    let finishStopping!: () => void;
+    const stopping = new Promise<void>((resolve) => (finishStopping = resolve));
+    const stopServer = vi.fn(() => stopping);
+    const disconnect = vi.fn();
+    const exit = vi.fn();
+    const shutdown = createShutdown({ stopServer, disconnect, exit });
+
+    const first = shutdown();
+    const repeated = shutdown();
+    finishStopping();
+    await Promise.all([first, repeated]);
+    await shutdown();
+
+    expect(stopServer).toHaveBeenCalledOnce();
+    expect(disconnect).toHaveBeenCalledOnce();
+    expect(exit).toHaveBeenCalledOnce();
+  });
 });
