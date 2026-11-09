@@ -10,7 +10,5 @@ data:
   LOG_LEVEL: info
   POSTGRES_USER: gymos
   POSTGRES_DB: gymos
-  # Web push is optional. Generate keys with `bunx web-push generate-vapid-keys`,
-  # then set the public key here and the private key in the gymos-secrets Secret.
-  # VAPID_PUBLIC_KEY: <public key>
-  # VAPID_SUBJECT: mailto:you@example.com
+  VAPID_PUBLIC_KEY: BL5nJYy6oYefpdMCt4JZ31858KDcpjIfbQ-BVtBSeIS9hj1KNh-zZ37Sqs3Digc2gkNLQn4gH9PSFGlexGeQsok
+  VAPID_SUBJECT: marc.ulm24+gymos@gmail.com
