@@ -4,6 +4,7 @@ import { serverConfig } from "./config/server.mts";
 import { container } from "./container.mts";
 import { getLogger } from "./logger/logger.mts";
 import { RestTimerScheduler } from "./modules/push/scheduler/rest-timer-scheduler.mts";
+import { createShutdown } from "./shutdown.mts";
 
 const logger = getLogger("index", "file");
 
@@ -22,11 +23,14 @@ scheduler?.start();
 
 logger.info(`GymOS API listening on ${server.url}`);
 
-const shutdown = async () => {
-  scheduler?.stop();
-  await disconnectDB();
-  process.exit(0);
-};
+const shutdown = createShutdown({
+  stopServer: async () => {
+    scheduler?.stop();
+    await server.stop();
+  },
+  disconnect: disconnectDB,
+  exit: () => process.exit(0),
+});
 
 process.on("SIGINT", shutdown);
 process.on("SIGTERM", shutdown);
