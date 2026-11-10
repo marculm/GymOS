@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount, untrack } from "svelte";
-  import { MUSCLE_GROUPS } from "@gymos/shared";
+  import { MUSCLE_GROUPS } from "@gymos/shared/labels";
   import type { CreateExerciseInput, Exercise } from "@gymos/shared";
   import { MAX_SET_WEIGHT_KG } from "@gymos/shared/limits";
 

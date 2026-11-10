@@ -1,10 +1,10 @@
 <script lang="ts">
-  import {
-    DUPLICATE_EXERCISE_MESSAGE,
-    type CreateWorkoutPlanInput,
-    type Exercise,
-    type WorkoutPlan,
+  import type {
+    CreateWorkoutPlanInput,
+    Exercise,
+    WorkoutPlan,
   } from "@gymos/shared";
+  import { DUPLICATE_EXERCISE_MESSAGE } from "@gymos/shared/labels";
 
   let {
     exercises,
