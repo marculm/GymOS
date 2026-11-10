@@ -570,7 +570,7 @@ describe("GymView", () => {
     await fireEvent.input(screen.getByLabelText("Name"), {
       target: { value: "Leg Day" },
     });
-    await fireEvent.input(screen.getByLabelText("Notes for Bench Press"), {
+    await fireEvent.input(screen.getByLabelText("Notes (optional) for Bench Press"), {
       target: { value: "Pause at the bottom." },
     });
     await clickSubmit(screen.getByRole("button", { name: /save plan/i }));
@@ -598,7 +598,7 @@ describe("GymView", () => {
     await fireEvent.input(screen.getByLabelText("Name"), {
       target: { value: "Leg Day" },
     });
-    const notes = screen.getByLabelText("Notes for Bench Press");
+    const notes = screen.getByLabelText("Notes (optional) for Bench Press");
     await fireEvent.input(notes, { target: { value: "Tempo" } });
     await fireEvent.input(notes, { target: { value: "" } });
     await clickSubmit(screen.getByRole("button", { name: /save plan/i }));

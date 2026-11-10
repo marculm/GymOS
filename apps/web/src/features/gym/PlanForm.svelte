@@ -163,7 +163,7 @@
             <textarea
               class="input"
               maxlength={500}
-              aria-label={`Notes for ${rowExercise?.name ?? "exercise"}`}
+              aria-label={`Notes (optional) for ${rowExercise?.name ?? "exercise"}`}
               bind:value={row.notes}
             ></textarea>
           </label>
