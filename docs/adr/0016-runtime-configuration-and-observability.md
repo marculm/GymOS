@@ -46,9 +46,8 @@ observability layer.
 
 ### Middleware
 
-The application registers, in order: `secureHeaders`, `cors`, custom security headers
-(`X-Content-Type-Options`, `X-Frame-Options`), `compress`, Prometheus metrics,
-`responseTime`, `requestLogger`, then routes.
+The application registers, in order: `secureHeaders`, `cors`, `compress`, Prometheus
+metrics, `responseTime`, `requestLogger`, then routes.
 
 ### Health
 
