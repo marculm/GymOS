@@ -18,6 +18,7 @@
 
   let weightKg = $state<string | number | null>("");
   let reps = $state<string | number | null>("");
+  let idempotencyKey = $state<string | null>(null);
   let submitting = $state(false);
   let error = $state<string | null>(null);
 
@@ -45,11 +46,14 @@
     error = null;
 
     try {
+      idempotencyKey ??= crypto.randomUUID();
       const logged = await onSubmit({
         weightKg: Number(weightKg),
         reps: Number(reps),
+        idempotencyKey,
       });
       if (!logged) return;
+      idempotencyKey = null;
       weightKg = "";
       reps = "";
     } catch (logError) {

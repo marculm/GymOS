@@ -62,6 +62,7 @@ async function logSet(sessionId: string, overrides: Record<string, unknown> = {}
     exerciseId,
     reps: 10,
     weightKg: 20,
+    idempotencyKey: crypto.randomUUID(),
     ...overrides,
   });
 }
@@ -143,6 +144,18 @@ describe("Gym session routes", () => {
     const second = await logSet(session.id, { weightKg: 22.5 });
     expect(second.status).toBe(201);
     expect(((await second.json()) as { setNumber: number }).setNumber).toBe(2);
+  });
+
+  it("rejects a set without an idempotency key", async () => {
+    const session = await startSession();
+
+    const res = await postJson(`/api/gym/sessions/${session.id}/sets`, {
+      exerciseId,
+      reps: 10,
+      weightKg: 20,
+    });
+
+    expect(res.status).toBe(422);
   });
 
   it("deletes a set and renumbers the remaining sets", async () => {
@@ -811,6 +824,7 @@ describe("Gym session routes", () => {
           exerciseId,
           reps: 10,
           weightKg: 20,
+          idempotencyKey: crypto.randomUUID(),
         })
       ).rejects.toBeInstanceOf(NotFoundError);
 

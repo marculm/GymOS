@@ -96,7 +96,12 @@ function createService() {
       async (
         _userId: string,
         _sessionId: string,
-        _input: { exerciseId: string; reps: number; weightKg: number }
+        _input: {
+          exerciseId: string;
+          reps: number;
+          weightKg: number;
+          idempotencyKey: string;
+        }
       ) => ({ kind: "created", set: loggedSet }) as LogSetResult
     ),
     completeIfOpen: vi.fn(
@@ -369,15 +374,18 @@ describe("GymWriteService", () => {
     );
   });
 
+  const setInput = {
+    exerciseId,
+    reps: 10,
+    weightKg: 20,
+    idempotencyKey: "00000000-0000-4000-8000-000000000002",
+  };
+
   it("returns a created set", async () => {
     const { service } = createService();
 
     await expect(
-      service.logSet("user-1", "session-1", {
-        exerciseId,
-        reps: 10,
-        weightKg: 20,
-      })
+      service.logSet("user-1", "session-1", setInput)
     ).resolves.toEqual(loggedSet);
   });
 
@@ -391,11 +399,7 @@ describe("GymWriteService", () => {
     sessionRepository.logSet.mockResolvedValueOnce({ kind } as LogSetResult);
 
     await expect(
-      service.logSet("user-1", "session-1", {
-        exerciseId,
-        reps: 10,
-        weightKg: 20,
-      })
+      service.logSet("user-1", "session-1", setInput)
     ).rejects.toBeInstanceOf(error);
   });
 

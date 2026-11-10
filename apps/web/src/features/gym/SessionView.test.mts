@@ -615,11 +615,14 @@ describe("SessionView", () => {
     );
 
     await waitFor(() => {
-      expect(onLogSet).toHaveBeenCalledWith({
-        exerciseId: "exercise-1",
-        weightKg: 82.5,
-        reps: 6,
-      });
+      expect(onLogSet).toHaveBeenCalledWith(
+        expect.objectContaining({
+          exerciseId: "exercise-1",
+          weightKg: 82.5,
+          reps: 6,
+          idempotencyKey: expect.any(String),
+        })
+      );
     });
   });
 
@@ -638,11 +641,14 @@ describe("SessionView", () => {
     );
 
     await waitFor(() => {
-      expect(onLogSet).toHaveBeenCalledWith({
-        exerciseId: "exercise-2",
-        weightKg: 15,
-        reps: 12,
-      });
+      expect(onLogSet).toHaveBeenCalledWith(
+        expect.objectContaining({
+          exerciseId: "exercise-2",
+          weightKg: 15,
+          reps: 12,
+          idempotencyKey: expect.any(String),
+        })
+      );
     });
   });
 
@@ -822,11 +828,14 @@ describe("SessionView", () => {
     await fireEvent.click(form.getByRole("button", { name: /add set/i }));
 
     await waitFor(() => {
-      expect(onLogSet).toHaveBeenCalledWith({
-        exerciseId: "exercise-1",
-        weightKg: 65,
-        reps: 5,
-      });
+      expect(onLogSet).toHaveBeenCalledWith(
+        expect.objectContaining({
+          exerciseId: "exercise-1",
+          weightKg: 65,
+          reps: 5,
+          idempotencyKey: expect.any(String),
+        })
+      );
     });
   });
 
@@ -1369,11 +1378,14 @@ describe("SessionView", () => {
     );
 
     await waitFor(() => {
-      expect(onLogSet).toHaveBeenCalledWith({
-        exerciseId: "exercise-2",
-        weightKg: 20,
-        reps: 10,
-      });
+      expect(onLogSet).toHaveBeenCalledWith(
+        expect.objectContaining({
+          exerciseId: "exercise-2",
+          weightKg: 20,
+          reps: 10,
+          idempotencyKey: expect.any(String),
+        })
+      );
     });
   });
 
