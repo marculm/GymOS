@@ -494,7 +494,8 @@ apps/web/
   card auto-collapses when its logged sets reach the target; re-expanding it keeps it open
   while extra sets are logged. Done cards use a muted background and text; free and
   ad-hoc cards have no target and are manual-only (ADR-0019, ADR-0029).
-- Every weight input shows the exercise's `defaultWeightKg` as a placeholder. Completing a
+- Every weight input shows the exercise's `defaultWeightKg` as a placeholder, capped at
+  `MAX_SET_WEIGHT_KG` so the set form always accepts it (ADR-0022). Completing a
   session derives new defaults from all sets of the exercise in the last two completed
   workouts: average weight rounded to 0.5 kg, and average reps of the sets within 2.5 kg
   of it. Reps are not prefilled, and RPE is no longer recorded (ADR-0039, ADR-0031).
