@@ -39,11 +39,6 @@ export const app = new Hono();
 
 app.use(secureHeaders());
 app.use(cors(corsOptions));
-app.use(async (c, next) => {
-  c.header("X-Content-Type-Options", "nosniff");
-  c.header("X-Frame-Options", "SAMEORIGIN");
-  await next();
-});
 app.use(compress());
 app.use(trackMetrics);
 app.use(responseTime, requestLogger);
