@@ -4,6 +4,7 @@ import { MAX_SET_WEIGHT_KG } from "../limits.mts";
 import {
   CreateExerciseSchema,
   CreateWorkoutPlanSchema,
+  CreateWorkoutSessionSchema,
   CreateWorkoutSetSchema,
   LoggedSetSchema,
   UpdateExerciseSchema,
@@ -103,6 +104,22 @@ describe("CreateWorkoutPlanSchema", () => {
     });
   });
 
+  it("rejects a whitespace-only name", () => {
+    const result = CreateWorkoutPlanSchema.safeParse({
+      name: "   ",
+      exercises: [{ exerciseId: "00000000-0000-4000-8000-000000000001" }],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("trims the name", () => {
+    const result = CreateWorkoutPlanSchema.parse({
+      name: "  Push Day  ",
+      exercises: [{ exerciseId: "00000000-0000-4000-8000-000000000001" }],
+    });
+    expect(result.name).toBe("Push Day");
+  });
+
   it("rejects an empty exercise list", () => {
     expect(CreateWorkoutPlanSchema.safeParse({ name: "Empty", exercises: [] }).success).toBe(false);
   });
@@ -132,6 +149,18 @@ describe("CreateWorkoutPlanSchema", () => {
     expect(result.success).toBe(false);
     expect(result.error?.issues.map((issue) => issue.message)).toContain(
       "Each exercise can only be added once"
+    );
+  });
+});
+
+describe("CreateWorkoutSessionSchema", () => {
+  it("rejects a whitespace-only title", () => {
+    expect(CreateWorkoutSessionSchema.safeParse({ title: "   " }).success).toBe(false);
+  });
+
+  it("trims the title", () => {
+    expect(CreateWorkoutSessionSchema.parse({ title: "  Push Day  " }).title).toBe(
+      "Push Day"
     );
   });
 });

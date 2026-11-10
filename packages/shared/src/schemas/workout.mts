@@ -35,7 +35,7 @@ export const CreateExerciseSchema = z.object({
 export const UpdateExerciseSchema = CreateExerciseSchema;
 
 export const CreateWorkoutPlanSchema = z.object({
-  name: z.string().min(1).max(100),
+  name: z.string().trim().min(1).max(100),
   description: z.string().max(500).optional(),
   exercises: z
     .array(
@@ -91,7 +91,7 @@ export const WorkoutRotationSchema = z.object({
 });
 
 export const CreateWorkoutSessionSchema = z.object({
-  title: z.string().min(1).max(100).optional(),
+  title: z.string().trim().min(1).max(100).optional(),
   planId: z.string().uuid().optional(),
 });
 
