@@ -103,6 +103,22 @@ describe("CreateWorkoutPlanSchema", () => {
     });
   });
 
+  it("rejects a whitespace-only name", () => {
+    const result = CreateWorkoutPlanSchema.safeParse({
+      name: "   ",
+      exercises: [{ exerciseId: "00000000-0000-4000-8000-000000000001" }],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("trims the name", () => {
+    const result = CreateWorkoutPlanSchema.parse({
+      name: "  Push Day  ",
+      exercises: [{ exerciseId: "00000000-0000-4000-8000-000000000001" }],
+    });
+    expect(result.name).toBe("Push Day");
+  });
+
   it("rejects an empty exercise list", () => {
     expect(CreateWorkoutPlanSchema.safeParse({ name: "Empty", exercises: [] }).success).toBe(false);
   });
