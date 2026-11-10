@@ -1055,6 +1055,41 @@ describe("GymView", () => {
     await waitFor(() => expect(getRotation).toHaveBeenCalledTimes(2));
   });
 
+  it("returns to the gym screen when deleting a set finds the session already completed", async () => {
+    vi.stubGlobal("confirm", vi.fn(() => true));
+    vi.mocked(getActiveSession)
+      .mockResolvedValueOnce({
+        ...session,
+        sets: [
+          {
+            id: "set-1",
+            exerciseId: "exercise-1",
+            exerciseName: "Bench Press",
+            setNumber: 1,
+            reps: 8,
+            weightKg: 80,
+            createdAt: "2026-10-26T18:05:00.000Z",
+          },
+        ],
+      })
+      .mockResolvedValueOnce(null);
+    vi.mocked(deleteSet).mockRejectedValueOnce(
+      new ApiError(409, "Session is already completed")
+    );
+
+    render(GymView);
+
+    await fireEvent.click(
+      await screen.findByRole("button", { name: "Expand Bench Press" })
+    );
+    await fireEvent.click(
+      await screen.findByRole("button", { name: "Delete set 1 for Bench Press" })
+    );
+
+    expect(await startScreenReady()).toBeInTheDocument();
+    await waitFor(() => expect(getRotation).toHaveBeenCalledTimes(2));
+  });
+
   it("keeps the finished state when the defaults refresh fails", async () => {
     vi.mocked(getActiveSession).mockResolvedValue(session);
     vi.mocked(getRotation).mockResolvedValue({

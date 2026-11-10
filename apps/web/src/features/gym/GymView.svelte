@@ -275,7 +275,12 @@
     const deleted = activeSession.sets.find((set) => set.id === setId);
     if (!deleted) return;
 
-    await deleteSet(activeSession.id, setId);
+    try {
+      await deleteSet(activeSession.id, setId);
+    } catch (deleteError) {
+      if (await recoverCompletedSession(deleteError)) return;
+      throw deleteError;
+    }
 
     const counters = new Map<string, number>();
     const sets = activeSession.sets
