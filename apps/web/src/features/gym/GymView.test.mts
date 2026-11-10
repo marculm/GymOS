@@ -1009,6 +1009,27 @@ describe("GymView", () => {
     expect(await screen.findByText("5 × 6 @ 85 kg")).toBeInTheDocument();
   });
 
+  it("returns to the gym screen when finishing finds the session already completed", async () => {
+    vi.mocked(getActiveSession)
+      .mockResolvedValueOnce(session)
+      .mockResolvedValueOnce(null);
+    vi.mocked(completeSession).mockRejectedValueOnce(
+      new ApiError(409, "Session is already completed")
+    );
+
+    render(GymView);
+
+    await fireEvent.click(
+      await screen.findByRole("button", { name: /finish workout/i })
+    );
+
+    expect(await startScreenReady()).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /finish workout/i })
+    ).not.toBeInTheDocument();
+    await waitFor(() => expect(getRotation).toHaveBeenCalledTimes(2));
+  });
+
   it("keeps the finished state when the defaults refresh fails", async () => {
     vi.mocked(getActiveSession).mockResolvedValue(session);
     vi.mocked(getRotation).mockResolvedValue({

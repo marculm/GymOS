@@ -286,9 +286,7 @@
     activeSession = { ...activeSession, sets };
   }
 
-  async function handleComplete() {
-    if (!activeSession) return;
-    await completeSession(activeSession.id);
+  async function refreshAfterFinish() {
     activeSession = null;
     try {
       rotation = await getRotation();
@@ -308,6 +306,26 @@
     } catch {
       // The workout is complete; defaults refresh on the next load.
     }
+  }
+
+  async function recoverCompletedSession(operationError: unknown): Promise<boolean> {
+    if (!(operationError instanceof ApiError) || operationError.status !== 409) {
+      return false;
+    }
+    if (await getActiveSession()) return false;
+    await refreshAfterFinish();
+    return true;
+  }
+
+  async function handleComplete() {
+    if (!activeSession) return;
+    try {
+      await completeSession(activeSession.id);
+    } catch (completeError) {
+      if (await recoverCompletedSession(completeError)) return;
+      throw completeError;
+    }
+    await refreshAfterFinish();
   }
 
   const nextPlan = $derived.by(() => {
