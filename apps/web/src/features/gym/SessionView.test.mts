@@ -246,6 +246,17 @@ describe("SessionView", () => {
     ).toBeInTheDocument();
   });
 
+  it("renders plan exercise notes", () => {
+    renderSession({
+      plan: {
+        ...plan,
+        exercises: [{ ...planExercise, notes: "Pause at the bottom." }],
+      },
+    });
+
+    expect(screen.getByText("Pause at the bottom.")).toBeInTheDocument();
+  });
+
   it("starts with every card collapsed", () => {
     renderSession({
       plan: twoExercisePlan,
