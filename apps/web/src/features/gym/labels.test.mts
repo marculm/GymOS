@@ -6,7 +6,7 @@ import {
 } from "@gymos/shared/labels";
 
 describe("shared labels subpath", () => {
-  it("exposes the Zod-free constants", () => {
+  it("exposes the labels from the subpath", () => {
     expect(MUSCLE_GROUPS).toEqual([
       "chest",
       "back",
