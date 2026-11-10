@@ -33,7 +33,7 @@ Zod-free constants live in `packages/shared/src/labels.mts` and are exported as 
 ## Consequences
 
 - The web bundle no longer contains the Zod schemas or Zod runtime code; the built
-  bundle drops from about 243 kB to about 93 kB minified.
+  bundle drops by about 92 kB, from about 243 kB to about 151 kB minified.
 - The browser and the API read the same constant values, so their messages and muscle
   groups cannot drift.
 - Adding a subpath is a one-line `exports` entry in `packages/shared/package.json`.
