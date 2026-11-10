@@ -586,7 +586,30 @@ describe("GymView", () => {
     });
   });
 
-  it("omits cleared exercise notes from the plan payload", async () => {
+  it("fills exercise notes when editing a plan", async () => {
+    const notedPlan: WorkoutPlan = {
+      ...plan,
+      exercises: plan.exercises.map((entry) => ({
+        ...entry,
+        notes: "Pause at the bottom.",
+      })),
+    };
+    vi.mocked(listAllPlans).mockResolvedValueOnce([notedPlan]);
+
+    render(GymView);
+
+    await startScreenReady();
+    await openTab("Plans");
+    await fireEvent.click(
+      screen.getByRole("button", { name: /edit push day/i })
+    );
+
+    expect(
+      await screen.findByLabelText("Notes (optional) for Bench Press")
+    ).toHaveValue("Pause at the bottom.");
+  });
+
+  it("omits blank exercise notes from the plan payload", async () => {
     vi.mocked(createPlan).mockResolvedValueOnce({ ...plan, id: "plan-2" });
 
     render(GymView);
@@ -600,7 +623,7 @@ describe("GymView", () => {
     });
     const notes = screen.getByLabelText("Notes (optional) for Bench Press");
     await fireEvent.input(notes, { target: { value: "Tempo" } });
-    await fireEvent.input(notes, { target: { value: "" } });
+    await fireEvent.input(notes, { target: { value: "   " } });
     await clickSubmit(screen.getByRole("button", { name: /save plan/i }));
 
     await waitFor(() => expect(createPlan).toHaveBeenCalled());
