@@ -22,7 +22,8 @@ The shared workout schemas enforce:
 - each exercise at most once per plan.
 
 Plans no longer accept target sets or reps (ADR-0038). Exercise defaults keep their
-bounds: `defaultSets` at most 20 and `defaultReps` at most 100.
+bounds: `defaultSets` at most 20, `defaultReps` at most 100, and `defaultWeightKg` at
+most `MAX_SET_WEIGHT_KG` (ADR-0022).
 
 The plan and exercise forms enforce the same limits so the UI and API agree. The API
 remains the authority: invalid input is rejected with `422` problem details.

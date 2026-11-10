@@ -23,7 +23,7 @@ stale.
 - With a single completed session, use it. Without completed sets, keep the current
   defaults (and a missing `defaultWeightKg` stays missing).
 - `defaultWeightKg` is the average of all set weights in those sessions, rounded to the
-  nearest 0.5 kg.
+  nearest 0.5 kg and capped at `MAX_SET_WEIGHT_KG` (ADR-0022).
 - `defaultReps` is the average reps of the sets within 2.5 kg of the rounded weight,
   inclusive, rounded to the nearest integer. If no set is within that window, average all
   sets.

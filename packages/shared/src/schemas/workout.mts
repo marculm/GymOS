@@ -28,7 +28,12 @@ export const CreateExerciseSchema = z.object({
   description: z.string().max(500).nullable().optional(),
   defaultSets: z.number().int().min(1).max(20).optional(),
   defaultReps: z.number().int().min(1).max(100).optional(),
-  defaultWeightKg: z.number().nonnegative().nullable().optional(),
+  defaultWeightKg: z
+    .number()
+    .nonnegative()
+    .max(MAX_SET_WEIGHT_KG)
+    .nullable()
+    .optional(),
 });
 
 export const UpdateExerciseSchema = CreateExerciseSchema;

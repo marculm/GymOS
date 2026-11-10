@@ -24,8 +24,11 @@ Both maxima are above any realistic human set and far below the 32-bit limit, so
 block pathological input without rejecting real training. `CreateWorkoutSetSchema`
 uses them, and the session form imports them from the `@gymos/shared/limits` subpath
 for the `max` attributes on the reps and weight inputs. The subpath keeps Zod out of
-the web bundle. Out-of-range input fails Zod validation in the router and is returned
-as `422` problem details before it reaches the repository or the database.
+the web bundle. `CreateExerciseSchema.defaultWeightKg` and the exercise register input
+use the same `MAX_SET_WEIGHT_KG` bound, so a stored default is always a value the set
+form accepts as its placeholder. Out-of-range input fails Zod validation in the router
+and is returned as `422` problem details before it reaches the repository or the
+database.
 
 Plan targets are no longer stored; the plan response derives them from the exercise
 defaults (ADR-0038).
