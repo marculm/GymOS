@@ -4,6 +4,7 @@ import { MAX_SET_WEIGHT_KG } from "../limits.mts";
 import {
   CreateExerciseSchema,
   CreateWorkoutPlanSchema,
+  CreateWorkoutSessionSchema,
   CreateWorkoutSetSchema,
   LoggedSetSchema,
   UpdateExerciseSchema,
@@ -148,6 +149,18 @@ describe("CreateWorkoutPlanSchema", () => {
     expect(result.success).toBe(false);
     expect(result.error?.issues.map((issue) => issue.message)).toContain(
       "Each exercise can only be added once"
+    );
+  });
+});
+
+describe("CreateWorkoutSessionSchema", () => {
+  it("rejects a whitespace-only title", () => {
+    expect(CreateWorkoutSessionSchema.safeParse({ title: "   " }).success).toBe(false);
+  });
+
+  it("trims the title", () => {
+    expect(CreateWorkoutSessionSchema.parse({ title: "  Push Day  " }).title).toBe(
+      "Push Day"
     );
   });
 });

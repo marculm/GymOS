@@ -91,7 +91,7 @@ export const WorkoutRotationSchema = z.object({
 });
 
 export const CreateWorkoutSessionSchema = z.object({
-  title: z.string().min(1).max(100).optional(),
+  title: z.string().trim().min(1).max(100).optional(),
   planId: z.string().uuid().optional(),
 });
 
