@@ -255,9 +255,10 @@ Repositories own all Prisma access (ADR-0007):
 - One repository per aggregate: exercises, plans, rotation, sessions.
 - They map Prisma rows to `packages/shared` contract types.
 - They translate Prisma errors into domain errors:
-  - `P2002` → duplicate plan name, duplicate exercise name, or duplicate set; a
-    rotation unique conflict is retried and, if it persists, becomes a concurrent
-    update.
+  - `P2002` → duplicate plan name, duplicate exercise name, or duplicate set. A set
+    conflict re-reads the idempotency key and returns the stored set; without a match
+    it is a duplicate set (ADR-0047). A rotation unique conflict is retried and, if it
+    persists, becomes a concurrent update.
   - `P2034` after retries → concurrent update.
 - `transaction.mts` owns `withSerializableRetry`, which retries `P2034` up to three
   times. Rotation replacement also retries `P2002` conflicts up to three times.
@@ -486,7 +487,8 @@ apps/web/
 - Set logging happens inside each exercise card: plan cards show their target and their
   own form; free sessions build cards with an "Add exercise" control. No global set form
   remains (ADR-0029). An expanded card also opens the shared exercise form for editing its
-  defaults (ADR-0019, ADR-0024).
+  defaults (ADR-0019, ADR-0024). Each submission carries a client-generated idempotency
+  key, so retrying a failed one replays the stored set (ADR-0047).
 - Every exercise card starts collapsed and the exercise name is its toggle. A collapsed
   card shows only the name, plus a visible "Done" label once the card is done. A planned
   card auto-collapses when its logged sets reach the target; re-expanding it keeps it open
@@ -602,6 +604,7 @@ Two test tiers:
 Required regression coverage (ADR-0018):
 
 - Five parallel set posts produce unique, contiguous set numbers or a `409`.
+- A repeated idempotency key returns the same set and leaves one row.
 - A log-vs-complete race never leaves a set on a completed session.
 - Two-user isolation: user B gets `404` for user A's session and plans.
 - Pagination metadata for empty and non-empty pages.
@@ -694,3 +697,4 @@ The target architecture deliberately excludes:
 | [0041](adr/0041-set-form-enter-and-hover.md) | Set form Enter submission and guarded hover |
 | [0043](adr/0043-edit-logged-set.md) | Edit a logged set in completed history |
 | [0044](adr/0044-web-push-rest-timer.md) | Web push when the rest timer ends |
+| [0047](adr/0047-set-logging-idempotency.md) | Idempotent set logging |
