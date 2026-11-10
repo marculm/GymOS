@@ -1093,6 +1093,36 @@ describe("GymView", () => {
     await waitFor(() => expect(getRotation).toHaveBeenCalledTimes(2));
   });
 
+  it("keeps the session when a conflict still has an active session", async () => {
+    vi.mocked(getActiveSession).mockResolvedValue(session);
+    vi.mocked(addSet).mockRejectedValueOnce(
+      new ApiError(409, "Set was already logged, retry")
+    );
+
+    render(GymView);
+
+    await fireEvent.click(
+      await screen.findByRole("button", { name: "Expand Bench Press" })
+    );
+    await fireEvent.input(screen.getByLabelText("Weight (kg)"), {
+      target: { value: "80" },
+    });
+    await fireEvent.input(screen.getByLabelText("Reps"), {
+      target: { value: "8" },
+    });
+    await clickSubmit(screen.getByRole("button", { name: /add set/i }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Set was already logged, retry"
+    );
+    expect(
+      screen.getByRole("button", { name: /finish workout/i })
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /other workout/i })
+    ).not.toBeInTheDocument();
+  });
+
   it("keeps the finished state when the defaults refresh fails", async () => {
     vi.mocked(getActiveSession).mockResolvedValue(session);
     vi.mocked(getRotation).mockResolvedValue({
