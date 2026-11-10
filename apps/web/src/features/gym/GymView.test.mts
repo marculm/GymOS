@@ -537,6 +537,34 @@ describe("GymView", () => {
     expect(input?.exercises[0]).not.toHaveProperty("targetWeightKg");
   });
 
+  it("saves exercise notes from the plan form", async () => {
+    vi.mocked(createPlan).mockResolvedValueOnce({ ...plan, id: "plan-2" });
+
+    render(GymView);
+
+    await startScreenReady();
+    await openTab("Plans");
+    await fireEvent.click(screen.getByRole("button", { name: /new plan/i }));
+
+    await fireEvent.input(screen.getByLabelText("Name"), {
+      target: { value: "Leg Day" },
+    });
+    await fireEvent.input(screen.getByLabelText("Notes for Bench Press"), {
+      target: { value: "Pause at the bottom." },
+    });
+    await clickSubmit(screen.getByRole("button", { name: /save plan/i }));
+
+    await waitFor(() => {
+      expect(createPlan).toHaveBeenCalledWith(
+        expect.objectContaining({
+          exercises: [
+            { exerciseId: exercise.id, notes: "Pause at the bottom." },
+          ],
+        })
+      );
+    });
+  });
+
   it("removes a plan row", async () => {
     vi.mocked(listAllExercises).mockResolvedValueOnce([exercise, extraExercise]);
     vi.mocked(createPlan).mockResolvedValueOnce({
