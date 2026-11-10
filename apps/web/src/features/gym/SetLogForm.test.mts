@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, type Mock } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/svelte";
 import type { Exercise } from "@gymos/shared";
 import { MAX_SET_WEIGHT_KG } from "@gymos/shared/limits";
@@ -14,26 +14,14 @@ const exercise: Exercise = {
   defaultWeightKg: null,
 };
 
-const UUID_PATTERN =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-type SubmitInput = { reps: number; weightKg: number; idempotencyKey: string };
-
-function renderForm(
-  overrides: {
-    exercise?: Exercise;
-    onSubmit?: Mock<(input: SubmitInput) => Promise<boolean>>;
-  } = {}
-) {
-  const onSubmit =
-    overrides.onSubmit ??
-    vi.fn<(input: SubmitInput) => Promise<boolean>>().mockResolvedValue(true);
+function renderForm(overrides: { exercise?: Exercise } = {}) {
+  const onSubmit = vi.fn().mockResolvedValue(true);
 
   render(SetLogForm, {
     props: {
       exercise,
-      ...overrides,
       onSubmit,
+      ...overrides,
     },
   });
 
@@ -41,10 +29,6 @@ function renderForm(
     onSubmit,
     weight: screen.getByLabelText("Weight (kg)"),
     reps: screen.getByLabelText("Reps"),
-    submit: () =>
-      fireEvent.submit(
-        screen.getByRole("form", { name: "Add set for Bench Press" })
-      ),
   };
 }
 
@@ -59,13 +43,7 @@ describe("SetLogForm", () => {
     await fireEvent.keyDown(weight, { key: "Enter" });
 
     await waitFor(() => {
-      expect(onSubmit).toHaveBeenCalledWith(
-        expect.objectContaining({
-          reps: 8,
-          weightKg: 82.5,
-          idempotencyKey: expect.stringMatching(UUID_PATTERN),
-        })
-      );
+      expect(onSubmit).toHaveBeenCalledWith({ reps: 8, weightKg: 82.5 });
     });
     expect(onSubmit).toHaveBeenCalledTimes(1);
     expect(weight).toHaveFocus();
@@ -94,13 +72,7 @@ describe("SetLogForm", () => {
     await fireEvent.keyDown(weight, { key: "Enter" });
 
     await waitFor(() => {
-      expect(onSubmit).toHaveBeenCalledWith(
-        expect.objectContaining({
-          reps: 8,
-          weightKg: 65,
-          idempotencyKey: expect.stringMatching(UUID_PATTERN),
-        })
-      );
+      expect(onSubmit).toHaveBeenCalledWith({ reps: 8, weightKg: 65 });
     });
     expect(onSubmit).toHaveBeenCalledTimes(1);
     expect(reps).not.toHaveFocus();
@@ -136,54 +108,8 @@ describe("SetLogForm", () => {
     );
 
     await waitFor(() => {
-      expect(onSubmit).toHaveBeenCalledWith(
-        expect.objectContaining({
-          reps: 8,
-          weightKg: 22.25,
-          idempotencyKey: expect.stringMatching(UUID_PATTERN),
-        })
-      );
+      expect(onSubmit).toHaveBeenCalledWith({ reps: 8, weightKg: 22.25 });
     });
-  });
-
-  it("retries a failed submission with the same idempotency key", async () => {
-    const onSubmit = vi
-      .fn<(input: SubmitInput) => Promise<boolean>>()
-      .mockRejectedValueOnce(new Error("Network down"))
-      .mockResolvedValueOnce(true);
-    const { weight, reps, submit } = renderForm({ onSubmit });
-
-    await fireEvent.input(reps, { target: { value: "8" } });
-    await fireEvent.input(weight, { target: { value: "80" } });
-    await submit();
-
-    await waitFor(() => {
-      expect(screen.getByRole("alert")).toHaveTextContent("Network down");
-    });
-
-    await submit();
-
-    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(2));
-    const [first, second] = onSubmit.mock.calls;
-    expect(first?.[0].idempotencyKey).toMatch(UUID_PATTERN);
-    expect(second?.[0].idempotencyKey).toBe(first?.[0].idempotencyKey);
-  });
-
-  it("uses a new idempotency key for the next set", async () => {
-    const { onSubmit, weight, reps, submit } = renderForm();
-
-    await fireEvent.input(reps, { target: { value: "8" } });
-    await fireEvent.input(weight, { target: { value: "80" } });
-    await submit();
-    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
-
-    await fireEvent.input(reps, { target: { value: "6" } });
-    await fireEvent.input(weight, { target: { value: "82.5" } });
-    await submit();
-    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(2));
-
-    const [first, second] = onSubmit.mock.calls;
-    expect(second?.[0].idempotencyKey).not.toBe(first?.[0].idempotencyKey);
   });
 
   it("formats the default weight placeholder", () => {

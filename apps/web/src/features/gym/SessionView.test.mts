@@ -198,6 +198,9 @@ async function expand(name: string) {
   );
 }
 
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 async function collapse(name: string) {
   await fireEvent.click(
     screen.getByRole("button", { name: `Collapse ${name}` })
@@ -624,6 +627,98 @@ describe("SessionView", () => {
         })
       );
     });
+  });
+
+  it("retries a failed set with the same idempotency key", async () => {
+    const onLogSet = vi
+      .fn<(input: CreateWorkoutSetInput) => Promise<void>>()
+      .mockRejectedValueOnce(new Error("Network down"))
+      .mockResolvedValueOnce(undefined);
+    renderSession({ onLogSet });
+    await expand("Bench Press");
+    const form = cardForm("Bench Press");
+
+    await fireEvent.input(form.getByLabelText("Weight (kg)"), {
+      target: { value: "80" },
+    });
+    await fireEvent.input(form.getByLabelText("Reps"), {
+      target: { value: "8" },
+    });
+    await fireEvent.click(form.getByRole("button", { name: /add set/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("alert")).toHaveTextContent("Network down");
+    });
+
+    await fireEvent.click(form.getByRole("button", { name: /add set/i }));
+    await waitFor(() => expect(onLogSet).toHaveBeenCalledTimes(2));
+
+    const [first, second] = onLogSet.mock.calls;
+    expect(first?.[0].idempotencyKey).toMatch(UUID_PATTERN);
+    expect(second?.[0].idempotencyKey).toBe(first?.[0].idempotencyKey);
+  });
+
+  it("keeps the pending set key when the card is reopened", async () => {
+    const onLogSet = vi
+      .fn<(input: CreateWorkoutSetInput) => Promise<void>>()
+      .mockRejectedValueOnce(new Error("Network down"))
+      .mockResolvedValueOnce(undefined);
+    renderSession({ onLogSet });
+    await expand("Bench Press");
+
+    await fireEvent.input(cardForm("Bench Press").getByLabelText("Weight (kg)"), {
+      target: { value: "80" },
+    });
+    await fireEvent.input(cardForm("Bench Press").getByLabelText("Reps"), {
+      target: { value: "8" },
+    });
+    await fireEvent.click(
+      cardForm("Bench Press").getByRole("button", { name: /add set/i })
+    );
+    await waitFor(() => {
+      expect(screen.getByRole("alert")).toHaveTextContent("Network down");
+    });
+
+    await collapse("Bench Press");
+    await expand("Bench Press");
+    await fireEvent.input(cardForm("Bench Press").getByLabelText("Weight (kg)"), {
+      target: { value: "80" },
+    });
+    await fireEvent.input(cardForm("Bench Press").getByLabelText("Reps"), {
+      target: { value: "8" },
+    });
+    await fireEvent.click(
+      cardForm("Bench Press").getByRole("button", { name: /add set/i })
+    );
+
+    await waitFor(() => expect(onLogSet).toHaveBeenCalledTimes(2));
+    const [first, second] = onLogSet.mock.calls;
+    expect(second?.[0].idempotencyKey).toBe(first?.[0].idempotencyKey);
+  });
+
+  it("uses a new key for the set after a successful one", async () => {
+    const onLogSet = vi
+      .fn<(input: CreateWorkoutSetInput) => Promise<void>>()
+      .mockResolvedValue(undefined);
+    renderSession({ onLogSet });
+    await expand("Bench Press");
+
+    for (const reps of ["8", "6"]) {
+      await fireEvent.input(
+        cardForm("Bench Press").getByLabelText("Weight (kg)"),
+        { target: { value: "80" } }
+      );
+      await fireEvent.input(cardForm("Bench Press").getByLabelText("Reps"), {
+        target: { value: reps },
+      });
+      await fireEvent.click(
+        cardForm("Bench Press").getByRole("button", { name: /add set/i })
+      );
+    }
+    await waitFor(() => expect(onLogSet).toHaveBeenCalledTimes(2));
+
+    const [first, second] = onLogSet.mock.calls;
+    expect(second?.[0].idempotencyKey).not.toBe(first?.[0].idempotencyKey);
   });
 
   it("logs each card's set for that card's exercise", async () => {
