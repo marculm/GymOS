@@ -517,6 +517,10 @@ apps/web/
   the corrected set replaces the row without reloading (ADR-0043).
 - After a start conflict (`409`), the screen re-reads the active session; if none exists,
   it retries the start once or shows a message (ADR-0019).
+- After a `409` from finishing, logging a set, or deleting a set, the screen re-reads the
+  active session; if none exists, the session was already completed elsewhere, so it
+  clears the session and refreshes rotation and defaults as a successful finish would
+  (ADR-0050).
 - Plan start actions include the plan name, errors render in `role="alert"` live regions,
   and starting or finishing a session moves focus to the session or next-workout heading
   (ADR-0034).
@@ -701,3 +705,4 @@ The target architecture deliberately excludes:
 | [0047](adr/0047-set-logging-idempotency.md) | Idempotent set logging |
 | [0048](adr/0048-zod-free-labels-subpath.md) | Zod-free labels subpath |
 | [0049](adr/0049-trim-plan-names-and-session-titles.md) | Trim plan names and session titles |
+| [0050](adr/0050-recover-completed-session-on-conflict.md) | Recover the gym screen from a completed-session conflict |
