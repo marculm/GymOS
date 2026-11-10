@@ -10,6 +10,12 @@ describe("GymOS API Server", () => {
     }
   });
 
+  it("sets the security headers", async () => {
+    const res = await app.request("/health/liveness");
+    expect(res.headers.get("x-content-type-options")).toBe("nosniff");
+    expect(res.headers.get("x-frame-options")).toBe("SAMEORIGIN");
+  });
+
   it("answers readiness when the database is available", async () => {
     const res = await app.request("/health/readiness");
     expect(res.status).toBe(200);

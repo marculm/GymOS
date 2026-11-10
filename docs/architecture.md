@@ -188,11 +188,11 @@ not import each other (ADR-0006). Shared code lives in `src/lib/` or
 Global middleware is registered before routes, in this order:
 
 ```text
-secureHeaders → cors → securityHeaders → compress → trackMetrics
+secureHeaders → cors → compress → trackMetrics
               → responseTime → requestLogger → route
 ```
 
-- `secureHeaders` and the custom security headers set `X-Content-Type-Options` and
+- `secureHeaders` sets the security headers, including `X-Content-Type-Options` and
   `X-Frame-Options`.
 - `cors` uses `config/cors.mts` and the `CORS_ORIGINS` environment variable.
 - `compress` compresses compressible responses.
@@ -352,7 +352,7 @@ Other configuration modules:
 - `config/app.mts` — pagination defaults, runtime settings.
 - `config/paths.mts` — route prefixes (`/api/gym`, `/health`, `/prometheus`, ...).
 - `config/cors.mts` — CORS options.
-- `config/server.mts` — port, host, and `NODE_ENV`.
+- `config/server.mts` — port and host.
 - `config/prisma-client.mts` — Prisma client, `connectDB`, `disconnectDB`, and the
   `globalThis` cache used by `bun --watch`.
 
