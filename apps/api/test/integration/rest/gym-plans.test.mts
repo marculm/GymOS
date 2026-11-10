@@ -375,6 +375,7 @@ describe("Gym plan routes", () => {
           exerciseId,
           reps: 8,
           weightKg: 60,
+          idempotencyKey: crypto.randomUUID(),
         })
       ).status
     ).toBe(201);
@@ -412,6 +413,7 @@ describe("Gym plan routes", () => {
       exerciseId,
       reps: 8,
       weightKg: 60,
+      idempotencyKey: crypto.randomUUID(),
     });
     expect(set.status).toBe(201);
     expect(

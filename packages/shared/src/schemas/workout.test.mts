@@ -155,11 +155,14 @@ describe("UpdateWorkoutRotationSchema", () => {
 });
 
 describe("CreateWorkoutSetSchema", () => {
+  const idempotencyKey = "00000000-0000-4000-8000-000000000002";
+
   it("accepts bodyweight sets with zero weight", () => {
     const result = CreateWorkoutSetSchema.safeParse({
       exerciseId: "00000000-0000-4000-8000-000000000001",
       reps: 10,
       weightKg: 0,
+      idempotencyKey,
     });
     expect(result.success).toBe(true);
   });
@@ -169,6 +172,7 @@ describe("CreateWorkoutSetSchema", () => {
       exerciseId: "00000000-0000-4000-8000-000000000001",
       reps: 1000,
       weightKg: 1000,
+      idempotencyKey,
     });
     expect(result.success).toBe(true);
   });
@@ -178,6 +182,7 @@ describe("CreateWorkoutSetSchema", () => {
       exerciseId: "00000000-0000-4000-8000-000000000001",
       reps: 1001,
       weightKg: 20,
+      idempotencyKey,
     });
     expect(result.success).toBe(false);
   });
@@ -187,6 +192,26 @@ describe("CreateWorkoutSetSchema", () => {
       exerciseId: "00000000-0000-4000-8000-000000000001",
       reps: 10,
       weightKg: 1000.5,
+      idempotencyKey,
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("requires an idempotency key", () => {
+    const result = CreateWorkoutSetSchema.safeParse({
+      exerciseId: "00000000-0000-4000-8000-000000000001",
+      reps: 10,
+      weightKg: 20,
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects an idempotency key that is not a UUID", () => {
+    const result = CreateWorkoutSetSchema.safeParse({
+      exerciseId: "00000000-0000-4000-8000-000000000001",
+      reps: 10,
+      weightKg: 20,
+      idempotencyKey: "retry-1",
     });
     expect(result.success).toBe(false);
   });
@@ -196,6 +221,7 @@ describe("CreateWorkoutSetSchema", () => {
       exerciseId: "00000000-0000-4000-8000-000000000001",
       reps: 10,
       weightKg: 20,
+      idempotencyKey,
       rpe: 9,
     });
     expect(result).not.toHaveProperty("rpe");

@@ -4,7 +4,7 @@
   import type { CreateWorkoutSetInput, Exercise } from "@gymos/shared";
   import { formatWeight } from "./format.mts";
 
-  type SetInput = Omit<CreateWorkoutSetInput, "exerciseId">;
+  type SetInput = Omit<CreateWorkoutSetInput, "exerciseId" | "idempotencyKey">;
 
   let {
     exercise,

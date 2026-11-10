@@ -267,6 +267,7 @@ describe("Gym exercise register", () => {
       exerciseId: exercise.id,
       reps: 10,
       weightKg: 20,
+      idempotencyKey: crypto.randomUUID(),
     });
 
     const name = uniqueName("renamed");
@@ -291,7 +292,12 @@ describe("Gym exercise register", () => {
     const setRes = await jsonRequest(
       `/api/gym/sessions/${session.id}/sets`,
       "POST",
-      { exerciseId: exercise.id, reps: 10, weightKg: 20 }
+      {
+        exerciseId: exercise.id,
+        reps: 10,
+        weightKg: 20,
+        idempotencyKey: crypto.randomUUID(),
+      }
     );
     expect(setRes.status).toBe(201);
     expect(((await setRes.json()) as { exerciseName: string }).exerciseName).toBe(

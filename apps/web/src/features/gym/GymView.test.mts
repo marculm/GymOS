@@ -1050,11 +1050,15 @@ describe("GymView", () => {
     await clickSubmit(screen.getByRole("button", { name: /add set/i }));
 
     await waitFor(() => {
-      expect(addSet).toHaveBeenCalledWith("session-1", {
-        exerciseId: "exercise-1",
-        weightKg: 80,
-        reps: 8,
-      });
+      expect(addSet).toHaveBeenCalledWith(
+        "session-1",
+        expect.objectContaining({
+          exerciseId: "exercise-1",
+          weightKg: 80,
+          reps: 8,
+          idempotencyKey: expect.any(String),
+        })
+      );
     });
 
     await fireEvent.click(screen.getByRole("button", { name: "Finish workout" }));

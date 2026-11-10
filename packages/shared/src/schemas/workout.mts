@@ -104,10 +104,12 @@ export const CreateWorkoutSetSchema = z.object({
   exerciseId: z.string().uuid(),
   reps: z.number().int().positive().max(MAX_SET_REPS),
   weightKg: z.number().nonnegative().max(MAX_SET_WEIGHT_KG),
+  idempotencyKey: z.string().uuid(),
 });
 
 export const UpdateWorkoutSetSchema = CreateWorkoutSetSchema.omit({
   exerciseId: true,
+  idempotencyKey: true,
 });
 
 export const LoggedSetSchema = z.object({

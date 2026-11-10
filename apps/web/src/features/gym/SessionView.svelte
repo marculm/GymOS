@@ -65,6 +65,7 @@
   let hiddenSetIds = $state<Set<string>>(new Set());
   let pendingUndos = $state<LoggedSet[]>([]);
   const deleteTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  const pendingSetKeys = new Map<string, string>();
   let swipeStart: {
     pointerId: number;
     setId: string;
@@ -346,13 +347,17 @@
 
   async function logSet(
     exerciseId: string,
-    input: Omit<CreateWorkoutSetInput, "exerciseId">
+    input: Omit<CreateWorkoutSetInput, "exerciseId" | "idempotencyKey">
   ): Promise<boolean> {
     if (pending) return false;
 
     pending = true;
     try {
-      await onLogSet({ exerciseId, ...input });
+      const idempotencyKey =
+        pendingSetKeys.get(exerciseId) ?? crypto.randomUUID();
+      pendingSetKeys.set(exerciseId, idempotencyKey);
+      await onLogSet({ exerciseId, ...input, idempotencyKey });
+      pendingSetKeys.delete(exerciseId);
       startTimer();
       return true;
     } finally {

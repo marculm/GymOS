@@ -181,6 +181,7 @@ export class GymWriteService {
 
     switch (result.kind) {
       case "created":
+      case "replayed":
         return result.set;
       case "not_found":
         throw new NotFoundError("Session not found");
