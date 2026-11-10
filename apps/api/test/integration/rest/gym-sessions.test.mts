@@ -146,6 +146,46 @@ describe("Gym session routes", () => {
     expect(((await second.json()) as { setNumber: number }).setNumber).toBe(2);
   });
 
+  it("returns the same set when the idempotency key is replayed", async () => {
+    const session = await startSession();
+    const idempotencyKey = crypto.randomUUID();
+
+    const first = await logSet(session.id, { idempotencyKey });
+    const replay = await logSet(session.id, { idempotencyKey });
+
+    expect(first.status).toBe(201);
+    expect(replay.status).toBe(201);
+    const firstSet = (await first.json()) as { id: string; setNumber: number };
+    expect((await replay.json()) as { id: string; setNumber: number }).toEqual(
+      firstSet
+    );
+
+    const detail = await app.request(`/api/gym/sessions/${session.id}`);
+    const data = (await detail.json()) as { sets: Array<{ id: string }> };
+    expect(data.sets.map((set) => set.id)).toEqual([firstSet.id]);
+  });
+
+  it("keeps one set for concurrent posts with the same idempotency key", async () => {
+    const session = await startSession();
+    const idempotencyKey = crypto.randomUUID();
+
+    const responses = await Promise.all(
+      Array.from({ length: 5 }, () => logSet(session.id, { idempotencyKey }))
+    );
+    expect(responses.every((response) => response.status === 201)).toBe(true);
+
+    const ids = await Promise.all(
+      responses.map(
+        async (response) => ((await response.json()) as { id: string }).id
+      )
+    );
+    expect(new Set(ids).size).toBe(1);
+
+    const detail = await app.request(`/api/gym/sessions/${session.id}`);
+    const data = (await detail.json()) as { sets: unknown[] };
+    expect(data.sets).toHaveLength(1);
+  });
+
   it("rejects a set without an idempotency key", async () => {
     const session = await startSession();
 

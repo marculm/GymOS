@@ -389,6 +389,18 @@ describe("GymWriteService", () => {
     ).resolves.toEqual(loggedSet);
   });
 
+  it("returns the existing set on a replayed key", async () => {
+    const { service, sessionRepository } = createService();
+    sessionRepository.logSet.mockResolvedValueOnce({
+      kind: "replayed",
+      set: loggedSet,
+    });
+
+    await expect(
+      service.logSet("user-1", "session-1", setInput)
+    ).resolves.toEqual(loggedSet);
+  });
+
   it.each([
     ["not_found", NotFoundError],
     ["completed", SessionCompletedError],

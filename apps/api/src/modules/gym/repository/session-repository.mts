@@ -18,6 +18,7 @@ import { withSerializableRetry } from "./transaction.mts";
 
 export type LogSetResult =
   | { kind: "created"; set: LoggedSet }
+  | { kind: "replayed"; set: LoggedSet }
   | { kind: "not_found" }
   | { kind: "completed" }
   | { kind: "unknown_exercise" }
@@ -123,7 +124,12 @@ export class SessionRepository {
   async logSet(
     userId: string,
     sessionId: string,
-    input: { exerciseId: string; reps: number; weightKg: number }
+    input: {
+      exerciseId: string;
+      reps: number;
+      weightKg: number;
+      idempotencyKey: string;
+    }
   ): Promise<LogSetResult> {
     try {
       return await withSerializableRetry(async (tx) => {
@@ -132,6 +138,13 @@ export class SessionRepository {
           select: { id: true, completedAt: true },
         });
         if (!session) return { kind: "not_found" } as const;
+
+        const replayed = await this.findSetByKey(
+          tx,
+          sessionId,
+          input.idempotencyKey
+        );
+        if (replayed) return { kind: "replayed", set: replayed } as const;
         if (session.completedAt) return { kind: "completed" } as const;
 
         const exercise = await tx.exercise.findUnique({
@@ -151,6 +164,7 @@ export class SessionRepository {
             setNumber: (max._max.setNumber ?? 0) + 1,
             reps: input.reps,
             weightKg: input.weightKg,
+            idempotencyKey: input.idempotencyKey,
           },
         });
         return {
@@ -163,10 +177,33 @@ export class SessionRepository {
         error instanceof Prisma.PrismaClientKnownRequestError &&
         error.code === "P2002"
       ) {
+        const replayed = await this.findSetByKey(
+          prisma,
+          sessionId,
+          input.idempotencyKey
+        );
+        if (replayed) return { kind: "replayed", set: replayed };
         return { kind: "duplicate" };
       }
       throw error;
     }
+  }
+
+  private async findSetByKey(
+    client: Prisma.TransactionClient,
+    sessionId: string,
+    idempotencyKey: string
+  ): Promise<LoggedSet | null> {
+    const set = await client.workoutSet.findUnique({
+      where: {
+        workoutSessionId_idempotencyKey: {
+          workoutSessionId: sessionId,
+          idempotencyKey,
+        },
+      },
+      include: { exercise: { select: { name: true } } },
+    });
+    return set ? toSet(set) : null;
   }
 
   async deleteSet(
