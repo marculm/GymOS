@@ -1,3 +1,4 @@
+export * from "./labels.mts";
 export * from "./limits.mts";
 export * from "./schemas/workout.mts";
 export * from "./schemas/push.mts";

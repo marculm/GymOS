@@ -1,14 +1,10 @@
 import { z } from "zod";
+import {
+  DUPLICATE_EXERCISE_MESSAGE,
+  DUPLICATE_ROTATION_PLAN_MESSAGE,
+  MUSCLE_GROUPS,
+} from "../labels.mts";
 import { MAX_SET_REPS, MAX_SET_WEIGHT_KG } from "../limits.mts";
-
-export const MUSCLE_GROUPS = [
-  "chest",
-  "back",
-  "legs",
-  "shoulders",
-  "arms",
-  "core",
-] as const;
 
 export const MuscleGroupSchema = z.enum(MUSCLE_GROUPS);
 
@@ -37,12 +33,6 @@ export const CreateExerciseSchema = z.object({
 });
 
 export const UpdateExerciseSchema = CreateExerciseSchema;
-
-export const DUPLICATE_EXERCISE_MESSAGE =
-  "Each exercise can only be added once";
-
-export const DUPLICATE_ROTATION_PLAN_MESSAGE =
-  "Each plan can only appear once in the rotation";
 
 export const CreateWorkoutPlanSchema = z.object({
   name: z.string().min(1).max(100),

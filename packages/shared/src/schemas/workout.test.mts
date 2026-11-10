@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
+import { DUPLICATE_ROTATION_PLAN_MESSAGE } from "../labels.mts";
 import { MAX_SET_WEIGHT_KG } from "../limits.mts";
 import {
   CreateExerciseSchema,
   CreateWorkoutPlanSchema,
   CreateWorkoutSetSchema,
-  DUPLICATE_ROTATION_PLAN_MESSAGE,
   LoggedSetSchema,
   UpdateExerciseSchema,
   UpdateWorkoutRotationSchema,
