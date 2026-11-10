@@ -165,6 +165,22 @@ describe("Gym session routes", () => {
     expect(data.sets.map((set) => set.id)).toEqual([firstSet.id]);
   });
 
+  it("returns the stored set when a key is replayed after completion", async () => {
+    const session = await startSession();
+    const idempotencyKey = crypto.randomUUID();
+    const first = await logSet(session.id, { idempotencyKey });
+    const firstSet = (await first.json()) as { id: string };
+    await postJson(`/api/gym/sessions/${session.id}/complete`, {});
+
+    const replay = await logSet(session.id, { idempotencyKey });
+
+    expect(replay.status).toBe(201);
+    expect(((await replay.json()) as { id: string }).id).toBe(firstSet.id);
+    const detail = await app.request(`/api/gym/sessions/${session.id}`);
+    const data = (await detail.json()) as { sets: unknown[] };
+    expect(data.sets).toHaveLength(1);
+  });
+
   it("keeps one set for concurrent posts with the same idempotency key", async () => {
     const session = await startSession();
     const idempotencyKey = crypto.randomUUID();
