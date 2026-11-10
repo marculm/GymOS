@@ -261,8 +261,13 @@
 
   async function handleLogSet(input: CreateWorkoutSetInput) {
     if (!activeSession) return;
-    const set = await addSet(activeSession.id, input);
-    activeSession = { ...activeSession, sets: [...activeSession.sets, set] };
+    try {
+      const set = await addSet(activeSession.id, input);
+      activeSession = { ...activeSession, sets: [...activeSession.sets, set] };
+    } catch (logError) {
+      if (await recoverCompletedSession(logError)) return;
+      throw logError;
+    }
   }
 
   async function handleDeleteSet(setId: string) {

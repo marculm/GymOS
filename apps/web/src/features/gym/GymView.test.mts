@@ -1030,6 +1030,31 @@ describe("GymView", () => {
     await waitFor(() => expect(getRotation).toHaveBeenCalledTimes(2));
   });
 
+  it("returns to the gym screen when logging a set finds the session already completed", async () => {
+    vi.mocked(getActiveSession)
+      .mockResolvedValueOnce(session)
+      .mockResolvedValueOnce(null);
+    vi.mocked(addSet).mockRejectedValueOnce(
+      new ApiError(409, "Session is already completed")
+    );
+
+    render(GymView);
+
+    await fireEvent.click(
+      await screen.findByRole("button", { name: "Expand Bench Press" })
+    );
+    await fireEvent.input(screen.getByLabelText("Weight (kg)"), {
+      target: { value: "80" },
+    });
+    await fireEvent.input(screen.getByLabelText("Reps"), {
+      target: { value: "8" },
+    });
+    await clickSubmit(screen.getByRole("button", { name: /add set/i }));
+
+    expect(await startScreenReady()).toBeInTheDocument();
+    await waitFor(() => expect(getRotation).toHaveBeenCalledTimes(2));
+  });
+
   it("keeps the finished state when the defaults refresh fails", async () => {
     vi.mocked(getActiveSession).mockResolvedValue(session);
     vi.mocked(getRotation).mockResolvedValue({
