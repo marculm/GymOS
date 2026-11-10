@@ -73,8 +73,9 @@ The backend is split into an application assembly and a server bootstrap:
 
 - `src/app.mts` creates the Hono app, registers middleware, mounts routers, registers the
   central error handler, and exports `app`. Tests call `app.request(...)` directly.
-- `src/index.mts` imports `app`, connects Prisma, starts `Bun.serve`, and disconnects on
-  `SIGINT` and `SIGTERM`.
+- `src/index.mts` imports `app`, connects Prisma, starts `Bun.serve`, and on `SIGINT` or
+  `SIGTERM` stops the server, waits for in-flight requests, then disconnects Prisma
+  (ADR-0046).
 - `src/container.mts` wires repositories, read services, write services, and the current
   user service as singletons.
 

@@ -42,6 +42,10 @@ spec:
                 name: gymos-config
             - secretRef:
                 name: gymos-secrets
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sleep", "5"]
           readinessProbe:
             httpGet:
               path: /health/readiness
