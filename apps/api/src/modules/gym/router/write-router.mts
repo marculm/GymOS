@@ -84,6 +84,7 @@ writeRouter.post("/sessions/:id/sets", async (c) => {
     c.req.param("id"),
     input
   );
+  c.header("Location", `${createBaseUrl(c)}/${set.id}`);
   return c.json(set, statuscode.CREATED);
 });
 

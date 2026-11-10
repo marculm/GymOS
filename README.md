@@ -227,7 +227,7 @@ full contract.
 | `GET` | `/api/gym/sessions?page=&size=&planId=&from=&to=` | List completed sessions |
 | `GET` | `/api/gym/sessions/:id` | Get a session with its sets |
 | `GET` | `/api/gym/progress` | Personal records per exercise and volume per completed session |
-| `POST` | `/api/gym/sessions/:id/sets` | Log a set (`{ exerciseId, reps, weightKg, idempotencyKey }`); a repeated key returns the stored set |
+| `POST` | `/api/gym/sessions/:id/sets` | Log a set (`{ exerciseId, reps, weightKg, idempotencyKey }`); `201` + `Location`; a repeated key returns the stored set |
 | `PUT` | `/api/gym/sessions/:id/sets/:setId` | Correct the reps and weight of a set in a completed session |
 | `DELETE` | `/api/gym/sessions/:id/sets/:setId` | Delete a set in an active session and renumber the rest |
 | `POST` | `/api/gym/sessions/:id/complete` | Finish a session; updates exercise weight and rep defaults from the last two workouts |
