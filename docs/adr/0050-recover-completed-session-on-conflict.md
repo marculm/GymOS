@@ -35,5 +35,5 @@ as a `409`.
 - Logging or deleting a set in a session completed elsewhere recovers the same way.
 - A recovery costs one extra `GET /gym/sessions/active` plus the post-finish rotation and
   defaults reads.
-- If the active-session re-read fails, the original error is shown and the screen does
-  not recover.
+- If the active-session re-read fails, recovery is abandoned and the screen does not
+  recover; the error from that read is shown.
