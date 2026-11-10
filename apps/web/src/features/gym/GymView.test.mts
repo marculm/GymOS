@@ -565,6 +565,28 @@ describe("GymView", () => {
     });
   });
 
+  it("omits cleared exercise notes from the plan payload", async () => {
+    vi.mocked(createPlan).mockResolvedValueOnce({ ...plan, id: "plan-2" });
+
+    render(GymView);
+
+    await startScreenReady();
+    await openTab("Plans");
+    await fireEvent.click(screen.getByRole("button", { name: /new plan/i }));
+
+    await fireEvent.input(screen.getByLabelText("Name"), {
+      target: { value: "Leg Day" },
+    });
+    const notes = screen.getByLabelText("Notes for Bench Press");
+    await fireEvent.input(notes, { target: { value: "Tempo" } });
+    await fireEvent.input(notes, { target: { value: "" } });
+    await clickSubmit(screen.getByRole("button", { name: /save plan/i }));
+
+    await waitFor(() => expect(createPlan).toHaveBeenCalled());
+    const input = vi.mocked(createPlan).mock.calls.at(-1)?.[0];
+    expect(input?.exercises[0]?.notes).toBeUndefined();
+  });
+
   it("removes a plan row", async () => {
     vi.mocked(listAllExercises).mockResolvedValueOnce([exercise, extraExercise]);
     vi.mocked(createPlan).mockResolvedValueOnce({

@@ -90,7 +90,7 @@
         description: description.trim() || undefined,
         exercises: rows.map((row) => ({
           exerciseId: row.exerciseId,
-          notes: row.notes,
+          notes: row.notes?.trim() || undefined,
         })),
       });
       if (!plan) {
