@@ -1031,6 +1031,7 @@ describe("GymView", () => {
   });
 
   it("returns to the gym screen when logging a set finds the session already completed", async () => {
+    window.localStorage.clear();
     vi.mocked(getActiveSession)
       .mockResolvedValueOnce(session)
       .mockResolvedValueOnce(null);
@@ -1053,6 +1054,8 @@ describe("GymView", () => {
 
     expect(await startScreenReady()).toBeInTheDocument();
     await waitFor(() => expect(getRotation).toHaveBeenCalledTimes(2));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(window.localStorage.getItem("gymos.restTimerEndsAt")).toBeNull();
   });
 
   it("returns to the gym screen when deleting a set finds the session already completed", async () => {

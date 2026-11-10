@@ -265,7 +265,7 @@
       const set = await addSet(activeSession.id, input);
       activeSession = { ...activeSession, sets: [...activeSession.sets, set] };
     } catch (logError) {
-      if (await recoverCompletedSession(logError)) return;
+      await recoverCompletedSession(logError);
       throw logError;
     }
   }
