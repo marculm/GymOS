@@ -146,6 +146,17 @@ describe("Gym session routes", () => {
     expect(((await second.json()) as { setNumber: number }).setNumber).toBe(2);
   });
 
+  it("returns Location when logging a set", async () => {
+    const session = await startSession();
+
+    const res = await logSet(session.id);
+    expect(res.status).toBe(201);
+    const set = (await res.json()) as { id: string };
+    expect(res.headers.get("location")).toContain(
+      `/api/gym/sessions/${session.id}/sets/${set.id}`
+    );
+  });
+
   it("returns the same set when the idempotency key is replayed", async () => {
     const session = await startSession();
     const idempotencyKey = crypto.randomUUID();
