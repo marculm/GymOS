@@ -287,6 +287,11 @@ fieldset {
   color: var(--muted);
 }
 
+.exercise-notes {
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
 .error {
   background: color-mix(in srgb, var(--danger) 12%, transparent);
   border: 1px solid var(--danger);

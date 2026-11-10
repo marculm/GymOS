@@ -383,7 +383,7 @@
               <div class="grow">
                 <div>{entry.exercise.name}</div>
                 {#if entry.notes}
-                  <div class="muted">{entry.notes}</div>
+                  <div class="muted exercise-notes">{entry.notes}</div>
                 {/if}
               </div>
               <span class="muted">

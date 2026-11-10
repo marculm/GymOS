@@ -615,7 +615,7 @@
           done
         )}
         {#if planExercise.notes}
-          <p class="muted">{planExercise.notes}</p>
+          <p class="muted exercise-notes">{planExercise.notes}</p>
         {/if}
         <div class="stack" id={`sets-${exerciseId}`}>
           {#if expanded}
