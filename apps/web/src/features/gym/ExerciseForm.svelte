@@ -2,6 +2,7 @@
   import { onMount, untrack } from "svelte";
   import { MUSCLE_GROUPS } from "@gymos/shared";
   import type { CreateExerciseInput, Exercise } from "@gymos/shared";
+  import { MAX_SET_WEIGHT_KG } from "@gymos/shared/limits";
 
   let {
     exercise = null,
@@ -127,6 +128,7 @@
         class="input"
         type="number"
         min={0}
+        max={MAX_SET_WEIGHT_KG}
         step={0.01}
         value={defaultWeightKg}
         oninput={(event) =>

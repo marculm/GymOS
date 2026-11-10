@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/svelte";
 import type { Exercise } from "@gymos/shared";
+import { MAX_SET_WEIGHT_KG } from "@gymos/shared/limits";
 import ExerciseRegister from "./ExerciseRegister.svelte";
 
 const exercise: Exercise = {
@@ -67,6 +68,18 @@ describe("ExerciseRegister", () => {
     expect(
       screen.getByLabelText("Default weight (kg, optional)")
     ).toHaveAttribute("step", "0.01");
+  });
+
+  it("bounds the default weight at the set weight limit", async () => {
+    renderRegister();
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: /edit bench press/i })
+    );
+
+    expect(
+      screen.getByLabelText("Default weight (kg, optional)")
+    ).toHaveAttribute("max", String(MAX_SET_WEIGHT_KG));
   });
 
   it("creates an exercise with defaults", async () => {
