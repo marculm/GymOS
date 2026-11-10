@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { MAX_SET_WEIGHT_KG } from "../limits.mts";
 import {
   CreateExerciseSchema,
   CreateWorkoutPlanSchema,
@@ -43,6 +44,22 @@ describe("CreateExerciseSchema", () => {
     expect(CreateExerciseSchema.safeParse({ ...base, defaultReps: 101 }).success).toBe(false);
     expect(
       CreateExerciseSchema.safeParse({ ...base, defaultWeightKg: -1 }).success
+    ).toBe(false);
+  });
+
+  it("bounds the default weight at the set weight limit", () => {
+    const base = { name: "Fly", muscleGroup: "chest" };
+    expect(
+      CreateExerciseSchema.safeParse({
+        ...base,
+        defaultWeightKg: MAX_SET_WEIGHT_KG,
+      }).success
+    ).toBe(true);
+    expect(
+      CreateExerciseSchema.safeParse({
+        ...base,
+        defaultWeightKg: MAX_SET_WEIGHT_KG + 1,
+      }).success
     ).toBe(false);
   });
 
