@@ -1,3 +1,5 @@
+import { MAX_SET_WEIGHT_KG } from "@gymos/shared/limits";
+
 export type ExerciseDefaults = {
   defaultWeightKg: number;
   defaultReps: number;
@@ -16,8 +18,10 @@ function deriveDefaults(
 ): ExerciseDefaults {
   const averageWeight =
     sets.reduce((sum, set) => sum + set.weightKg, 0) / sets.length;
-  const defaultWeightKg =
-    Math.round(averageWeight / WEIGHT_STEP_KG) * WEIGHT_STEP_KG;
+  const defaultWeightKg = Math.min(
+    Math.round(averageWeight / WEIGHT_STEP_KG) * WEIGHT_STEP_KG,
+    MAX_SET_WEIGHT_KG
+  );
 
   const nearTarget = sets.filter(
     (set) => Math.abs(set.weightKg - defaultWeightKg) <= REP_WEIGHT_WINDOW_KG

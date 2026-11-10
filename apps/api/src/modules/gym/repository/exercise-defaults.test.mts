@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { MAX_SET_WEIGHT_KG } from "@gymos/shared/limits";
 import { deriveDefaultsByExercise } from "./exercise-defaults.mts";
 
 function session(
@@ -83,5 +84,18 @@ describe("deriveDefaultsByExercise", () => {
       defaultWeightKg: 80,
       defaultReps: 8,
     });
+  });
+
+  it("caps the derived weight at the set weight limit", () => {
+    const defaults = deriveDefaultsByExercise([
+      session(
+        ["exercise-1", MAX_SET_WEIGHT_KG, 5],
+        ["exercise-1", MAX_SET_WEIGHT_KG + 500, 9]
+      ),
+    ]);
+
+    expect(defaults.get("exercise-1")?.defaultWeightKg).toBe(
+      MAX_SET_WEIGHT_KG
+    );
   });
 });
