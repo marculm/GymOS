@@ -352,7 +352,7 @@ Other configuration modules:
 - `config/app.mts` — pagination defaults, runtime settings.
 - `config/paths.mts` — route prefixes (`/api/gym`, `/health`, `/prometheus`, ...).
 - `config/cors.mts` — CORS options.
-- `config/server.mts` — port, host, and `NODE_ENV`.
+- `config/server.mts` — port and host.
 - `config/prisma-client.mts` — Prisma client, `connectDB`, `disconnectDB`, and the
   `globalThis` cache used by `bun --watch`.
 

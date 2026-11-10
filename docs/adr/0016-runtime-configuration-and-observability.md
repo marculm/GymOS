@@ -25,7 +25,7 @@ observability layer.
 - `config/app.mts` holds typed runtime settings such as pagination defaults.
 - `config/paths.mts` centralizes route prefixes.
 - `config/cors.mts` holds CORS options derived from `CORS_ORIGINS`.
-- `config/server.mts` holds the port, host, and `NODE_ENV`.
+- `config/server.mts` holds the port and host.
 - `config/prisma-client.mts` owns the Prisma client, `connectDB`, `disconnectDB`, and
   the `globalThis` cache for `bun --watch`.
 - No other module reads `process.env` directly.
