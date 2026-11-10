@@ -166,6 +166,7 @@ describe("Gym session routes", () => {
 
     expect(first.status).toBe(201);
     expect(replay.status).toBe(201);
+    expect(replay.headers.get("location")).toBe(first.headers.get("location"));
     const firstSet = (await first.json()) as { id: string; setNumber: number };
     expect((await replay.json()) as { id: string; setNumber: number }).toEqual(
       firstSet
