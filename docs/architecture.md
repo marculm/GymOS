@@ -699,3 +699,4 @@ The target architecture deliberately excludes:
 | [0043](adr/0043-edit-logged-set.md) | Edit a logged set in completed history |
 | [0044](adr/0044-web-push-rest-timer.md) | Web push when the rest timer ends |
 | [0047](adr/0047-set-logging-idempotency.md) | Idempotent set logging |
+| [0048](adr/0048-zod-free-labels-subpath.md) | Zod-free labels subpath |
