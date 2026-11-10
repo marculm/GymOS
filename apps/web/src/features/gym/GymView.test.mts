@@ -197,6 +197,27 @@ describe("GymView", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("shows exercise notes in the next workout card", async () => {
+    const notedPlan: WorkoutPlan = {
+      ...plan,
+      exercises: plan.exercises.map((entry) => ({
+        ...entry,
+        notes: "Pause at the bottom.",
+      })),
+    };
+    vi.mocked(listAllPlans).mockResolvedValueOnce([notedPlan]);
+    vi.mocked(getRotation).mockResolvedValueOnce({
+      plans: [notedPlan],
+      nextPlanId: notedPlan.id,
+    });
+
+    render(GymView);
+
+    expect(
+      await screen.findByText("Pause at the bottom.")
+    ).toBeInTheDocument();
+  });
+
   it("formats decimal plan targets", async () => {
     const decimalPlan: WorkoutPlan = {
       ...plan,

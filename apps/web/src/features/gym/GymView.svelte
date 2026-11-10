@@ -380,7 +380,12 @@
         <div class="stack">
           {#each nextPlan.exercises as entry (entry.id)}
             <div class="row">
-              <span class="grow">{entry.exercise.name}</span>
+              <div class="grow">
+                <div>{entry.exercise.name}</div>
+                {#if entry.notes}
+                  <div class="muted">{entry.notes}</div>
+                {/if}
+              </div>
               <span class="muted">
                 {entry.targetSets} × {entry.targetReps}{entry.targetWeightKg != null
                   ? ` @ ${formatWeight(entry.targetWeightKg)} kg`
