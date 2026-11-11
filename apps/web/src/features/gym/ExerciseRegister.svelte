@@ -66,9 +66,6 @@
     error = null;
     try {
       await onDelete(exercise.id);
-      if (editingExercise?.id === exercise.id) {
-        await close(`edit-exercise-${exercise.id}`);
-      }
     } catch (deleteError) {
       error =
         deleteError instanceof Error
