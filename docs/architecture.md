@@ -488,7 +488,9 @@ apps/web/
   own form; free sessions build cards with an "Add exercise" control. No global set form
   remains (ADR-0029). An expanded card also opens the shared exercise form for editing its
   defaults (ADR-0019, ADR-0024). Each submission carries a client-generated idempotency
-  key, so retrying a failed one replays the stored set (ADR-0047).
+  key, so retrying a failed one replays the stored set (ADR-0047). A submission without a
+  key, as sent by an older cached web bundle, is accepted and gets a server-generated key
+  without replay protection.
 - Every exercise card starts collapsed and the exercise name is its toggle. A collapsed
   card shows only the name, plus a visible "Done" label once the card is done. A planned
   card auto-collapses when its logged sets reach the target; re-expanding it keeps it open

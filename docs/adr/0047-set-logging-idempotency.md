@@ -27,7 +27,9 @@ protects set numbers.
 - The session view keeps one pending key per exercise while submission fails and clears
   it after success. Collapsing and reopening the card therefore keeps the retry; the next
   set gets a new key.
-- The key is required. Set numbering and concurrency behavior are unchanged.
+- Current clients must send the key. A request without one is still accepted so a cached
+  web bundle built before the key existed keeps logging sets; the API generates a key for
+  that request. Set numbering and concurrency behavior are unchanged.
 
 ## Consequences
 
@@ -35,11 +37,11 @@ protects set numbers.
   creating another.
 - Concurrent posts with the same key produce one set; posts with different keys keep the
   existing set-number conflict behavior.
-- A request without an idempotency key is rejected with `422`, so an outdated client
-  cannot fall back to non-idempotent writes.
+- A request without an idempotency key is accepted for clients built before the key
+  existed: the API generates one, so the set is logged without replay protection. Current
+  clients still send a key and keep replay protection.
 - The migration adds the key as `NOT NULL` before the API rollout. Old API pods still
-  running during the overlap fail set inserts, and old web bundles get `422` until they
-  reload. The single-user MVP accepts this transient window; an expand/contract migration
-  would remove it.
+  running during the overlap fail set inserts. The single-user MVP accepts this transient
+  window; an expand/contract migration would remove it.
 - If the values are changed before retrying a submission whose response was lost, the
   stored set still wins. Editing requires a successful submission and a new key.
