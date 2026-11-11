@@ -1585,9 +1585,13 @@ describe("GymView", () => {
 
     await startScreenReady();
     await fireEvent.click(screen.getByRole("button", { name: /new exercise/i }));
-    await fireEvent.input(screen.getByLabelText("Name"), {
-      target: { value: "Cable Fly" },
-    });
+
+    const nameInput = screen.getByLabelText("Name");
+    const grid = document.querySelector(".card-grid");
+    expect(grid?.firstElementChild?.contains(nameInput)).toBe(true);
+    expect(nameInput).toHaveFocus();
+
+    await fireEvent.input(nameInput, { target: { value: "Cable Fly" } });
     await clickSubmit(screen.getByRole("button", { name: /save exercise/i }));
 
     await waitFor(() => {
@@ -1596,6 +1600,11 @@ describe("GymView", () => {
       );
     });
     expect(await screen.findByText("Cable Fly")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: /edit cable fly/i })
+      ).toHaveFocus();
+    });
   });
 
   it("updates exercise names in the next workout after a rename", async () => {

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { tick } from "svelte";
   import type { CreateExerciseInput, Exercise } from "@gymos/shared";
   import ExerciseForm from "./ExerciseForm.svelte";
   import { formatWeight } from "./format.mts";
@@ -10,7 +11,7 @@
     onDelete,
   }: {
     exercises: Exercise[];
-    onCreate: (input: CreateExerciseInput) => Promise<void>;
+    onCreate: (input: CreateExerciseInput) => Promise<Exercise>;
     onUpdate: (id: string, input: CreateExerciseInput) => Promise<void>;
     onDelete: (id: string) => Promise<void>;
   } = $props();
@@ -31,18 +32,30 @@
     formOpen = true;
   }
 
-  function close() {
+  async function close(focusId: string) {
     formOpen = false;
     editingExercise = null;
+    await tick();
+    document.getElementById(focusId)?.focus();
+  }
+
+  function cancel() {
+    void close(
+      editingExercise
+        ? `edit-exercise-${editingExercise.id}`
+        : "new-exercise-button"
+    );
   }
 
   async function handleSubmit(input: CreateExerciseInput) {
     if (editingExercise) {
-      await onUpdate(editingExercise.id, input);
-    } else {
-      await onCreate(input);
+      const exerciseId = editingExercise.id;
+      await onUpdate(exerciseId, input);
+      await close(`edit-exercise-${exerciseId}`);
+      return;
     }
-    close();
+    const created = await onCreate(input);
+    await close(`edit-exercise-${created.id}`);
   }
 
   async function handleDelete(exercise: Exercise) {
@@ -53,7 +66,9 @@
     error = null;
     try {
       await onDelete(exercise.id);
-      if (editingExercise?.id === exercise.id) close();
+      if (editingExercise?.id === exercise.id) {
+        await close(`edit-exercise-${exercise.id}`);
+      }
     } catch (deleteError) {
       error =
         deleteError instanceof Error
@@ -67,7 +82,7 @@
   <div class="card-grid">
     {#if formOpen && !editingExercise}
       <article class="card stack form-card">
-        <ExerciseForm onSubmit={handleSubmit} onCancel={close} />
+        <ExerciseForm onSubmit={handleSubmit} onCancel={cancel} />
       </article>
     {/if}
 
@@ -80,7 +95,7 @@
           <ExerciseForm
             exercise={editingExercise}
             onSubmit={handleSubmit}
-            onCancel={close}
+            onCancel={cancel}
           />
         {:else}
           <div class="row">
@@ -97,6 +112,7 @@
             <button
               type="button"
               class="btn btn-ghost"
+              id={`edit-exercise-${exercise.id}`}
               aria-label={`Edit ${exercise.name}`}
               onclick={() => openEdit(exercise)}
             >

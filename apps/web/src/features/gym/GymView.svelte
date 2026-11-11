@@ -246,6 +246,7 @@
     exercises = [...exercises, created].sort((a, b) =>
       a.name.localeCompare(b.name)
     );
+    return created;
   }
 
   async function handleUpdateExercise(id: string, input: CreateExerciseInput) {

@@ -31,7 +31,7 @@ const squat: Exercise = {
 };
 
 function renderRegister(exercises: Exercise[] = [exercise]) {
-  const onCreate = vi.fn().mockResolvedValue(undefined);
+  const onCreate = vi.fn().mockResolvedValue(exercise);
   const onUpdate = vi.fn().mockResolvedValue(undefined);
   const onDelete = vi.fn().mockResolvedValue(undefined);
 
@@ -114,6 +114,48 @@ describe("ExerciseRegister", () => {
     const nameInput = screen.getByLabelText("Name");
     expect(nameInput).toHaveValue("Squat");
     expect(squatCard.contains(nameInput)).toBe(true);
+  });
+
+  it("returns focus to the Edit button after saving", async () => {
+    const { onUpdate } = renderRegister();
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: /edit bench press/i })
+    );
+    await fireEvent.input(screen.getByLabelText("Name"), {
+      target: { value: "Incline Bench Press" },
+    });
+    await submitExerciseForm();
+
+    await waitFor(() => expect(onUpdate).toHaveBeenCalled());
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: /edit bench press/i })
+      ).toHaveFocus();
+    });
+  });
+
+  it("returns focus to the Edit button after cancel", async () => {
+    renderRegister();
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: /edit bench press/i })
+    );
+    expect(
+      screen.getByRole("heading", { name: "Edit exercise" })
+    ).toBeInTheDocument();
+
+    await fireEvent.click(screen.getByRole("button", { name: /^cancel$/i }));
+
+    expect(
+      screen.queryByRole("heading", { name: "Edit exercise" })
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Bench Press" })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: /edit bench press/i })
+      ).toHaveFocus();
+    });
   });
 
   it("displays a two-decimal default and accepts two-decimal input", async () => {
