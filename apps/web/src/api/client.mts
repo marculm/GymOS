@@ -34,10 +34,15 @@ function detailMessage(detail: unknown): string | null {
   return null;
 }
 
-async function request<T>(
+function isRetryable(error: unknown): boolean {
+  if (error instanceof ApiTimeoutError) return false;
+  return error instanceof ApiError ? error.status >= 500 : true;
+}
+
+async function send<T>(
   path: string,
-  init?: RequestInit,
-  options: RequestOptions = {}
+  init: RequestInit | undefined,
+  timeoutMs: number
 ): Promise<T> {
   const controller = new AbortController();
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
@@ -45,7 +50,7 @@ async function request<T>(
     timeoutId = setTimeout(() => {
       reject(new ApiTimeoutError());
       controller.abort();
-    }, options.timeoutMs ?? REQUEST_TIMEOUT_MS);
+    }, timeoutMs);
   });
 
   try {
@@ -77,6 +82,21 @@ async function request<T>(
     return response.json() as Promise<T>;
   } finally {
     clearTimeout(timeoutId);
+  }
+}
+
+async function request<T>(
+  path: string,
+  init?: RequestInit,
+  options: RequestOptions = {}
+): Promise<T> {
+  const timeoutMs = options.timeoutMs ?? REQUEST_TIMEOUT_MS;
+  try {
+    return await send<T>(path, init, timeoutMs);
+  } catch (error) {
+    const method = (init?.method ?? "GET").toUpperCase();
+    if (method !== "GET" || !isRetryable(error)) throw error;
+    return send<T>(path, init, timeoutMs);
   }
 }
 
