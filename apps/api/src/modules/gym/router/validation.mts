@@ -1,4 +1,10 @@
+import { CreateWorkoutSetSchema } from "@gymos/shared";
 import { z } from "zod";
+
+// Older web bundles predate the idempotency key; accept them and generate one.
+export const CreateWorkoutSetRequestSchema = CreateWorkoutSetSchema.extend({
+  idempotencyKey: CreateWorkoutSetSchema.shape.idempotencyKey.optional(),
+});
 
 const PageQuerySchema = z.object({
   page: z.coerce.number().int().optional(),

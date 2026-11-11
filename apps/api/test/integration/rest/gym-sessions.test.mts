@@ -214,7 +214,7 @@ describe("Gym session routes", () => {
     expect(data.sets).toHaveLength(1);
   });
 
-  it("rejects a set without an idempotency key", async () => {
+  it("logs a set from a client without an idempotency key", async () => {
     const session = await startSession();
 
     const res = await postJson(`/api/gym/sessions/${session.id}/sets`, {
@@ -223,7 +223,13 @@ describe("Gym session routes", () => {
       weightKg: 20,
     });
 
-    expect(res.status).toBe(422);
+    expect(res.status).toBe(201);
+    const set = (await res.json()) as { id: string; setNumber: number };
+    expect(set.setNumber).toBe(1);
+
+    const detail = await app.request(`/api/gym/sessions/${session.id}`);
+    const data = (await detail.json()) as { sets: Array<{ id: string }> };
+    expect(data.sets.map((entry) => entry.id)).toEqual([set.id]);
   });
 
   it("deletes a set and renumbers the remaining sets", async () => {

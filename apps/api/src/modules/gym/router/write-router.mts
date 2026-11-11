@@ -8,7 +8,7 @@ import {
   CreateExerciseSchema,
   CreateWorkoutPlanSchema,
   CreateWorkoutSessionSchema,
-  CreateWorkoutSetSchema,
+  CreateWorkoutSetRequestSchema,
   UpdateExerciseSchema,
   UpdateWorkoutPlanSchema,
   UpdateWorkoutRotationSchema,
@@ -78,12 +78,11 @@ writeRouter.post("/sessions", async (c) => {
 });
 
 writeRouter.post("/sessions/:id/sets", async (c) => {
-  const input = CreateWorkoutSetSchema.parse(await c.req.json());
-  const set = await writeService.logSet(
-    c.get("user").id,
-    c.req.param("id"),
-    input
-  );
+  const input = CreateWorkoutSetRequestSchema.parse(await c.req.json());
+  const set = await writeService.logSet(c.get("user").id, c.req.param("id"), {
+    ...input,
+    idempotencyKey: input.idempotencyKey ?? crypto.randomUUID(),
+  });
   c.header("Location", `${createBaseUrl(c)}/${set.id}`);
   return c.json(set, statuscode.CREATED);
 });
