@@ -90,7 +90,7 @@
         description: description.trim() || undefined,
         exercises: rows.map((row) => ({
           exerciseId: row.exerciseId,
-          notes: row.notes,
+          notes: row.notes?.trim() || undefined,
         })),
       });
       if (!plan) {
@@ -158,6 +158,15 @@
               Remove
             </button>
           </div>
+          <label class="field">
+            <span class="label">Notes (optional)</span>
+            <textarea
+              class="input"
+              maxlength={500}
+              aria-label={`Notes (optional) for ${rowExercise?.name ?? "exercise"}`}
+              bind:value={row.notes}
+            ></textarea>
+          </label>
         </div>
       {/each}
     </div>

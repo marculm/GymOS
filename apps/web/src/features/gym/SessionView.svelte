@@ -614,6 +614,9 @@
           expanded,
           done
         )}
+        {#if planExercise.notes}
+          <p class="muted exercise-notes">{planExercise.notes}</p>
+        {/if}
         <div class="stack" id={`sets-${exerciseId}`}>
           {#if expanded}
             <p class="muted">

@@ -197,6 +197,27 @@ describe("GymView", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("shows exercise notes in the next workout card", async () => {
+    const notedPlan: WorkoutPlan = {
+      ...plan,
+      exercises: plan.exercises.map((entry) => ({
+        ...entry,
+        notes: "Pause at the bottom.",
+      })),
+    };
+    vi.mocked(listAllPlans).mockResolvedValueOnce([notedPlan]);
+    vi.mocked(getRotation).mockResolvedValueOnce({
+      plans: [notedPlan],
+      nextPlanId: notedPlan.id,
+    });
+
+    render(GymView);
+
+    expect(
+      await screen.findByText("Pause at the bottom.")
+    ).toBeInTheDocument();
+  });
+
   it("formats decimal plan targets", async () => {
     const decimalPlan: WorkoutPlan = {
       ...plan,
@@ -535,6 +556,79 @@ describe("GymView", () => {
     expect(input?.exercises[0]).not.toHaveProperty("targetSets");
     expect(input?.exercises[0]).not.toHaveProperty("targetReps");
     expect(input?.exercises[0]).not.toHaveProperty("targetWeightKg");
+  });
+
+  it("saves exercise notes from the plan form", async () => {
+    vi.mocked(createPlan).mockResolvedValueOnce({ ...plan, id: "plan-2" });
+
+    render(GymView);
+
+    await startScreenReady();
+    await openTab("Plans");
+    await fireEvent.click(screen.getByRole("button", { name: /new plan/i }));
+
+    await fireEvent.input(screen.getByLabelText("Name"), {
+      target: { value: "Leg Day" },
+    });
+    await fireEvent.input(screen.getByLabelText("Notes (optional) for Bench Press"), {
+      target: { value: "Pause at the bottom." },
+    });
+    await clickSubmit(screen.getByRole("button", { name: /save plan/i }));
+
+    await waitFor(() => {
+      expect(createPlan).toHaveBeenCalledWith(
+        expect.objectContaining({
+          exercises: [
+            { exerciseId: exercise.id, notes: "Pause at the bottom." },
+          ],
+        })
+      );
+    });
+  });
+
+  it("fills exercise notes when editing a plan", async () => {
+    const notedPlan: WorkoutPlan = {
+      ...plan,
+      exercises: plan.exercises.map((entry) => ({
+        ...entry,
+        notes: "Pause at the bottom.",
+      })),
+    };
+    vi.mocked(listAllPlans).mockResolvedValueOnce([notedPlan]);
+
+    render(GymView);
+
+    await startScreenReady();
+    await openTab("Plans");
+    await fireEvent.click(
+      screen.getByRole("button", { name: /edit push day/i })
+    );
+
+    expect(
+      await screen.findByLabelText("Notes (optional) for Bench Press")
+    ).toHaveValue("Pause at the bottom.");
+  });
+
+  it("omits blank exercise notes from the plan payload", async () => {
+    vi.mocked(createPlan).mockResolvedValueOnce({ ...plan, id: "plan-2" });
+
+    render(GymView);
+
+    await startScreenReady();
+    await openTab("Plans");
+    await fireEvent.click(screen.getByRole("button", { name: /new plan/i }));
+
+    await fireEvent.input(screen.getByLabelText("Name"), {
+      target: { value: "Leg Day" },
+    });
+    const notes = screen.getByLabelText("Notes (optional) for Bench Press");
+    await fireEvent.input(notes, { target: { value: "Tempo" } });
+    await fireEvent.input(notes, { target: { value: "   " } });
+    await clickSubmit(screen.getByRole("button", { name: /save plan/i }));
+
+    await waitFor(() => expect(createPlan).toHaveBeenCalled());
+    const input = vi.mocked(createPlan).mock.calls.at(-1)?.[0];
+    expect(input?.exercises[0]?.notes).toBeUndefined();
   });
 
   it("removes a plan row", async () => {
