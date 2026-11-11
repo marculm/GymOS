@@ -232,6 +232,21 @@ describe("Gym session routes", () => {
     expect(data.sets.map((entry) => entry.id)).toEqual([set.id]);
   });
 
+  it("rejects an invalid idempotency key", async () => {
+    const session = await startSession();
+
+    for (const idempotencyKey of ["retry-1", ""]) {
+      const res = await postJson(`/api/gym/sessions/${session.id}/sets`, {
+        exerciseId,
+        reps: 10,
+        weightKg: 20,
+        idempotencyKey,
+      });
+
+      expect(res.status).toBe(422);
+    }
+  });
+
   it("deletes a set and renumbers the remaining sets", async () => {
     const session = await startSession();
     const first = await loggedSetId(session.id);
