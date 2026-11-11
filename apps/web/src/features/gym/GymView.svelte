@@ -171,7 +171,6 @@
     try {
       await deletePlan(plan.id);
       plans = plans.filter((entry) => entry.id !== plan.id);
-      if (editingPlan?.id === plan.id) editingPlan = null;
     } catch (deleteError) {
       error = messageOf(deleteError);
       return;
