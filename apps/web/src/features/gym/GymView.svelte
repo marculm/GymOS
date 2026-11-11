@@ -261,8 +261,13 @@
 
   async function handleLogSet(input: CreateWorkoutSetInput) {
     if (!activeSession) return;
-    const set = await addSet(activeSession.id, input);
-    activeSession = { ...activeSession, sets: [...activeSession.sets, set] };
+    try {
+      const set = await addSet(activeSession.id, input);
+      activeSession = { ...activeSession, sets: [...activeSession.sets, set] };
+    } catch (logError) {
+      await recoverCompletedSession(logError);
+      throw logError;
+    }
   }
 
   async function handleDeleteSet(setId: string) {
@@ -270,7 +275,12 @@
     const deleted = activeSession.sets.find((set) => set.id === setId);
     if (!deleted) return;
 
-    await deleteSet(activeSession.id, setId);
+    try {
+      await deleteSet(activeSession.id, setId);
+    } catch (deleteError) {
+      if (await recoverCompletedSession(deleteError)) return;
+      throw deleteError;
+    }
 
     const counters = new Map<string, number>();
     const sets = activeSession.sets
@@ -286,9 +296,7 @@
     activeSession = { ...activeSession, sets };
   }
 
-  async function handleComplete() {
-    if (!activeSession) return;
-    await completeSession(activeSession.id);
+  async function refreshAfterFinish() {
     activeSession = null;
     try {
       rotation = await getRotation();
@@ -308,6 +316,26 @@
     } catch {
       // The workout is complete; defaults refresh on the next load.
     }
+  }
+
+  async function recoverCompletedSession(operationError: unknown): Promise<boolean> {
+    if (!(operationError instanceof ApiError) || operationError.status !== 409) {
+      return false;
+    }
+    if (await getActiveSession()) return false;
+    await refreshAfterFinish();
+    return true;
+  }
+
+  async function handleComplete() {
+    if (!activeSession) return;
+    try {
+      await completeSession(activeSession.id);
+    } catch (completeError) {
+      if (await recoverCompletedSession(completeError)) return;
+      throw completeError;
+    }
+    await refreshAfterFinish();
   }
 
   const nextPlan = $derived.by(() => {

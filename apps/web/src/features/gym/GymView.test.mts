@@ -1103,6 +1103,120 @@ describe("GymView", () => {
     expect(await screen.findByText("5 × 6 @ 85 kg")).toBeInTheDocument();
   });
 
+  it("returns to the gym screen when finishing finds the session already completed", async () => {
+    vi.mocked(getActiveSession)
+      .mockResolvedValueOnce(session)
+      .mockResolvedValueOnce(null);
+    vi.mocked(completeSession).mockRejectedValueOnce(
+      new ApiError(409, "Session is already completed")
+    );
+
+    render(GymView);
+
+    await fireEvent.click(
+      await screen.findByRole("button", { name: /finish workout/i })
+    );
+
+    expect(await startScreenReady()).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /finish workout/i })
+    ).not.toBeInTheDocument();
+    await waitFor(() => expect(getRotation).toHaveBeenCalledTimes(2));
+  });
+
+  it("returns to the gym screen when logging a set finds the session already completed", async () => {
+    window.localStorage.clear();
+    vi.mocked(getActiveSession)
+      .mockResolvedValueOnce(session)
+      .mockResolvedValueOnce(null);
+    vi.mocked(addSet).mockRejectedValueOnce(
+      new ApiError(409, "Session is already completed")
+    );
+
+    render(GymView);
+
+    await fireEvent.click(
+      await screen.findByRole("button", { name: "Expand Bench Press" })
+    );
+    await fireEvent.input(screen.getByLabelText("Weight (kg)"), {
+      target: { value: "80" },
+    });
+    await fireEvent.input(screen.getByLabelText("Reps"), {
+      target: { value: "8" },
+    });
+    await clickSubmit(screen.getByRole("button", { name: /add set/i }));
+
+    expect(await startScreenReady()).toBeInTheDocument();
+    await waitFor(() => expect(getRotation).toHaveBeenCalledTimes(2));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(window.localStorage.getItem("gymos.restTimerEndsAt")).toBeNull();
+  });
+
+  it("returns to the gym screen when deleting a set finds the session already completed", async () => {
+    vi.stubGlobal("confirm", vi.fn(() => true));
+    vi.mocked(getActiveSession)
+      .mockResolvedValueOnce({
+        ...session,
+        sets: [
+          {
+            id: "set-1",
+            exerciseId: "exercise-1",
+            exerciseName: "Bench Press",
+            setNumber: 1,
+            reps: 8,
+            weightKg: 80,
+            createdAt: "2026-10-26T18:05:00.000Z",
+          },
+        ],
+      })
+      .mockResolvedValueOnce(null);
+    vi.mocked(deleteSet).mockRejectedValueOnce(
+      new ApiError(409, "Session is already completed")
+    );
+
+    render(GymView);
+
+    await fireEvent.click(
+      await screen.findByRole("button", { name: "Expand Bench Press" })
+    );
+    await fireEvent.click(
+      await screen.findByRole("button", { name: "Delete set 1 for Bench Press" })
+    );
+
+    expect(await startScreenReady()).toBeInTheDocument();
+    await waitFor(() => expect(getRotation).toHaveBeenCalledTimes(2));
+  });
+
+  it("keeps the session when a conflict still has an active session", async () => {
+    vi.mocked(getActiveSession).mockResolvedValue(session);
+    vi.mocked(addSet).mockRejectedValueOnce(
+      new ApiError(409, "Set was already logged, retry")
+    );
+
+    render(GymView);
+
+    await fireEvent.click(
+      await screen.findByRole("button", { name: "Expand Bench Press" })
+    );
+    await fireEvent.input(screen.getByLabelText("Weight (kg)"), {
+      target: { value: "80" },
+    });
+    await fireEvent.input(screen.getByLabelText("Reps"), {
+      target: { value: "8" },
+    });
+    await clickSubmit(screen.getByRole("button", { name: /add set/i }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Set was already logged, retry"
+    );
+    expect(
+      screen.getByRole("button", { name: /finish workout/i })
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /other workout/i })
+    ).not.toBeInTheDocument();
+  });
+
   it("keeps the finished state when the defaults refresh fails", async () => {
     vi.mocked(getActiveSession).mockResolvedValue(session);
     vi.mocked(getRotation).mockResolvedValue({
