@@ -27,9 +27,10 @@ protects set numbers.
 - The session view keeps one pending key per exercise while submission fails and clears
   it after success. Collapsing and reopening the card therefore keeps the retry; the next
   set gets a new key.
-- Current clients must send the key. A request without one is still accepted so a cached
-  web bundle built before the key existed keeps logging sets; the API generates a key for
-  that request. Set numbering and concurrency behavior are unchanged.
+- Amended by #119: current clients must send the key. A request without one is still
+  accepted so a cached web bundle built before the key existed keeps logging sets; the API
+  generates a key for that request. Remove the tolerance once no pre-key bundle can still
+  be cached. Set numbering and concurrency behavior are unchanged.
 
 ## Consequences
 
