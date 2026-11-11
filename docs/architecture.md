@@ -532,7 +532,10 @@ apps/web/
 ### 4.4 API Layer
 
 `src/api/client.mts` wraps `fetch` and throws `ApiError(status, message)`. It parses
-`application/problem+json` and uses `detail` (or `title`) as the message.
+`application/problem+json` and uses `detail` (or `title`) as the message. Every request
+aborts after `REQUEST_TIMEOUT_MS` (10 s by default, overridable per request) and rejects
+with `ApiTimeoutError`; a `GET` retries once on a network error or `5xx` response, and
+mutations are never retried (ADR-0015).
 
 `src/api/gym.mts` exposes typed functions for the gym endpoints. It maps the HTTP
 contract to UI types and returns `Page<T>` for list endpoints. `getActiveSession`
