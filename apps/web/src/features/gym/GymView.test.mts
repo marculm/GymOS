@@ -807,6 +807,28 @@ describe("GymView", () => {
     });
   });
 
+  it("cancels a new plan when no exercises are available", async () => {
+    vi.mocked(listAllExercises).mockResolvedValueOnce([]);
+
+    render(GymView);
+
+    await startScreenReady();
+    await openTab("Plans");
+    await fireEvent.click(screen.getByRole("button", { name: /new plan/i }));
+
+    expect(
+      await screen.findByText(/no exercises available/i)
+    ).toBeInTheDocument();
+    await fireEvent.click(screen.getByRole("button", { name: /^cancel$/i }));
+
+    expect(
+      screen.queryByText(/no exercises available/i)
+    ).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /new plan/i })).toHaveFocus();
+    });
+  });
+
   it("keeps a plan submit error inside the editing card", async () => {
     vi.mocked(updatePlan).mockRejectedValueOnce(
       new Error("A plan with this name already exists")

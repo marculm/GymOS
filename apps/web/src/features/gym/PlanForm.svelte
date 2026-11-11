@@ -118,6 +118,9 @@
 
 {#if available.length === 0}
   <p class="empty">No exercises available. Add one in the exercise register.</p>
+  <button type="button" class="btn btn-ghost" onclick={onCancel}>
+    Cancel
+  </button>
 {:else}
   <form class="stack" onsubmit={handleSubmit}>
     <h3 class="card-title">
