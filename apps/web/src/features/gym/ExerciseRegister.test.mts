@@ -20,14 +20,24 @@ async function submitExerciseForm() {
   await fireEvent.submit(form);
 }
 
-function renderRegister() {
-  const onCreate = vi.fn().mockResolvedValue(undefined);
+const squat: Exercise = {
+  id: "exercise-2",
+  name: "Squat",
+  muscleGroup: "legs",
+  description: null,
+  defaultSets: 5,
+  defaultReps: 5,
+  defaultWeightKg: 100,
+};
+
+function renderRegister(exercises: Exercise[] = [exercise]) {
+  const onCreate = vi.fn().mockResolvedValue(exercise);
   const onUpdate = vi.fn().mockResolvedValue(undefined);
   const onDelete = vi.fn().mockResolvedValue(undefined);
 
   render(ExerciseRegister, {
     props: {
-      exercises: [exercise],
+      exercises,
       onCreate,
       onUpdate,
       onDelete,
@@ -48,6 +58,104 @@ describe("ExerciseRegister", () => {
     expect(screen.getByText("Bench Press")).toBeInTheDocument();
     expect(screen.getByText(/4\s*×\s*8/)).toBeInTheDocument();
     expect(screen.getByText(/@ 80 kg/)).toBeInTheDocument();
+  });
+
+  it("renders the edit form inside the exercise card", async () => {
+    renderRegister();
+
+    const editButton = screen.getByRole("button", {
+      name: /edit bench press/i,
+    });
+    const card = editButton.closest("article");
+    if (!card) throw new Error("exercise card is missing");
+
+    await fireEvent.click(editButton);
+
+    const nameInput = screen.getByLabelText("Name");
+    const form = nameInput.closest("form");
+    expect(form).not.toBeNull();
+    expect(card.contains(form)).toBe(true);
+    for (const renderedForm of document.querySelectorAll("form")) {
+      expect(renderedForm.closest(".card-grid")).not.toBeNull();
+    }
+    expect(nameInput).toHaveFocus();
+  });
+
+  it("renders the new exercise form as the first card in the grid", async () => {
+    renderRegister();
+
+    await fireEvent.click(screen.getByRole("button", { name: /new exercise/i }));
+
+    const nameInput = screen.getByLabelText("Name");
+    const grid = document.querySelector(".card-grid");
+    expect(grid?.firstElementChild?.contains(nameInput)).toBe(true);
+    expect(nameInput).toHaveFocus();
+  });
+
+  it("closes the open editor when another exercise is edited", async () => {
+    renderRegister([exercise, squat]);
+
+    const squatCard = screen
+      .getByRole("button", { name: /edit squat/i })
+      .closest("article");
+    if (!squatCard) throw new Error("squat card is missing");
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: /edit bench press/i })
+    );
+    await screen.findByRole("heading", { name: "Edit exercise" });
+    await fireEvent.click(screen.getByRole("button", { name: /edit squat/i }));
+
+    await waitFor(() => {
+      expect(
+        screen.getAllByRole("heading", { name: "Edit exercise" })
+      ).toHaveLength(1);
+    });
+    const nameInput = screen.getByLabelText("Name");
+    expect(nameInput).toHaveValue("Squat");
+    expect(squatCard.contains(nameInput)).toBe(true);
+  });
+
+  it("returns focus to the Edit button after saving", async () => {
+    const { onUpdate } = renderRegister();
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: /edit bench press/i })
+    );
+    await fireEvent.input(screen.getByLabelText("Name"), {
+      target: { value: "Incline Bench Press" },
+    });
+    await submitExerciseForm();
+
+    await waitFor(() => expect(onUpdate).toHaveBeenCalled());
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: /edit bench press/i })
+      ).toHaveFocus();
+    });
+  });
+
+  it("returns focus to the Edit button after cancel", async () => {
+    renderRegister();
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: /edit bench press/i })
+    );
+    expect(
+      screen.getByRole("heading", { name: "Edit exercise" })
+    ).toBeInTheDocument();
+
+    await fireEvent.click(screen.getByRole("button", { name: /^cancel$/i }));
+
+    expect(
+      screen.queryByRole("heading", { name: "Edit exercise" })
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Bench Press" })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: /edit bench press/i })
+      ).toHaveFocus();
+    });
   });
 
   it("displays a two-decimal default and accepts two-decimal input", async () => {
@@ -139,6 +247,11 @@ describe("ExerciseRegister", () => {
     const { onUpdate } = renderRegister();
     onUpdate.mockRejectedValueOnce(new Error("Name already exists"));
 
+    const card = screen
+      .getByRole("button", { name: /edit bench press/i })
+      .closest("article");
+    if (!card) throw new Error("exercise card is missing");
+
     await fireEvent.click(
       screen.getByRole("button", { name: /edit bench press/i })
     );
@@ -147,9 +260,9 @@ describe("ExerciseRegister", () => {
     });
     await submitExerciseForm();
 
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Name already exists"
-    );
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("Name already exists");
+    expect(card.contains(alert)).toBe(true);
     expect(screen.getByLabelText("Name")).toHaveValue("Incline Bench Press");
   });
 

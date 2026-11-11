@@ -475,9 +475,11 @@ apps/web/
   areas with WAI-ARIA tab semantics and arrow-key navigation. A panel mounts when its
   tab is selected and reloads when opened again (ADR-0040).
 - The Exercises tab shows a card grid of exercises with their defaults and edit/delete
-  actions, with "New exercise" at the bottom. The Plans tab shows the rotation controls
-  and plan cards with their start/edit/delete actions, with "New plan" at the bottom
-  (ADR-0040).
+  actions. The Plans tab shows the rotation controls and plan cards with their
+  start/edit/delete actions. Create and edit forms render inside the grid: editing
+  replaces the matching card's content, and a new item opens as the first card. One card
+  edits at a time, cancel restores the card, and save or cancel returns focus to the
+  Edit button (ADR-0040, ADR-0051).
 - The Workouts tab shows a progress section with personal records and per-workout
   volume, then history cards with date, plan, duration, and set count, plan and date
   filters, and a "Load more" action; opening a session expands its sets and duration
@@ -706,3 +708,4 @@ The target architecture deliberately excludes:
 | [0048](adr/0048-zod-free-labels-subpath.md) | Zod-free labels subpath |
 | [0049](adr/0049-trim-plan-names-and-session-titles.md) | Trim plan names and session titles |
 | [0050](adr/0050-recover-completed-session-on-conflict.md) | Recover the gym screen from a completed-session conflict |
+| [0051](adr/0051-in-place-gallery-form-editing.md) | In-place gallery form editing |

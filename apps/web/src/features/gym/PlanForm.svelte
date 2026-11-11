@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import type {
     CreateWorkoutPlanInput,
     Exercise,
@@ -10,11 +11,17 @@
     exercises,
     plan = null,
     onSubmit,
+    onCancel,
   }: {
     exercises: Exercise[];
     plan?: WorkoutPlan | null;
     onSubmit: (input: CreateWorkoutPlanInput) => Promise<void>;
+    onCancel: () => void;
   } = $props();
+
+  let nameInput = $state<HTMLInputElement | null>(null);
+
+  onMount(() => nameInput?.focus());
 
   type ExerciseRow = {
     exerciseId: string;
@@ -111,15 +118,24 @@
 
 {#if available.length === 0}
   <p class="empty">No exercises available. Add one in the exercise register.</p>
+  <button type="button" class="btn btn-ghost" onclick={onCancel}>
+    Cancel
+  </button>
 {:else}
-  <form class="card stack" onsubmit={handleSubmit}>
+  <form class="stack" onsubmit={handleSubmit}>
     <h3 class="card-title">
       {plan ? "Edit training plan" : "New training plan"}
     </h3>
 
     <label class="field">
       <span class="label">Name</span>
-      <input class="input" required maxlength={100} bind:value={name} />
+      <input
+        class="input"
+        required
+        maxlength={100}
+        bind:this={nameInput}
+        bind:value={name}
+      />
     </label>
 
     <label class="field">
@@ -187,6 +203,14 @@
         onclick={addRow}
       >
         Add exercise
+      </button>
+      <button
+        type="button"
+        class="btn btn-ghost"
+        disabled={pending}
+        onclick={onCancel}
+      >
+        Cancel
       </button>
       <button
         type="submit"

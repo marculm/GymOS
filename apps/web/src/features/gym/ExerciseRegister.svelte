@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { tick } from "svelte";
   import type { CreateExerciseInput, Exercise } from "@gymos/shared";
   import ExerciseForm from "./ExerciseForm.svelte";
   import { formatWeight } from "./format.mts";
@@ -10,7 +11,7 @@
     onDelete,
   }: {
     exercises: Exercise[];
-    onCreate: (input: CreateExerciseInput) => Promise<void>;
+    onCreate: (input: CreateExerciseInput) => Promise<Exercise>;
     onUpdate: (id: string, input: CreateExerciseInput) => Promise<void>;
     onDelete: (id: string) => Promise<void>;
   } = $props();
@@ -31,18 +32,30 @@
     formOpen = true;
   }
 
-  function close() {
+  async function close(focusId: string) {
     formOpen = false;
     editingExercise = null;
+    await tick();
+    document.getElementById(focusId)?.focus();
+  }
+
+  function cancel() {
+    void close(
+      editingExercise
+        ? `edit-exercise-${editingExercise.id}`
+        : "new-exercise-button"
+    );
   }
 
   async function handleSubmit(input: CreateExerciseInput) {
     if (editingExercise) {
-      await onUpdate(editingExercise.id, input);
-    } else {
-      await onCreate(input);
+      const exerciseId = editingExercise.id;
+      await onUpdate(exerciseId, input);
+      await close(`edit-exercise-${exerciseId}`);
+      return;
     }
-    close();
+    const created = await onCreate(input);
+    await close(`edit-exercise-${created.id}`);
   }
 
   async function handleDelete(exercise: Exercise) {
@@ -53,7 +66,6 @@
     error = null;
     try {
       await onDelete(exercise.id);
-      if (editingExercise?.id === exercise.id) close();
     } catch (deleteError) {
       error =
         deleteError instanceof Error
@@ -65,36 +77,54 @@
 
 <div class="stack">
   <div class="card-grid">
+    {#if formOpen && !editingExercise}
+      <article class="card stack form-card">
+        <ExerciseForm onSubmit={handleSubmit} onCancel={cancel} />
+      </article>
+    {/if}
+
     {#each exercises as exercise (exercise.id)}
-      <article class="card stack">
-        <div class="row">
-          <h3 class="card-title">{exercise.name}</h3>
-          <span class="badge">{exercise.muscleGroup}</span>
-        </div>
-        <p class="muted">
-          Default: {exercise.defaultSets} × {exercise.defaultReps}
-          {exercise.defaultWeightKg != null
-            ? ` @ ${formatWeight(exercise.defaultWeightKg)} kg`
-            : ""}
-        </p>
-        <div class="row">
-          <button
-            type="button"
-            class="btn btn-ghost"
-            aria-label={`Edit ${exercise.name}`}
-            onclick={() => openEdit(exercise)}
-          >
-            Edit
-          </button>
-          <button
-            type="button"
-            class="btn btn-ghost"
-            aria-label={`Delete ${exercise.name}`}
-            onclick={() => void handleDelete(exercise)}
-          >
-            Delete
-          </button>
-        </div>
+      <article
+        class="card stack"
+        class:form-card={editingExercise?.id === exercise.id}
+      >
+        {#if editingExercise?.id === exercise.id}
+          <ExerciseForm
+            exercise={editingExercise}
+            onSubmit={handleSubmit}
+            onCancel={cancel}
+          />
+        {:else}
+          <div class="row">
+            <h3 class="card-title">{exercise.name}</h3>
+            <span class="badge">{exercise.muscleGroup}</span>
+          </div>
+          <p class="muted">
+            Default: {exercise.defaultSets} × {exercise.defaultReps}
+            {exercise.defaultWeightKg != null
+              ? ` @ ${formatWeight(exercise.defaultWeightKg)} kg`
+              : ""}
+          </p>
+          <div class="row">
+            <button
+              type="button"
+              class="btn btn-ghost"
+              id={`edit-exercise-${exercise.id}`}
+              aria-label={`Edit ${exercise.name}`}
+              onclick={() => openEdit(exercise)}
+            >
+              Edit
+            </button>
+            <button
+              type="button"
+              class="btn btn-ghost"
+              aria-label={`Delete ${exercise.name}`}
+              onclick={() => void handleDelete(exercise)}
+            >
+              Delete
+            </button>
+          </div>
+        {/if}
       </article>
     {/each}
   </div>
@@ -103,18 +133,13 @@
     <p class="error" role="alert">{error}</p>
   {/if}
 
-  {#if formOpen}
-    <div class="card">
-      {#key editingExercise?.id ?? "new"}
-        <ExerciseForm
-          exercise={editingExercise}
-          onSubmit={handleSubmit}
-          onCancel={close}
-        />
-      {/key}
-    </div>
-  {:else}
-    <button type="button" class="btn btn-ghost" onclick={openCreate}>
+  {#if !formOpen}
+    <button
+      type="button"
+      class="btn btn-ghost"
+      id="new-exercise-button"
+      onclick={openCreate}
+    >
       New exercise
     </button>
   {/if}

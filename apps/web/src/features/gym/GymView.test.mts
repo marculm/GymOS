@@ -707,6 +707,150 @@ describe("GymView", () => {
       await screen.findByRole("heading", { name: "Push Day A" })
     ).toBeInTheDocument();
     expect(screen.queryByLabelText("Name")).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: /edit push day a/i })
+      ).toHaveFocus();
+    });
+  });
+
+  it("renders the plan edit form inside its card", async () => {
+    vi.mocked(listAllPlans).mockResolvedValueOnce([plan, extraPlan]);
+
+    render(GymView);
+
+    await startScreenReady();
+    await openTab("Plans");
+    const editButton = screen.getByRole("button", { name: /edit push day/i });
+    const card = editButton.closest("article");
+    if (!card) throw new Error("plan card is missing");
+
+    await fireEvent.click(editButton);
+
+    const nameInput = await screen.findByLabelText("Name");
+    const form = nameInput.closest("form");
+    expect(form).not.toBeNull();
+    expect(card.contains(form)).toBe(true);
+    for (const renderedForm of document.querySelectorAll("form")) {
+      expect(renderedForm.closest(".card-grid")).not.toBeNull();
+    }
+    expect(nameInput).toHaveFocus();
+    expect(
+      screen.getByRole("button", { name: /edit pull day/i })
+    ).toBeInTheDocument();
+  });
+
+  it("closes the open plan editor when another plan is edited", async () => {
+    vi.mocked(listAllPlans).mockResolvedValueOnce([plan, extraPlan]);
+
+    render(GymView);
+
+    await startScreenReady();
+    await openTab("Plans");
+    const pullCard = screen
+      .getByRole("button", { name: /edit pull day/i })
+      .closest("article");
+    if (!pullCard) throw new Error("pull day card is missing");
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: /edit push day/i })
+    );
+    await screen.findByRole("heading", { name: "Edit training plan" });
+    await fireEvent.click(
+      screen.getByRole("button", { name: /edit pull day/i })
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getAllByRole("heading", { name: "Edit training plan" })
+      ).toHaveLength(1);
+    });
+    const nameInput = screen.getByLabelText("Name");
+    expect(nameInput).toHaveValue("Pull Day");
+    expect(pullCard.contains(nameInput)).toBe(true);
+  });
+
+  it("renders the new plan form as the first card in the grid", async () => {
+    render(GymView);
+
+    await startScreenReady();
+    await openTab("Plans");
+    await fireEvent.click(screen.getByRole("button", { name: /new plan/i }));
+
+    const nameInput = await screen.findByLabelText("Name");
+    const grid = document.querySelector(".card-grid");
+    expect(grid?.firstElementChild?.contains(nameInput)).toBe(true);
+    expect(nameInput).toHaveFocus();
+  });
+
+  it("focuses the created plan's edit button", async () => {
+    vi.mocked(createPlan).mockResolvedValueOnce({
+      ...plan,
+      id: "plan-3",
+      name: "Leg Day",
+    });
+
+    render(GymView);
+
+    await startScreenReady();
+    await openTab("Plans");
+    await fireEvent.click(screen.getByRole("button", { name: /new plan/i }));
+    await fireEvent.input(screen.getByLabelText("Name"), {
+      target: { value: "Leg Day" },
+    });
+    await clickSubmit(screen.getByRole("button", { name: /save plan/i }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: /edit leg day/i })
+      ).toHaveFocus();
+    });
+  });
+
+  it("cancels a new plan when no exercises are available", async () => {
+    vi.mocked(listAllExercises).mockResolvedValueOnce([]);
+
+    render(GymView);
+
+    await startScreenReady();
+    await openTab("Plans");
+    await fireEvent.click(screen.getByRole("button", { name: /new plan/i }));
+
+    expect(
+      await screen.findByText(/no exercises available/i)
+    ).toBeInTheDocument();
+    await fireEvent.click(screen.getByRole("button", { name: /^cancel$/i }));
+
+    expect(
+      screen.queryByText(/no exercises available/i)
+    ).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /new plan/i })).toHaveFocus();
+    });
+  });
+
+  it("keeps a plan submit error inside the editing card", async () => {
+    vi.mocked(updatePlan).mockRejectedValueOnce(
+      new Error("A plan with this name already exists")
+    );
+
+    render(GymView);
+
+    await startScreenReady();
+    await openTab("Plans");
+    await fireEvent.click(
+      screen.getByRole("button", { name: /edit push day/i })
+    );
+    await fireEvent.input(screen.getByLabelText("Name"), {
+      target: { value: "Pull Day" },
+    });
+    await clickSubmit(screen.getByRole("button", { name: /save plan/i }));
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("A plan with this name already exists");
+    const form = screen.getByLabelText("Name").closest("form");
+    expect(form?.contains(alert)).toBe(true);
+    expect(alert.closest("article")).not.toBeNull();
   });
 
   it("edits a plan whose exercises are no longer in the register", async () => {
@@ -733,9 +877,10 @@ describe("GymView", () => {
 
     await startScreenReady();
     await openTab("Plans");
-    await fireEvent.click(
-      screen.getByRole("button", { name: /edit push day/i })
-    );
+    const editButton = screen.getByRole("button", { name: /edit push day/i });
+    const card = editButton.closest("article");
+    if (!card) throw new Error("plan card is missing");
+    await fireEvent.click(editButton);
     expect(
       await screen.findByRole("heading", { name: "Edit training plan" })
     ).toBeInTheDocument();
@@ -746,6 +891,14 @@ describe("GymView", () => {
       screen.queryByRole("heading", { name: "Edit training plan" })
     ).not.toBeInTheDocument();
     expect(updatePlan).not.toHaveBeenCalled();
+    expect(
+      within(card as HTMLElement).getByRole("heading", { name: "Push Day" })
+    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: /edit push day/i })
+      ).toHaveFocus();
+    });
   });
 
   it("deletes a plan from the plan list", async () => {
@@ -1454,9 +1607,13 @@ describe("GymView", () => {
 
     await startScreenReady();
     await fireEvent.click(screen.getByRole("button", { name: /new exercise/i }));
-    await fireEvent.input(screen.getByLabelText("Name"), {
-      target: { value: "Cable Fly" },
-    });
+
+    const nameInput = screen.getByLabelText("Name");
+    const grid = document.querySelector(".card-grid");
+    expect(grid?.firstElementChild?.contains(nameInput)).toBe(true);
+    expect(nameInput).toHaveFocus();
+
+    await fireEvent.input(nameInput, { target: { value: "Cable Fly" } });
     await clickSubmit(screen.getByRole("button", { name: /save exercise/i }));
 
     await waitFor(() => {
@@ -1465,6 +1622,11 @@ describe("GymView", () => {
       );
     });
     expect(await screen.findByText("Cable Fly")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: /edit cable fly/i })
+      ).toHaveFocus();
+    });
   });
 
   it("updates exercise names in the next workout after a rename", async () => {

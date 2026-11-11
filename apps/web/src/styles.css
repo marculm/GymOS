@@ -318,6 +318,10 @@ fieldset {
   border-left: 3px solid var(--accent);
 }
 
+.form-card {
+  grid-column: 1 / -1;
+}
+
 .exercise-done {
   background: var(--surface-2);
   color: var(--muted);
