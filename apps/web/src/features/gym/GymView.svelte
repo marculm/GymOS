@@ -132,11 +132,14 @@
     const created = await createPlan(input);
     plans = [created, ...plans];
     showPlanForm = false;
+    await tick();
+    document.getElementById(`edit-plan-${created.id}`)?.focus();
   }
 
   async function handleUpdatePlan(input: CreateWorkoutPlanInput) {
     if (!editingPlan) return;
-    const updated = await updatePlan(editingPlan.id, input);
+    const planId = editingPlan.id;
+    const updated = await updatePlan(planId, input);
     plans = plans.map((plan) => (plan.id === updated.id ? updated : plan));
     rotation = {
       ...rotation,
@@ -145,6 +148,18 @@
       ),
     };
     editingPlan = null;
+    await tick();
+    document.getElementById(`edit-plan-${planId}`)?.focus();
+  }
+
+  async function closePlanForm() {
+    const planId = editingPlan?.id;
+    editingPlan = null;
+    showPlanForm = false;
+    await tick();
+    document
+      .getElementById(planId ? `edit-plan-${planId}` : "new-plan-button")
+      ?.focus();
   }
 
   async function handleDeletePlan(plan: WorkoutPlan) {
@@ -591,82 +606,93 @@
 
         <section class="stack">
           <h3 class="card-title">Training plans</h3>
-          {#if plans.length === 0}
+          {#if plans.length === 0 && !showPlanForm}
             <p class="empty">No plans yet</p>
           {:else}
             <div class="card-grid">
+              {#if showPlanForm}
+                <article class="card plan-card stack form-card">
+                  <PlanForm
+                    exercises={exercises}
+                    onSubmit={handleCreatePlan}
+                    onCancel={closePlanForm}
+                  />
+                </article>
+              {/if}
+
               {#each plans as plan (plan.id)}
-                <article class="card plan-card stack">
-                  <div>
-                    <h4 class="card-title">{plan.name}</h4>
-                    {#if plan.description}
-                      <p class="muted">{plan.description}</p>
-                    {/if}
-                  </div>
-                  <div class="row">
-                    <span class="badge">
-                      {plan.exercises.length}
-                      {plan.exercises.length === 1 ? "exercise" : "exercises"}
-                    </span>
-                    <button
-                      type="button"
-                      class="btn btn-primary"
-                      disabled={pending}
-                      onclick={() => void start({ planId: plan.id })}
-                    >
-                      Start {plan.name}
-                    </button>
-                  </div>
-                  <div class="row">
-                    <button
-                      type="button"
-                      class="btn btn-ghost"
-                      aria-label={`Edit ${plan.name}`}
-                      onclick={() => {
-                        showPlanForm = false;
-                        editingPlan = plan;
-                      }}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      class="btn btn-ghost"
-                      aria-label={`Delete ${plan.name}`}
-                      onclick={() => void handleDeletePlan(plan)}
-                    >
-                      Delete
-                    </button>
-                  </div>
+                <article
+                  class="card plan-card stack"
+                  class:form-card={editingPlan?.id === plan.id}
+                >
+                  {#if editingPlan?.id === plan.id}
+                    <PlanForm
+                      exercises={exercises}
+                      plan={editingPlan}
+                      onSubmit={handleUpdatePlan}
+                      onCancel={closePlanForm}
+                    />
+                  {:else}
+                    <div>
+                      <h4 class="card-title">{plan.name}</h4>
+                      {#if plan.description}
+                        <p class="muted">{plan.description}</p>
+                      {/if}
+                    </div>
+                    <div class="row">
+                      <span class="badge">
+                        {plan.exercises.length}
+                        {plan.exercises.length === 1 ? "exercise" : "exercises"}
+                      </span>
+                      <button
+                        type="button"
+                        class="btn btn-primary"
+                        disabled={pending}
+                        onclick={() => void start({ planId: plan.id })}
+                      >
+                        Start {plan.name}
+                      </button>
+                    </div>
+                    <div class="row">
+                      <button
+                        type="button"
+                        class="btn btn-ghost"
+                        id={`edit-plan-${plan.id}`}
+                        aria-label={`Edit ${plan.name}`}
+                        onclick={() => {
+                          showPlanForm = false;
+                          editingPlan = plan;
+                        }}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn-ghost"
+                        aria-label={`Delete ${plan.name}`}
+                        onclick={() => void handleDeletePlan(plan)}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  {/if}
                 </article>
               {/each}
             </div>
           {/if}
 
-          <button
-            type="button"
-            class="btn btn-ghost"
-            onclick={() => {
-              if (editingPlan) {
+          {#if !showPlanForm && !editingPlan}
+            <button
+              type="button"
+              class="btn btn-ghost"
+              id="new-plan-button"
+              onclick={() => {
                 editingPlan = null;
-                return;
-              }
-              showPlanForm = !showPlanForm;
-            }}
-          >
-            {showPlanForm || editingPlan ? "Cancel" : "New plan"}
-          </button>
-
-          {#if showPlanForm}
-            <PlanForm exercises={exercises} onSubmit={handleCreatePlan} />
-          {:else if editingPlan}
-            {#key editingPlan?.id}
-              <PlanForm
-                exercises={exercises}
-                plan={editingPlan}
-                onSubmit={handleUpdatePlan}
-              />
-            {/key}
+                showPlanForm = true;
+              }}
+            >
+              New plan
+            </button>
           {/if}
         </section>
       {/if}
