@@ -7,7 +7,7 @@ import type {
   WorkoutSessionDetail,
   WorkoutSessionSummary,
 } from "@gymos/shared";
-import { ApiError } from "../../api/client.mts";
+import { ApiError, ApiTimeoutError } from "../../api/client.mts";
 import GymView from "./GymView.svelte";
 import {
   addSet,
@@ -1564,6 +1564,19 @@ describe("GymView", () => {
     );
     await fireEvent.click(screen.getByRole("button", { name: /retry/i }));
     expect(await startScreenReady()).toBeInTheDocument();
+  });
+
+  it("shows the timeout message and retries the load", async () => {
+    vi.mocked(listAllExercises).mockRejectedValueOnce(new ApiTimeoutError());
+
+    render(GymView);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "The request timed out"
+    );
+    await fireEvent.click(screen.getByRole("button", { name: /retry/i }));
+    expect(await startScreenReady()).toBeInTheDocument();
+    expect(listAllExercises).toHaveBeenCalledTimes(2);
   });
 
   it("creates a plan with the selected exercise", async () => {
