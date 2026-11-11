@@ -65,36 +65,53 @@
 
 <div class="stack">
   <div class="card-grid">
+    {#if formOpen && !editingExercise}
+      <article class="card stack form-card">
+        <ExerciseForm onSubmit={handleSubmit} onCancel={close} />
+      </article>
+    {/if}
+
     {#each exercises as exercise (exercise.id)}
-      <article class="card stack">
-        <div class="row">
-          <h3 class="card-title">{exercise.name}</h3>
-          <span class="badge">{exercise.muscleGroup}</span>
-        </div>
-        <p class="muted">
-          Default: {exercise.defaultSets} × {exercise.defaultReps}
-          {exercise.defaultWeightKg != null
-            ? ` @ ${formatWeight(exercise.defaultWeightKg)} kg`
-            : ""}
-        </p>
-        <div class="row">
-          <button
-            type="button"
-            class="btn btn-ghost"
-            aria-label={`Edit ${exercise.name}`}
-            onclick={() => openEdit(exercise)}
-          >
-            Edit
-          </button>
-          <button
-            type="button"
-            class="btn btn-ghost"
-            aria-label={`Delete ${exercise.name}`}
-            onclick={() => void handleDelete(exercise)}
-          >
-            Delete
-          </button>
-        </div>
+      <article
+        class="card stack"
+        class:form-card={editingExercise?.id === exercise.id}
+      >
+        {#if editingExercise?.id === exercise.id}
+          <ExerciseForm
+            exercise={editingExercise}
+            onSubmit={handleSubmit}
+            onCancel={close}
+          />
+        {:else}
+          <div class="row">
+            <h3 class="card-title">{exercise.name}</h3>
+            <span class="badge">{exercise.muscleGroup}</span>
+          </div>
+          <p class="muted">
+            Default: {exercise.defaultSets} × {exercise.defaultReps}
+            {exercise.defaultWeightKg != null
+              ? ` @ ${formatWeight(exercise.defaultWeightKg)} kg`
+              : ""}
+          </p>
+          <div class="row">
+            <button
+              type="button"
+              class="btn btn-ghost"
+              aria-label={`Edit ${exercise.name}`}
+              onclick={() => openEdit(exercise)}
+            >
+              Edit
+            </button>
+            <button
+              type="button"
+              class="btn btn-ghost"
+              aria-label={`Delete ${exercise.name}`}
+              onclick={() => void handleDelete(exercise)}
+            >
+              Delete
+            </button>
+          </div>
+        {/if}
       </article>
     {/each}
   </div>
@@ -103,18 +120,13 @@
     <p class="error" role="alert">{error}</p>
   {/if}
 
-  {#if formOpen}
-    <div class="card">
-      {#key editingExercise?.id ?? "new"}
-        <ExerciseForm
-          exercise={editingExercise}
-          onSubmit={handleSubmit}
-          onCancel={close}
-        />
-      {/key}
-    </div>
-  {:else}
-    <button type="button" class="btn btn-ghost" onclick={openCreate}>
+  {#if !formOpen}
+    <button
+      type="button"
+      class="btn btn-ghost"
+      id="new-exercise-button"
+      onclick={openCreate}
+    >
       New exercise
     </button>
   {/if}
