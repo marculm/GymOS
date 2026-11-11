@@ -58,6 +58,18 @@ collections.
   preflight and would otherwise reach the route, which matters because the API has no
   authentication (ADR-0009).
 
+### Client requests
+
+- Every web API request has a 10-second default timeout, exported as
+  `REQUEST_TIMEOUT_MS` and overridable per request. Each request runs under an
+  `AbortController`; a timeout aborts the fetch and rejects with `ApiTimeoutError`,
+  which carries a timeout-specific user message.
+- The web client retries a `GET` exactly once when the first attempt fails with a
+  network error or a `5xx` response. A retried request runs with a fresh timeout.
+- The web client never retries `POST`, `PUT`, or `DELETE` requests automatically. It
+  also does not retry `4xx` responses or timeouts, so a hung request fails after about
+  one timeout rather than two.
+
 ### Not adopted
 
 - ETag, `If-Match`, `304`, `412`, and `428` resource versioning. Concurrency is handled
@@ -69,7 +81,10 @@ collections.
 ## Consequences
 
 - The web client and its tests must parse problem details, consume `Page<T>`, handle a
-  `404` for the active session, and stop reading envelopes.
+  `404` for the active session, stop reading envelopes, and apply the client request
+  timeout and retry rules.
+- A hung API surfaces a visible, retryable error after about 10 seconds instead of
+  leaving the Gym screen loading.
 - The web client already sends `Content-Type: application/json`, so the content-type rule
   needs no client change.
 - Error handling and pagination are defined in one place instead of per route.
