@@ -32,7 +32,6 @@ export {
   CreateExerciseSchema,
   CreateWorkoutPlanSchema,
   CreateWorkoutSessionSchema,
-  CreateWorkoutSetSchema,
   UpdateExerciseSchema,
   UpdateWorkoutPlanSchema,
   UpdateWorkoutRotationSchema,
