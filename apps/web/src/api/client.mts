@@ -35,8 +35,8 @@ function detailMessage(detail: unknown): string | null {
 }
 
 function isRetryable(error: unknown): boolean {
-  if (error instanceof ApiTimeoutError) return false;
-  return error instanceof ApiError ? error.status >= 500 : true;
+  if (error instanceof ApiError) return error.status >= 500;
+  return error instanceof TypeError;
 }
 
 async function send<T>(
@@ -53,15 +53,12 @@ async function send<T>(
     }, timeoutMs);
   });
 
-  try {
-    const response = await Promise.race([
-      fetch(`/api${path}`, {
-        ...init,
-        signal: controller.signal,
-        headers: { "Content-Type": "application/json", ...init?.headers },
-      }),
-      timeout,
-    ]);
+  const consume = async (): Promise<T> => {
+    const response = await fetch(`/api${path}`, {
+      ...init,
+      signal: controller.signal,
+      headers: { "Content-Type": "application/json", ...init?.headers },
+    });
 
     if (!response.ok) {
       const body = (await response.json().catch(() => null)) as {
@@ -80,6 +77,10 @@ async function send<T>(
     }
 
     return response.json() as Promise<T>;
+  };
+
+  try {
+    return await Promise.race([consume(), timeout]);
   } finally {
     clearTimeout(timeoutId);
   }

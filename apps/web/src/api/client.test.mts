@@ -18,13 +18,47 @@ describe("api client", () => {
   });
 
   it("times out a request that never resolves", async () => {
-    const fetchMock = vi.fn(() => new Promise(() => {}));
+    const fetchMock = vi.fn(
+      (_path: string, _init: RequestInit) => new Promise<Response>(() => {})
+    );
     vi.stubGlobal("fetch", fetchMock);
 
     const request = api.get("/gym/rotation", { timeoutMs: 10 });
 
     await expect(request).rejects.toBeInstanceOf(ApiTimeoutError);
     await expect(request).rejects.toThrow("timed out");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0]?.[1]?.signal?.aborted).toBe(true);
+  });
+
+  it("times out a response body that never finishes", async () => {
+    const fetchMock = vi.fn((_path: string, init: RequestInit) =>
+      Promise.resolve({
+        ok: true,
+        status: 200,
+        json: () =>
+          new Promise((_, reject) => {
+            init.signal?.addEventListener("abort", () =>
+              reject(new DOMException("Aborted", "AbortError"))
+            );
+          }),
+      } as unknown as Response)
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    let fallback: ReturnType<typeof setTimeout> | undefined;
+    const outcome = await Promise.race([
+      api.get("/gym/rotation", { timeoutMs: 10 }).then(
+        () => "resolved",
+        (error: unknown) => error
+      ),
+      new Promise<"hung">((resolve) => {
+        fallback = setTimeout(() => resolve("hung"), 200);
+      }),
+    ]);
+    clearTimeout(fallback);
+
+    expect(outcome).toBeInstanceOf(ApiTimeoutError);
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
