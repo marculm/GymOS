@@ -37,3 +37,5 @@ explicit output path for the generated client, moves the datasource URL into
   also carries `prisma.config.ts` for the migration Job.
 - Database connections use the `pg` driver, so pooling and TLS behavior follow `pg`.
   Connecting without a timeout is prevented by the explicit 5-second timeout.
+- The adapter uses the default `public` schema. A `?schema=` parameter in `DATABASE_URL`
+  only affects Prisma CLI commands, not runtime queries.
