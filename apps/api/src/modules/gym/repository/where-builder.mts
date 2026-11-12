@@ -1,4 +1,4 @@
-import type { Prisma } from "@prisma/client";
+import type { Prisma } from "../../../generated/prisma/client";
 import type { PlanSearchParams, SessionSearchParams } from "../service/search-params.mts";
 
 export function buildPlanWhere(

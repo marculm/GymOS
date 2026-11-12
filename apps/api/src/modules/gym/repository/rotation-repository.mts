@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Prisma } from "../../../generated/prisma/client";
 import type { WorkoutPlan } from "@gymos/shared";
 import { prisma } from "../../../config/prisma-client.mts";
 import { ConcurrentUpdateError } from "../service/errors.mts";

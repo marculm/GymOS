@@ -7,11 +7,11 @@ Accepted
 ## Context
 
 The typed Prisma Client is generated from `apps/api/prisma/schema.prisma` into
-`node_modules`. It is not committed and is not part of the installed `@prisma/client`
-package, so a fresh checkout has no generated types until `db:generate` runs. Without it,
-`bun run typecheck` fails on the Prisma types and the API test suites fail on the missing
-client. `AGENTS.md` requires both commands before every task, so they must work on a
-fresh checkout without a manual generate step.
+`apps/api/src/generated/prisma`. It is not committed and is not part of the installed
+`@prisma/client` package, so a fresh checkout has no generated types until `db:generate`
+runs. Without it, `bun run typecheck` fails on the Prisma types and the API test suites
+fail on the missing client. `AGENTS.md` requires both commands before every task, so they
+must work on a fresh checkout without a manual generate step.
 
 Generating needs no database connection. A root `postinstall` script was considered, but
 both Dockerfiles run `bun install` before copying `apps/api/prisma`, so the generate would

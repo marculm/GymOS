@@ -85,6 +85,7 @@ Routers import the container; they never construct services or repositories them
 
 ```text
 apps/api/
+├── prisma.config.ts
 ├── prisma/
 │   ├── schema.prisma
 │   ├── seed.mts
@@ -353,8 +354,8 @@ Other configuration modules:
 - `config/paths.mts` — route prefixes (`/api/gym`, `/health`, `/prometheus`, ...).
 - `config/cors.mts` — CORS options.
 - `config/server.mts` — port and host.
-- `config/prisma-client.mts` — Prisma client, `connectDB`, `disconnectDB`, and the
-  `globalThis` cache used by `bun --watch`.
+- `config/prisma-client.mts` — Prisma client with the `pg` driver adapter, `connectDB`,
+  `disconnectDB`, and the `globalThis` cache used by `bun --watch`.
 
 TLS is terminated by the reverse proxy/ingress; the API does not load certificates. See
 ADR-0016.
@@ -712,3 +713,5 @@ The target architecture deliberately excludes:
 | [0049](adr/0049-trim-plan-names-and-session-titles.md) | Trim plan names and session titles |
 | [0050](adr/0050-recover-completed-session-on-conflict.md) | Recover the gym screen from a completed-session conflict |
 | [0051](adr/0051-in-place-gallery-form-editing.md) | In-place gallery form editing |
+| [0052](adr/0052-issue-refinement-workflow.md) | Issue refinement workflow |
+| [0053](adr/0053-prisma-7-driver-adapter.md) | Prisma 7 with a PostgreSQL driver adapter |

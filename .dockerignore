@@ -12,6 +12,7 @@ deploy
 tmp
 node_modules
 **/node_modules
+apps/api/src/generated
 **/dist
 coverage
 *.log

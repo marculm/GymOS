@@ -1,7 +1,5 @@
-import { PrismaClient } from "@prisma/client";
+import { connectDB, prisma } from "../src/config/prisma-client.mts";
 import { currentUserEmail } from "../src/config/env.mts";
-
-const prisma = new PrismaClient();
 
 const DEFAULT_EXERCISES = [
   {
@@ -55,6 +53,7 @@ const DEFAULT_EXERCISES = [
 ];
 
 async function main() {
+  await connectDB();
   console.log("🌱 Seeding database...");
 
   // 1. Create the user the API resolves from GYMOS_USER_EMAIL

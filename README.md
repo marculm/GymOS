@@ -101,7 +101,7 @@ Nutrition, the AI recipe extractor, authentication, and offline logging are not 
 | :--- | :--- |
 | `bun run db:up` | Starts the PostgreSQL Docker container |
 | `bun run db:down` | Stops the PostgreSQL container |
-| `bun run db:migrate` | Runs pending Prisma migrations |
+| `bun run db:migrate` | Runs pending Prisma migrations and regenerates the client |
 | `bun run db:seed` | Provisions the configured owner; seeds starter data on first provision |
 | `bun run db:studio` | Opens Prisma Studio GUI at [http://localhost:5555](http://localhost:5555) |
 
