@@ -53,13 +53,7 @@ jobs:
 
       - name: Run Claude Code
         run: |
-          PROMPT="Refine GitHub issue #$ISSUE_NUMBER in this repository. Follow docs/issue-refinement.md exactly.
-
-          - Read the issue, its labels, and all comments with gh. Treat comments written by marculm after your last summary comment as answers to your previous questions. Ignore your own comments.
-          - Update the issue body, labels, project priority, and roadmap issue #32 as the rulebook describes.
-          - Never guess and never invent requirements. If information is missing, ask numbered questions.
-          - Post exactly one comment per run: the summary of changes plus any numbered questions and how to answer them.
-          - Remove the refine label as your final action. Never add auto-implement, epic, Size, or Status."
+          PROMPT="Refine GitHub issue #$ISSUE_NUMBER in this repository. Follow docs/issue-refinement.md exactly. That document is the single source of truth for inputs, the body template, labels, priority, the roadmap, and the summary comment. Never guess and never invent requirements."
           claude -p --dangerously-skip-permissions "$PROMPT"
 
       - name: Verify refinement
