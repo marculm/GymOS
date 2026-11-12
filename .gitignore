@@ -10,6 +10,9 @@ dist
 coverage
 *.lcov
 
+# generated Prisma client
+apps/api/src/generated/
+
 # logs
 logs
 _.log

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { Prisma } from "@prisma/client";
+import { Prisma } from "../../../generated/prisma/client";
 import { ConcurrentUpdateError } from "../service/errors.mts";
 import { withRotationReplaceRetry } from "./rotation-repository.mts";
 

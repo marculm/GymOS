@@ -1,4 +1,5 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaClient } from "../generated/prisma/client";
 import { env } from "./env.mts";
 
 declare global {
@@ -6,9 +7,16 @@ declare global {
   var prisma: PrismaClient | undefined;
 }
 
+const adapter = new PrismaPg({
+  connectionString: env.DATABASE_URL,
+  // Match Prisma 6's 5-second connect timeout; pg defaults to none.
+  connectionTimeoutMillis: 5000,
+});
+
 export const prisma =
   globalThis.prisma ??
   new PrismaClient({
+    adapter,
     log: env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
   });
 

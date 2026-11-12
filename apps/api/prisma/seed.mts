@@ -1,7 +1,5 @@
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "../src/config/prisma-client.mts";
 import { currentUserEmail } from "../src/config/env.mts";
-
-const prisma = new PrismaClient();
 
 const DEFAULT_EXERCISES = [
   {

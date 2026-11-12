@@ -1,4 +1,4 @@
-import type { PrismaClient, User } from "@prisma/client";
+import type { PrismaClient, User } from "../generated/prisma/client";
 import { createMiddleware } from "hono/factory";
 import { currentUserEmail } from "../config/env.mts";
 import { prisma } from "../config/prisma-client.mts";
