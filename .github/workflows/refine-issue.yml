@@ -21,21 +21,12 @@ jobs:
     env:
       GH_TOKEN: ${{ secrets.CLAUDE_GH_TOKEN }}
       ISSUE_NUMBER: ${{ github.event.issue.number }}
-      ANTHROPIC_BASE_URL: "https://api.deepseek.com/anthropic"
-      ANTHROPIC_AUTH_TOKEN: ${{ secrets.DEEPSEEK_API_KEY }}
-      ANTHROPIC_MODEL: "deepseek-flash[1m]"
-      ANTHROPIC_DEFAULT_OPUS_MODEL: "deepseek-flash[1m]"
-      ANTHROPIC_DEFAULT_SONNET_MODEL: "deepseek-flash[1m]"
-      ANTHROPIC_DEFAULT_HAIKU_MODEL: "deepseek-flash"
-      CLAUDE_CODE_SUBAGENT_MODEL: "deepseek-flash"
-      CLAUDE_CODE_EFFORT_LEVEL: "max"
-      CLAUDE_CODE_AUTO_COMPACT_WINDOW: "786432"
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v7
         with:
-          fetch-depth: 0
+          persist-credentials: false
           token: ${{ secrets.CLAUDE_GH_TOKEN }}
 
       - name: Setup Node.js
@@ -52,6 +43,16 @@ jobs:
           echo "count=$(gh issue view "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --json comments --jq '.comments | length')" >> "$GITHUB_OUTPUT"
 
       - name: Run Claude Code
+        env:
+          ANTHROPIC_BASE_URL: "https://api.deepseek.com/anthropic"
+          ANTHROPIC_AUTH_TOKEN: ${{ secrets.DEEPSEEK_API_KEY }}
+          ANTHROPIC_MODEL: "deepseek-flash[1m]"
+          ANTHROPIC_DEFAULT_OPUS_MODEL: "deepseek-flash[1m]"
+          ANTHROPIC_DEFAULT_SONNET_MODEL: "deepseek-flash[1m]"
+          ANTHROPIC_DEFAULT_HAIKU_MODEL: "deepseek-flash"
+          CLAUDE_CODE_SUBAGENT_MODEL: "deepseek-flash"
+          CLAUDE_CODE_EFFORT_LEVEL: "max"
+          CLAUDE_CODE_AUTO_COMPACT_WINDOW: "786432"
         run: |
           PROMPT="Refine GitHub issue #$ISSUE_NUMBER in this repository. Follow docs/issue-refinement.md exactly. That document is the single source of truth for inputs, the body template, labels, priority, the roadmap, and the summary comment. Never guess and never invent requirements."
           claude -p --dangerously-skip-permissions "$PROMPT"
