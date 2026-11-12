@@ -12,6 +12,7 @@ COPY packages/shared/package.json packages/shared/
 RUN bun install --frozen-lockfile --linker hoisted
 
 COPY apps/api/prisma apps/api/prisma
+COPY apps/api/prisma.config.ts apps/api/prisma.config.ts
 COPY apps/api/src/config/env.mts apps/api/src/config/env.mts
 RUN bun --filter @gymos/api db:generate
 
@@ -23,7 +24,7 @@ COPY apps/api/package.json apps/api/
 COPY apps/web/package.json apps/web/
 COPY packages/shared/package.json packages/shared/
 # @prisma/client lists TypeScript as an optional peer; the runtime does not need it.
-RUN PRISMA_SKIP_POSTINSTALL_GENERATE=true bun install --frozen-lockfile --production --linker hoisted --filter @gymos/api --omit=peer \
+RUN bun install --frozen-lockfile --production --linker hoisted --filter @gymos/api --omit=peer \
     && test ! -d node_modules/typescript
 
 FROM oven/bun:1.4.4-slim AS runtime
@@ -38,9 +39,10 @@ COPY --from=prod-deps /app/node_modules ./node_modules
 COPY --from=prod-deps /app/package.json /app/bun.lock ./
 COPY --from=prod-deps /app/apps/api/package.json ./apps/api/
 COPY --from=prod-deps /app/packages/shared/package.json ./packages/shared/
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/apps/api/src/generated ./apps/api/src/generated
 COPY apps/api/src ./apps/api/src
 COPY apps/api/prisma ./apps/api/prisma
+COPY apps/api/prisma.config.ts ./apps/api/prisma.config.ts
 COPY packages/shared/src ./packages/shared/src
 
 USER bun
