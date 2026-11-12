@@ -28,18 +28,30 @@ that the owner answers in the issue before the next run.
   inserts or updates one row in roadmap #32 ordered by priority then dependencies.
 - Missing or ambiguous information becomes numbered questions in exactly one summary
   comment per run. The owner answers in a comment and re-adds `refine` to continue.
-- The `refine` label is removed after every run, including failures, so a retry needs
-  no manual cleanup.
-- Epics, `Size`, `Status`, and `auto-implement` stay untouched. Adding
-  `auto-implement` would start implementation and is forbidden.
+- Agent comments carry the marker `<!-- gymos-refine-agent -->` so the agent can tell
+  its own comments from the owner's; the shared PAT authors both as the same user.
+- The workflow fails when the agent posted no summary comment, when the issue is
+  missing from roadmap #32, or when no `Priority` is set.
+- The `refine` label is removed after every started run, including failures.
+- Epic checklists, `Size`, `Status`, and `auto-implement` stay untouched. Roadmap #32
+  is the only epic body the agent edits. Adding `auto-implement` would start
+  implementation and is forbidden.
+- The PAT must allow issues and project writes; checkout persists no credentials, and
+  the rulebook forbids repository writes, commits, and pushes.
 
 ## Consequences
 
 - Issues arrive implementation-ready and the roadmap stays ordered without manual
   sorting.
-- Each run costs tokens and requires the PAT to allow issue and project writes.
+- Each run costs tokens and needs a PAT with Issues read/write, Projects read/write,
+  Contents read, and Metadata read. The shared `CLAUDE_GH_TOKEN` also carries Contents
+  write for the implementation workflow; until a refinement-only token exists,
+  credential persistence is disabled and repository writes are forbidden by the
+  rulebook.
 - The answer loop is manual by design: no comment-triggered runs and no `needs-info`
   state.
+- The repo-wide concurrency group keeps roadmap edits serial but cancels a pending run
+  when three labels arrive quickly; recover by removing and re-adding `refine`.
 - The agent edits roadmap #32 free-form. A corrupting run means replacing that step
   with a deterministic mutation script.
 - No application code, API, or schema changes.
