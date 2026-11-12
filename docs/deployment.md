@@ -10,9 +10,7 @@ Pull requests run `checks`, `infra`, and `security`. A push to `main` runs:
 
 1. `checks` — typecheck, lint, tests against a Postgres service, web build.
 2. `security` — `bun audit --audit-level=high` against the checked-in lockfile. A failure
-   is reported as a failed check but is not a required gate for `images` or `deploy`. A
-   Bun override forces `deepmerge-ts@^8.0.2` so the job passes; the override is temporary
-   until Prisma is upgraded (#101).
+   is reported as a failed check but is not a required gate for `images` or `deploy`.
 3. `infra` — actionlint, kubeconform, and shellcheck for workflows, manifests, and the
    deploy script.
 4. `images` — builds `linux/arm64` images and pushes them to GHCR:
