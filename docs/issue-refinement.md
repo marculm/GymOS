@@ -33,23 +33,34 @@ Use this order:
    first refinement run, verbatim.
 
 On later runs, fold answers into the sections above and leave the `Original idea` block
-unchanged.
+unchanged. Preserve owner-authored text added to the body after the first run by folding
+it into the matching section; never discard it.
 
 ## Labels
 
 - Use existing labels only. Pick at most one type label that fits (`bug`,
   `enhancement`, `tech-debt`, `security`, `documentation`, `accessibility`).
 - Never add `auto-implement`, `epic`, or `refine`.
+- If the issue carries the `epic` label, do not rewrite its body. Post your marked
+  comment saying epics are refined manually and stop.
 
 ## Project 1
 
-- Add the issue to project 1 if it is not already there.
-- Set `Priority` to `P0`, `P1`, or `P2`. If the priority is uncertain, set a
-  provisional priority and say so with the reason in the summary comment.
+- Add the issue to project 1 if it is not already there: `gh project item-add 1
+  --owner marculm --url <issue-url>`. Find the item ID in
+  `gh project item-list 1 --owner marculm --format json --limit 500` by matching
+  `content.number` to `ISSUE_NUMBER`.
+- Set `Priority` with the project field ID `PVTSSF_lAHOEAw6oM4BpWhezhnyjtc` and the
+  option IDs P0 `79628723`, P1 `0a877460`, P2 `da944a9c`:
+  `gh project item-edit --project-id PVT_kwHOEAw6oM4BpWhe --id <item-id> --field-id
+  PVTSSF_lAHOEAw6oM4BpWhezhnyjtc --single-select-option-id <option>`.
+- If the priority is uncertain, set a provisional priority and say so with the reason
+  in the summary comment.
 - Do not touch `Size` or `Status`.
 
 ## Roadmap #32
 
+- Roadmap #32 is the only epic body you may change. Never edit epic checklists.
 - Add one row to the `## Implementation order` table, or update the existing row for
   this issue in place; never duplicate it.
 - Renumber the first column from 1 after inserting.
@@ -69,11 +80,21 @@ unchanged.
 - End question lists with: answer as a comment using `1) … 2) …`, then add the `refine`
   label again.
 - If no questions remain, say that the issue is ready.
-- Remove the `refine` label as your final action.
+- Remove the `refine` label from this issue as your final action:
+  `gh issue edit "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --remove-label refine`.
+  Never delete the repository label itself.
+
+## Failures
+
+- If any `gh` command fails, stop. Do not claim the change. Report the exact error in
+  your marked comment; if you cannot comment, exit with a non-zero status.
 
 ## Never
 
 - Never guess or invent requirements, acceptance criteria, or dependencies.
 - Never add `auto-implement` or `epic`.
-- Never set `Size` or `Status`, edit epics, or close the issue.
+- Never set `Size` or `Status`, close the issue, or edit epic checklists. Roadmap #32
+  is the only epic body you may edit.
+- Never modify repository files, commit, or push. You only change issues, Project 1,
+  and roadmap #32 through `gh`.
 - Never read or write `.env` files.
