@@ -1,0 +1,88 @@
+name: "Refine Issue"
+
+on:
+  issues:
+    types: [labeled]
+
+concurrency:
+  group: refine-issue
+  cancel-in-progress: false
+
+jobs:
+  refine:
+    if: >-
+      github.event.label.name == 'refine' &&
+      github.event.issue.state == 'open' &&
+      github.event.issue.pull_request == null
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      GH_TOKEN: ${{ secrets.CLAUDE_GH_TOKEN }}
+      ISSUE_NUMBER: ${{ github.event.issue.number }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          token: ${{ secrets.CLAUDE_GH_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Claude Code CLI
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Capture comment count
+        id: comments
+        run: |
+          echo "count=$(gh issue view "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --json comments --jq '.comments | length')" >> "$GITHUB_OUTPUT"
+
+      - name: Run Claude Code
+        env:
+          ANTHROPIC_BASE_URL: "https://api.deepseek.com/anthropic"
+          ANTHROPIC_AUTH_TOKEN: ${{ secrets.DEEPSEEK_API_KEY }}
+          ANTHROPIC_MODEL: "deepseek-flash[1m]"
+          ANTHROPIC_DEFAULT_OPUS_MODEL: "deepseek-flash[1m]"
+          ANTHROPIC_DEFAULT_SONNET_MODEL: "deepseek-flash[1m]"
+          ANTHROPIC_DEFAULT_HAIKU_MODEL: "deepseek-flash"
+          CLAUDE_CODE_SUBAGENT_MODEL: "deepseek-flash"
+          CLAUDE_CODE_EFFORT_LEVEL: "max"
+          CLAUDE_CODE_AUTO_COMPACT_WINDOW: "786432"
+        run: |
+          PROMPT="Refine GitHub issue #$ISSUE_NUMBER in this repository. Follow docs/issue-refinement.md exactly. That document is the single source of truth for inputs, the body template, labels, priority, the roadmap, and the summary comment. Never guess and never invent requirements."
+          claude -p --dangerously-skip-permissions "$PROMPT"
+
+      - name: Verify refinement
+        env:
+          PREVIOUS_COUNT: ${{ steps.comments.outputs.count }}
+        run: |
+          count=$(gh issue view "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --json comments --jq '.comments | length')
+          if [ "$count" -le "$PREVIOUS_COUNT" ]; then
+            echo "The refinement agent posted no summary comment." >&2
+            exit 1
+          fi
+
+          labels=$(gh issue view "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --json labels --jq '[.labels[].name] | join(",")')
+          case ",$labels," in
+            *,epic,*) exit 0 ;;
+          esac
+
+          if ! gh issue view 32 --repo "$GITHUB_REPOSITORY" --json body --jq .body | grep -qE "#${ISSUE_NUMBER}([^0-9]|$)"; then
+            echo "Issue #$ISSUE_NUMBER is missing from roadmap #32." >&2
+            exit 1
+          fi
+
+          priority=$(gh project item-list 1 --owner marculm --format json --limit 500 | jq -r --argjson n "$ISSUE_NUMBER" '.items[] | select(.content.number == $n) | .priority // empty')
+          if [ -z "$priority" ]; then
+            echo "No Priority set for issue #$ISSUE_NUMBER in project 1." >&2
+            exit 1
+          fi
+
+      - name: Remove refine label
+        if: always()
+        run: gh issue edit "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --remove-label refine
