@@ -518,11 +518,10 @@ textarea.input {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  min-height: 40px;
-  padding: 0 14px;
+  min-height: 44px;
+  padding: 0;
   border: 0;
-  border-radius: 999px;
-  background: var(--surface);
+  background: none;
   color: var(--muted);
   font-size: 0.875rem;
   font-weight: 600;
@@ -531,7 +530,7 @@ textarea.input {
 }
 
 .timer-pill.running {
-  background: color-mix(in srgb, var(--signal) 14%, var(--surface));
+  background: none;
   color: var(--signal);
 }
 
@@ -562,14 +561,13 @@ textarea.input {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 40px;
-  padding: 0 11px;
+  min-height: 44px;
+  padding: 0 2px;
   border: 0;
-  border-radius: 999px;
-  background: var(--surface);
+  background: none;
   color: var(--muted);
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: 0.8125rem;
+  font-weight: 500;
 }
 
 .exercise-progress {
