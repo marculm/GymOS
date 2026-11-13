@@ -52,6 +52,7 @@
         "vitest": "^4.1.11",
         "workbox-precaching": "^7.4.1",
         "workbox-routing": "^7.4.1",
+        "workbox-window": "^7.4.1",
       },
     },
     "packages/shared": {

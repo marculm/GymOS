@@ -1,10 +1,16 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import { page } from "$app/state";
   import TabBar from "$lib/TabBar.svelte";
   import { shell } from "$lib/shell.svelte.ts";
+  import { registerSW } from "virtual:pwa-register";
   import "../styles.css";
 
   let { children } = $props();
+
+  onMount(() => {
+    registerSW({ immediate: true });
+  });
 </script>
 
 <div class="app">

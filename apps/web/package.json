@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite dev",
-    "build": "vite build",
+    "build": "vite build && bun scripts/check-build.mts",
     "preview": "vite preview",
     "test": "svelte-kit sync && vitest run",
     "test:watch": "svelte-kit sync && vitest",
@@ -28,6 +28,7 @@
     "vite-plugin-pwa": "^0.21.1",
     "vitest": "^4.1.11",
     "workbox-precaching": "^7.4.1",
-    "workbox-routing": "^7.4.1"
+    "workbox-routing": "^7.4.1",
+    "workbox-window": "^7.4.1"
   }
 }
