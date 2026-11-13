@@ -5,8 +5,6 @@
     ChevronLeft,
     ChevronRight,
     LayoutGrid,
-    Minus,
-    Plus,
     Trash2,
   } from "lucide-svelte";
   import type {
@@ -272,15 +270,6 @@
       ...drafts,
       [current.exerciseId]: { ...draft, [kind]: value },
     };
-  }
-
-  function adjustReps(delta: number) {
-    setDraft("reps", clamp(Math.round(draft.reps + delta), 1, MAX_SET_REPS));
-  }
-
-  function adjustWeight(delta: number) {
-    const next = Math.round((draft.weightKg + delta) * 100) / 100;
-    setDraft("weightKg", clamp(next, 0, MAX_SET_WEIGHT_KG));
   }
 
   async function beginEdit(kind: "reps" | "weight") {
@@ -564,16 +553,7 @@
             <div class="focus-metrics">
               <div class="focus-metric">
                 <span class="focus-metric-label">Reps</span>
-                <div class="focus-metric-row">
-                  <button
-                    type="button"
-                    class="step-btn"
-                    aria-label="Decrease reps"
-                    disabled={!active || pending}
-                    onclick={() => adjustReps(-1)}
-                  >
-                    <Minus size={14} aria-hidden="true" />
-                  </button>
+                <div class="focus-metric-value">
                   {#if active && editing === "reps"}
                     <input
                       bind:this={editInput}
@@ -598,30 +578,12 @@
                       {pageDraft.reps}
                     </button>
                   {/if}
-                  <button
-                    type="button"
-                    class="step-btn"
-                    aria-label="Increase reps"
-                    disabled={!active || pending}
-                    onclick={() => adjustReps(1)}
-                  >
-                    <Plus size={14} aria-hidden="true" />
-                  </button>
                 </div>
               </div>
 
               <div class="focus-metric">
                 <span class="focus-metric-label">Weight</span>
-                <div class="focus-metric-row">
-                  <button
-                    type="button"
-                    class="step-btn"
-                    aria-label="Decrease weight"
-                    disabled={!active || pending}
-                    onclick={() => adjustWeight(-2.5)}
-                  >
-                    <Minus size={14} aria-hidden="true" />
-                  </button>
+                <div class="focus-metric-value">
                   {#if active && editing === "weight"}
                     <input
                       bind:this={editInput}
@@ -646,15 +608,6 @@
                       {formatWeight(pageDraft.weightKg)}
                     </button>
                   {/if}
-                  <button
-                    type="button"
-                    class="step-btn"
-                    aria-label="Increase weight"
-                    disabled={!active || pending}
-                    onclick={() => adjustWeight(2.5)}
-                  >
-                    <Plus size={14} aria-hidden="true" />
-                  </button>
                 </div>
               </div>
             </div>

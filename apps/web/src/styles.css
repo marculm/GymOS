@@ -682,43 +682,23 @@ textarea.input {
   text-transform: uppercase;
 }
 
-.focus-metric-row {
+.focus-metric-value {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 0;
   margin-top: 4px;
 }
 
-.step-btn {
-  display: grid;
-  place-items: center;
-  flex: none;
-  width: 30px;
-  height: 30px;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  background: var(--surface);
-  color: var(--text);
-}
-
-.step-btn:disabled {
-  opacity: 0.3;
-}
-
 .metric-value {
-  flex: 1;
-  width: auto;
+  width: 100%;
   min-width: 0;
   max-width: 100%;
-  min-height: 48px;
+  min-height: 64px;
   overflow: hidden;
   border: 0;
   background: none;
   color: var(--text);
   font-family: var(--font-rounded);
-  font-size: clamp(1.75rem, 9vw, 2.25rem);
+  font-size: clamp(3rem, 15vw, 4rem);
   font-weight: 600;
   letter-spacing: -0.03em;
   line-height: 1;
@@ -727,11 +707,10 @@ textarea.input {
 }
 
 .metric-input {
-  flex: 1;
-  width: auto;
+  width: 100%;
   min-width: 0;
   max-width: 100%;
-  height: 48px;
+  height: 64px;
   padding: 0;
   border: 0;
   border-bottom: 1px solid var(--accent);
@@ -739,23 +718,13 @@ textarea.input {
   background: none;
   color: var(--text);
   font-family: var(--font-rounded);
-  font-size: clamp(1.625rem, 8vw, 2.125rem);
+  font-size: clamp(2.75rem, 14vw, 3.5rem);
   font-weight: 600;
   letter-spacing: -0.03em;
   line-height: 1;
   text-align: center;
   outline: none;
   appearance: textfield;
-}
-
-@media (max-width: 359px) {
-  .metric-value {
-    font-size: 1.375rem;
-  }
-
-  .metric-input {
-    font-size: 1.25rem;
-  }
 }
 
 .metric-input::-webkit-outer-spin-button,

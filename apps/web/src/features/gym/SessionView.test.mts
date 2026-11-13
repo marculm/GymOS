@@ -144,24 +144,6 @@ describe("SessionView", () => {
     ).toBeInTheDocument();
   });
 
-  it("changes reps and weight with the steppers", async () => {
-    renderSession();
-
-    await fireEvent.click(
-      screen.getByRole("button", { name: "Increase reps" })
-    );
-    expect(
-      screen.getByRole("button", { name: "Edit reps, current 9" })
-    ).toBeInTheDocument();
-
-    await fireEvent.click(
-      screen.getByRole("button", { name: "Increase weight" })
-    );
-    expect(
-      screen.getByRole("button", { name: "Edit weight, current 82.5 kg" })
-    ).toBeInTheDocument();
-  });
-
   it("accepts a typed value", async () => {
     renderSession();
 
@@ -175,6 +157,22 @@ describe("SessionView", () => {
 
     expect(
       screen.getByRole("button", { name: "Edit reps, current 10" })
+    ).toBeInTheDocument();
+  });
+
+  it("accepts a typed weight", async () => {
+    renderSession();
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Edit weight, current 80 kg" })
+    );
+    const input = document.querySelector<HTMLInputElement>(".metric-input");
+    if (!input) throw new Error("metric input is missing");
+    await fireEvent.input(input, { target: { value: "82.5" } });
+    await fireEvent.blur(input);
+
+    expect(
+      screen.getByRole("button", { name: "Edit weight, current 82.5 kg" })
     ).toBeInTheDocument();
   });
 
