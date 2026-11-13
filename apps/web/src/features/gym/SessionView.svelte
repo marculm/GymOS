@@ -2,6 +2,7 @@
   import { onMount, tick } from "svelte";
   import {
     Check,
+    ChevronLeft,
     ChevronRight,
     LayoutGrid,
     Minus,
@@ -357,6 +358,7 @@
   }
 
   function startSwipe(event: PointerEvent) {
+    if (!event.isPrimary) return;
     if (event.pointerType === "mouse" && event.button !== 0) return;
     swipeStart = {
       x: event.clientX,
@@ -370,7 +372,7 @@
     const dx = event.clientX - swipeStart.x;
     const dy = event.clientY - swipeStart.y;
     swipeStart = null;
-    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.4) return;
+    if (Math.abs(dx) < 48 || Math.abs(dx) < Math.abs(dy) * 1.4) return;
     if (dx < 0) void goToPage(index + 1);
     else void goToPage(index - 1);
   }
@@ -696,25 +698,36 @@
               </button>
               <div class="focus-foot">
                 <span class="focus-foot-label">{session.title}</span>
-                {#if pageIndex < pages.length - 1}
+                <div class="focus-foot-nav">
                   <button
                     type="button"
-                    class="focus-next"
-                    onclick={() => void goToPage(pageIndex + 1)}
+                    class="focus-back"
+                    disabled={pageIndex === 0}
+                    onclick={() => void goToPage(pageIndex - 1)}
                   >
-                    <span>Next · {pages[pageIndex + 1]?.name}</span>
-                    <ChevronRight size={14} aria-hidden="true" />
+                    <ChevronLeft size={14} aria-hidden="true" />
+                    <span>Back</span>
                   </button>
-                {:else}
-                  <button
-                    type="button"
-                    class="focus-next"
-                    disabled={finishing}
-                    onclick={() => void finish()}
-                  >
-                    Finish workout
-                  </button>
-                {/if}
+                  {#if pageIndex < pages.length - 1}
+                    <button
+                      type="button"
+                      class="focus-next"
+                      onclick={() => void goToPage(pageIndex + 1)}
+                    >
+                      <span>Next · {pages[pageIndex + 1]?.name}</span>
+                      <ChevronRight size={14} aria-hidden="true" />
+                    </button>
+                  {:else}
+                    <button
+                      type="button"
+                      class="focus-next"
+                      disabled={finishing}
+                      onclick={() => void finish()}
+                    >
+                      Finish workout
+                    </button>
+                  {/if}
+                </div>
               </div>
             </div>
           </section>

@@ -803,24 +803,33 @@ textarea.input {
 
 .focus-foot {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
   min-height: 44px;
 }
 
 .focus-foot-label {
+  padding: 2px 2px 0;
   color: var(--muted);
   font-size: 0.6875rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
+.focus-foot-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+}
+
+.focus-back,
 .focus-next {
   display: flex;
   align-items: center;
   gap: 4px;
-  max-width: 72%;
   min-height: 44px;
   padding: 0;
   border: 0;
@@ -829,6 +838,14 @@ textarea.input {
   font-size: 0.75rem;
   font-weight: 500;
   white-space: nowrap;
+}
+
+.focus-back:disabled {
+  opacity: 0.25;
+}
+
+.focus-next {
+  max-width: 76%;
   overflow: hidden;
   text-overflow: ellipsis;
 }

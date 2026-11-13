@@ -90,6 +90,14 @@ function renderSession(
   return { onLogSet, onDeleteSet, onUpdateExercise, onComplete };
 }
 
+function activePage(): HTMLElement {
+  const page = document.querySelector<HTMLElement>(
+    '.focus-page[aria-hidden="false"]'
+  );
+  if (!page) throw new Error("active focus page is missing");
+  return page;
+}
+
 beforeEach(() => {
   try {
     window.localStorage?.clear();
@@ -183,6 +191,25 @@ describe("SessionView", () => {
     expect(screen.getByText("Exercise 2 of 3")).toBeInTheDocument();
   });
 
+  it("moves back to the previous exercise", async () => {
+    renderSession();
+
+    expect(
+      within(activePage()).getByRole("button", { name: "Back" })
+    ).toBeDisabled();
+    await fireEvent.click(
+      screen.getByRole("button", { name: /Next · Overhead Shoulder Press/ })
+    );
+    await fireEvent.click(
+      within(activePage()).getByRole("button", { name: "Back" })
+    );
+
+    expect(
+      await screen.findByRole("heading", { name: "Barbell Bench Press" })
+    ).toBeInTheDocument();
+    expect(screen.getByText("Exercise 1 of 3")).toBeInTheDocument();
+  });
+
   it("swipes between exercises", async () => {
     renderSession();
 
@@ -191,11 +218,13 @@ describe("SessionView", () => {
       clientX: 300,
       clientY: 200,
       pointerId: 1,
+      isPrimary: true,
     });
     await fireEvent.pointerUp(pager, {
       clientX: 200,
       clientY: 200,
       pointerId: 1,
+      isPrimary: true,
     });
 
     expect(
