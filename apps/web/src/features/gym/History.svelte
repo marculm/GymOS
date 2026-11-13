@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount, tick } from "svelte";
+  import { ChevronDown } from "lucide-svelte";
   import type {
     LoggedSet,
     WorkoutPlan,
@@ -8,7 +9,7 @@
   } from "@gymos/shared";
   import { MAX_SET_REPS, MAX_SET_WEIGHT_KG } from "@gymos/shared/limits";
   import { getSession, listSessions, updateSet } from "../../api/gym.mts";
-  import { formatWeight } from "./format.mts";
+  import { formatDateTime, formatWeight } from "./format.mts";
 
   let { plans }: { plans: WorkoutPlan[] } = $props();
 
@@ -211,6 +212,16 @@
 
   const hasFilters = $derived(Boolean(planId || from || to));
 
+  function dayOf(iso: string): number {
+    return new Date(iso).getDate();
+  }
+
+  function monthOf(iso: string): string {
+    return new Intl.DateTimeFormat(undefined, { month: "short" }).format(
+      new Date(iso)
+    );
+  }
+
   function durationMinutes(
     startedAt: string,
     completedAt: string | null
@@ -227,7 +238,7 @@
 </script>
 
 <div class="stack">
-  <div class="row">
+  <div class="card row filters">
     <label class="field grow">
       <span class="label">Plan</span>
       <select
@@ -291,150 +302,169 @@
     </p>
   {/if}
 
-  {#each sessions as session (session.id)}
-    {@const expanded = expandedId === session.id}
-    {@const duration = durationMinutes(
-      session.startedAt,
-      session.completedAt
-    )}
-    <article class="card stack">
-      <div class="row">
-        <div class="grow">
-          <p class="muted">
-            {new Date(session.startedAt).toLocaleDateString()}
-            {#if duration !== null}
-              · {duration} min
-            {/if}
-            · {session.totalSets}
-            {session.totalSets === 1 ? "set" : "sets"}
-          </p>
-          <h3 class="card-title">{session.title}</h3>
-        </div>
-        <button
-          type="button"
-          class="btn btn-ghost"
-          aria-expanded={expanded}
-          aria-controls={`history-${session.id}`}
-          aria-label={expanded
-            ? `Hide ${session.title}`
-            : `View ${session.title}`}
-          onclick={() => void toggle(session.id)}
-        >
-          {expanded ? "Hide" : "View"}
-        </button>
-      </div>
+  {#if sessions.length > 0}
+    <div class="group">
+      {#each sessions as session (session.id)}
+        {@const expanded = expandedId === session.id}
+        {@const duration = durationMinutes(
+          session.startedAt,
+          session.completedAt
+        )}
+        <article class="history-item">
+          <div class="list-row">
+            <div class="date-tile" aria-hidden="true">
+              <span class="date-day">{dayOf(session.startedAt)}</span>
+              <span class="date-month">{monthOf(session.startedAt)}</span>
+            </div>
+            <div class="list-main">
+              <h3 class="list-title">{session.title}</h3>
+              <span class="list-subtitle">
+                {#if duration !== null}
+                  {duration} min ·
+                {/if}
+                {session.totalSets}
+                {session.totalSets === 1 ? "set" : "sets"}
+              </span>
+            </div>
+            <div class="list-actions">
+              <button
+                type="button"
+                class="icon-btn muted"
+                aria-expanded={expanded}
+                aria-controls={`history-${session.id}`}
+                aria-label={expanded
+                  ? `Hide ${session.title}`
+                  : `View ${session.title}`}
+                onclick={() => void toggle(session.id)}
+              >
+                <ChevronDown
+                  class="disclosure"
+                  size={18}
+                  aria-hidden="true"
+                />
+              </button>
+            </div>
+          </div>
 
-      <div class="stack" id={`history-${session.id}`} hidden={!expanded}>
-        {#if expanded}
-          {#if detailLoading}
-            <p class="muted">Loading workout…</p>
-          {:else if detail}
-            {@const detailDuration = durationMinutes(
-              detail.startedAt,
-              detail.completedAt
-            )}
-            <p class="muted">
-              {new Date(detail.startedAt).toLocaleString()} – {detail.completedAt
-                ? new Date(detail.completedAt).toLocaleString()
-                : "in progress"}
-              {#if detailDuration !== null}
-                · {detailDuration} min
-              {/if}
-            </p>
+          <div
+            class="stack history-detail"
+            id={`history-${session.id}`}
+            hidden={!expanded}
+          >
+            {#if expanded}
+              {#if detailLoading}
+                <p class="muted">Loading workout…</p>
+              {:else if detail}
+                {@const detailDuration = durationMinutes(
+                  detail.startedAt,
+                  detail.completedAt
+                )}
+                <p class="muted">
+                  {formatDateTime(detail.startedAt)} – {detail.completedAt
+                    ? formatDateTime(detail.completedAt)
+                    : "in progress"}
+                  {#if detailDuration !== null}
+                    · {detailDuration} min
+                  {/if}
+                </p>
 
-            {#if groups.length === 0}
-              <p class="muted">No sets logged</p>
-            {:else}
-              {#each groups as group (group.exerciseId)}
-                <div class="stack">
-                  <h4 class="card-title">{group.name}</h4>
-                  {#each group.sets as set (set.id)}
-                    {#if editingSetId === set.id}
-                      <form
-                        class="stack"
-                        aria-label={`Edit set ${set.setNumber} for ${group.name}`}
-                        onsubmit={(event) => void saveEdit(set, event)}
-                      >
-                        <div class="row set-fields">
-                          <label class="field set-field">
-                            <span class="label">Reps</span>
-                            <input
-                              id={`edit-reps-${set.id}`}
-                              class="input"
-                              type="number"
-                              min={1}
-                              max={MAX_SET_REPS}
-                              required
-                              aria-label={`Reps for set ${set.setNumber} of ${group.name}`}
-                              disabled={editPending}
-                              bind:value={editReps}
-                            />
-                          </label>
-                          <label class="field set-field">
-                            <span class="label">Weight (kg)</span>
-                            <input
-                              class="input"
-                              type="number"
-                              min={0}
-                              max={MAX_SET_WEIGHT_KG}
-                              step={0.01}
-                              required
-                              aria-label={`Weight for set ${set.setNumber} of ${group.name}`}
-                              disabled={editPending}
-                              bind:value={editWeightKg}
-                            />
-                          </label>
-                        </div>
-                        {#if editError}
-                          <p class="error" role="alert">{editError}</p>
-                        {/if}
-                        <div class="row">
-                          <button
-                            type="submit"
-                            class="btn btn-primary"
-                            disabled={editPending}
-                            aria-label={`Save set ${set.setNumber} for ${group.name}`}
-                          >
-                            Save
-                          </button>
-                          <button
-                            type="button"
-                            class="btn btn-ghost"
-                            disabled={editPending}
-                            aria-label={`Cancel editing set ${set.setNumber} for ${group.name}`}
-                            onclick={() => void closeEdit(set.id)}
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </form>
-                    {:else}
-                      <p class="set-row">
-                        <span class="badge">Set {set.setNumber}</span>
-                        <span class="grow">
-                          {set.reps} × {formatWeight(set.weightKg)} kg
-                        </span>
-                        <button
-                          id={`edit-set-${set.id}`}
-                          type="button"
-                          class="btn btn-ghost"
-                          disabled={editPending}
-                          aria-label={`Edit set ${set.setNumber} for ${group.name}`}
-                          onclick={() => void startEdit(set)}
-                        >
-                          Edit
-                        </button>
-                      </p>
-                    {/if}
+                {#if groups.length === 0}
+                  <p class="muted">No sets logged</p>
+                {:else}
+                  {#each groups as group (group.exerciseId)}
+                    <div class="stack">
+                      <h4 class="card-title">{group.name}</h4>
+                      <div class="set-list">
+                        {#each group.sets as set (set.id)}
+                          {#if editingSetId === set.id}
+                            <form
+                              class="stack"
+                              aria-label={`Edit set ${set.setNumber} for ${group.name}`}
+                              onsubmit={(event) => void saveEdit(set, event)}
+                            >
+                              <div class="row set-fields">
+                                <label class="field set-field">
+                                  <span class="label">Reps</span>
+                                  <input
+                                    id={`edit-reps-${set.id}`}
+                                    class="input"
+                                    type="number"
+                                    min={1}
+                                    max={MAX_SET_REPS}
+                                    required
+                                    aria-label={`Reps for set ${set.setNumber} of ${group.name}`}
+                                    disabled={editPending}
+                                    bind:value={editReps}
+                                  />
+                                </label>
+                                <label class="field set-field">
+                                  <span class="label">Weight (kg)</span>
+                                  <input
+                                    class="input"
+                                    type="number"
+                                    min={0}
+                                    max={MAX_SET_WEIGHT_KG}
+                                    step={0.01}
+                                    required
+                                    aria-label={`Weight for set ${set.setNumber} of ${group.name}`}
+                                    disabled={editPending}
+                                    bind:value={editWeightKg}
+                                  />
+                                </label>
+                              </div>
+                              {#if editError}
+                                <p class="error" role="alert">{editError}</p>
+                              {/if}
+                              <div class="row">
+                                <button
+                                  type="submit"
+                                  class="btn btn-primary"
+                                  disabled={editPending}
+                                  aria-label={`Save set ${set.setNumber} for ${group.name}`}
+                                >
+                                  Save
+                                </button>
+                                <button
+                                  type="button"
+                                  class="btn btn-ghost"
+                                  disabled={editPending}
+                                  aria-label={`Cancel editing set ${set.setNumber} for ${group.name}`}
+                                  onclick={() => void closeEdit(set.id)}
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            </form>
+                          {:else}
+                            <p class="set-row">
+                              <span class="badge">Set {set.setNumber}</span>
+                              <span class="grow set-value">
+                                {set.reps} × {formatWeight(set.weightKg)} kg
+                              </span>
+                              <button
+                                id={`edit-set-${set.id}`}
+                                type="button"
+                                class="btn btn-ghost"
+                                disabled={editPending}
+                                aria-label={`Edit set ${set.setNumber} for ${group.name}`}
+                                onclick={() => void startEdit(set)}
+                              >
+                                Edit
+                              </button>
+                            </p>
+                          {/if}
+                        {/each}
+                      </div>
+                    </div>
                   {/each}
-                </div>
-              {/each}
+                {/if}
+              {/if}
             {/if}
-          {/if}
-        {/if}
-      </div>
-    </article>
-  {/each}
+          </div>
+        </article>
+      {/each}
+    </div>
+  {/if}
 
   {#if sessions.length < totalElements}
     <button
