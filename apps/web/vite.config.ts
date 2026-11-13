@@ -1,5 +1,5 @@
+import { sveltekit } from "@sveltejs/kit/vite";
 import { defineConfig } from "vitest/config";
-import { svelte } from "@sveltejs/vite-plugin-svelte";
 import { VitePWA } from "vite-plugin-pwa";
 import { pwaManifest } from "./src/pwa-manifest.mts";
 
@@ -8,9 +8,10 @@ export default defineConfig({
     conditions: ["browser"],
   },
   plugins: [
-    svelte(),
+    sveltekit(),
     VitePWA({
       registerType: "autoUpdate",
+      injectRegister: null,
       strategies: "injectManifest",
       srcDir: "src",
       // The plugin only compiles service-worker sources named with a .ts extension.

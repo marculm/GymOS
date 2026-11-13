@@ -16,7 +16,7 @@ the Workouts gallery tab (ADR-0032, ADR-0040).
 ```text
 ┌──────────────────────────────┐
 │  apps/web                    │
-│  Svelte 5 + Vite PWA         │
+│  Svelte 5 + SvelteKit PWA    │
 │  installable, client-side    │
 └──────────────┬───────────────┘
                │  /api (same origin via reverse proxy)
@@ -49,7 +49,7 @@ authentication is added (ADR-0009). Deployment details live in
 ```text
 apps/
   api/                 # Hono + Prisma backend
-  web/                 # Svelte 5 + Vite PWA
+  web/                 # Svelte 5 + SvelteKit PWA
 packages/
   shared/              # Zod schemas, contract types, constants
 deploy/
@@ -407,33 +407,43 @@ those slices are built. See ADR-0017.
 
 ### 4.1 Stack
 
-- Svelte 5 with Vite.
+- Svelte 5 with SvelteKit 2 and Vite, built as a static SPA.
 - `vite-plugin-pwa` for the manifest and service worker.
 - Plain CSS with custom properties and named component classes (ADR-0012).
 - Warm light theme only: warm white background, warm grey surfaces, near-black text
   and actions, no colored accent (ADR-0020).
-- No server-side rendering, no SvelteKit. The app is a client-side SPA.
+- No server-side rendering: `ssr = false`, `adapter-static` with an `index.html`
+  fallback. Top-level routes are `/gym`, `/nutrition`, and `/extractor`; the root
+  layout owns the header, content area, and tab bar (ADR-0054).
 - `lucide-svelte` for icons.
 - `@testing-library/svelte`, Vitest, and happy-dom for tests.
 - `svelte-check` for type checking.
 
-The PWA is installed from the browser. The service worker caches the app shell; data is
-online-only (ADR-0012).
+The PWA is installed from the browser. The service worker caches the app shell from
+`/index.html` for navigations, so deep links work offline; data is online-only
+(ADR-0012).
 
 ### 4.2 Directory Layout
 
 ```text
 apps/web/
-├── index.html
 ├── svelte.config.js
 ├── vite.config.ts
 ├── tsconfig.json
 └── src/
-    ├── main.mts
-    ├── App.svelte
-    ├── App.test.mts
+    ├── app.html
     ├── styles.css
     ├── vite-env.d.ts
+    ├── routes/
+    │   ├── +layout.ts
+    │   ├── +layout.svelte
+    │   ├── +page.ts
+    │   ├── gym/+page.svelte
+    │   ├── nutrition/+page.svelte
+    │   └── extractor/+page.svelte
+    ├── lib/
+    │   ├── TabBar.svelte
+    │   └── shell.svelte.ts
     ├── api/
     │   ├── client.mts
     │   ├── gym.mts
@@ -458,6 +468,10 @@ apps/web/
 - Components are `.svelte` files.
 - State uses Svelte 5 runes: `$state`, `$derived`, `$effect`, `$props`.
 - Events use attributes (`onclick`, `onsubmit`), not `on:click`.
+- Top-level navigation is route-based: `/gym`, `/nutrition`, and `/extractor`. The root
+  layout owns the header, content area, and tab bar; `/` redirects to `/gym`. The gym
+  page reports its active session through a module-level shell state, and `GymView`
+  notifies only when that state changes.
 - Data fetching and mutations live in `src/api/`; components call that layer and never
   call `fetch` directly.
 - The exercise register creates, edits, and soft-deletes exercises. Session cards reuse the
@@ -527,10 +541,11 @@ apps/web/
 - Plan start actions include the plan name, errors render in `role="alert"` live regions,
   and starting or finishing a session moves focus to the session or next-workout heading
   (ADR-0034).
-- While a session is active, a fixed session bar replaces the main tab bar and makes the
-  Nutrition and AI Extractor tabs unreachable. It keeps Finish workout and a rest timer
-  visible; the timer autostarts after a logged set, offers 120/150/180-second presets,
-  and resumes a running countdown from local storage after a reload (ADR-0036).
+- While a session is active, the layout hides the main tab bar and SessionView keeps its
+  fixed session bar, which makes the Nutrition and AI Extractor tabs unreachable. It
+  keeps Finish workout and a rest timer visible; the timer autostarts after a logged
+  set, offers 120/150/180-second presets, and resumes a running countdown from local
+  storage after a reload (ADR-0036).
 
 ### 4.4 API Layer
 
@@ -591,9 +606,11 @@ API and UI cannot drift.
 ## 6. Conventions
 
 - TypeScript source and test files use `.mts` with explicit `.mts` imports.
+- SvelteKit route files (`+layout.ts`, `+page.ts`) use `.ts`, and runes modules use
+  `.svelte.ts`.
 - Tool configuration files (`vite.config.ts`, `vitest.config.ts`, `oxlint.config.ts`)
   stay `.ts`.
-- Svelte components use `.svelte`; plain TypeScript modules use `.mts`.
+- Svelte components use `.svelte`; other plain TypeScript modules use `.mts`.
 - TypeScript is strict, with `noUncheckedIndexedAccess`, `noFallthroughCasesInSwitch`,
   `noImplicitOverride`, and `verbatimModuleSyntax` (ADR-0002).
 - Code is self-documenting. Comments explain non-obvious logic only (AGENTS.md).
@@ -715,3 +732,4 @@ The target architecture deliberately excludes:
 | [0051](adr/0051-in-place-gallery-form-editing.md) | In-place gallery form editing |
 | [0052](adr/0052-issue-refinement-workflow.md) | Issue refinement workflow |
 | [0053](adr/0053-prisma-7-driver-adapter.md) | Prisma 7 with a PostgreSQL driver adapter |
+| [0054](adr/0054-adopt-sveltekit-web-app.md) | SvelteKit static SPA for the web app |

@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { pwaManifest } from "./pwa-manifest.mts";
 
 const srcDir = dirname(fileURLToPath(import.meta.url));
-const publicDir = resolve(srcDir, "../public");
+const publicDir = resolve(srcDir, "../static");
 
 function pngSize(path: string): { width: number; height: number } {
   const png = readFileSync(path);
@@ -14,6 +14,11 @@ function pngSize(path: string): { width: number; height: number } {
 }
 
 describe("PWA manifest assets", () => {
+  it("starts at the Gym route", () => {
+    expect(pwaManifest.start_url).toBe("/gym");
+    expect(pwaManifest.scope).toBe("/");
+  });
+
   it("ships every icon at its declared size", () => {
     const icons = pwaManifest.icons ?? [];
 
@@ -29,7 +34,7 @@ describe("PWA manifest assets", () => {
   });
 
   it("links the Apple touch icon and ships it at 180x180", () => {
-    const html = readFileSync(resolve(srcDir, "../index.html"), "utf8");
+    const html = readFileSync(resolve(srcDir, "app.html"), "utf8");
 
     expect(html).toContain('rel="apple-touch-icon"');
     expect(html).toContain('href="/apple-touch-icon.png"');

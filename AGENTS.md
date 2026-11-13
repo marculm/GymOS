@@ -54,7 +54,7 @@ This document specifies mandatory rules and operational conventions for all AI a
 - **Runtime & Tooling:** Default to **Bun** across the entire repository (package management, scripts, runtime).
 - **Monorepo Layout:**
   - `apps/api`: Backend service built with Hono, Prisma, and Pino.
-  - `apps/web`: Frontend PWA built with React and Vite.
+  - `apps/web`: Frontend PWA built with Svelte 5 and SvelteKit.
   - `packages/shared`: Shared types, constants, and Zod schemas. Leaf package (must never import from `apps/*`).
 - **Testing:** Use **Vitest** for all test suites (`bun run test`).
 - **Logging:** Use **Pino** for structured logging (with `pino-pretty` in local development).
