@@ -1,7 +1,6 @@
 /// <reference lib="webworker" />
 import {
   cleanupOutdatedCaches,
-  createHandlerBoundToURL,
   precacheAndRoute,
 } from "workbox-precaching";
 import { NavigationRoute, registerRoute } from "workbox-routing";
@@ -10,11 +9,29 @@ declare const self: ServiceWorkerGlobalScope & {
   __WB_MANIFEST: Parameters<typeof precacheAndRoute>[0];
 };
 
+const SHELL_CACHE = "gymos-shell";
+const SHELL_URL = "/index.html";
+
 precacheAndRoute(self.__WB_MANIFEST);
 cleanupOutdatedCaches();
 
+export async function shellResponse(): Promise<Response> {
+  const cache = await caches.open(SHELL_CACHE);
+  try {
+    const response = await fetch(SHELL_URL, { cache: "no-cache" });
+    if (response.ok) {
+      await cache.put(SHELL_URL, response.clone());
+    }
+    return response;
+  } catch {
+    const cached = await cache.match(SHELL_URL);
+    if (cached) return cached;
+    throw new Error("App shell is not cached");
+  }
+}
+
 registerRoute(
-  new NavigationRoute(createHandlerBoundToURL("/index.html"), {
+  new NavigationRoute(shellResponse, {
     denylist: [
       /^\/api(\/|$)/,
       /^\/health$/,
@@ -24,8 +41,16 @@ registerRoute(
   }),
 );
 
-// Keep the autoUpdate behavior the generated service worker had.
-self.addEventListener("install", () => {
+self.addEventListener("install", (event) => {
+  event.waitUntil(
+    caches
+      .open(SHELL_CACHE)
+      .then(async (cache) => {
+        const response = await fetch(SHELL_URL, { cache: "no-cache" });
+        if (response.ok) await cache.put(SHELL_URL, response.clone());
+      })
+      .catch(() => undefined),
+  );
   void self.skipWaiting();
 });
 

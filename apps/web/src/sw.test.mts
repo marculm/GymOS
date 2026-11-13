@@ -1,8 +1,14 @@
-import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { createHandlerBoundToURL } from "workbox-precaching";
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 
 const routing = vi.hoisted(() => ({
-  handler: vi.fn(),
   navigation: vi.fn(),
   registerRoute: vi.fn(),
 }));
@@ -10,7 +16,6 @@ const routing = vi.hoisted(() => ({
 vi.mock("workbox-precaching", () => ({
   precacheAndRoute: vi.fn(),
   cleanupOutdatedCaches: vi.fn(),
-  createHandlerBoundToURL: vi.fn(() => routing.handler),
 }));
 
 vi.mock("workbox-routing", () => ({
@@ -32,6 +37,7 @@ const close = vi.fn();
 
 let pushListener: WorkerListener;
 let clickListener: WorkerListener;
+let worker: typeof import("./sw.ts");
 
 beforeAll(async () => {
   Object.defineProperty(window, "__WB_MANIFEST", {
@@ -48,7 +54,7 @@ beforeAll(async () => {
   });
 
   const addEventListener = vi.spyOn(window, "addEventListener");
-  await import("./sw.ts");
+  worker = await import("./sw.ts");
 
   const listenerFor = (type: string) =>
     addEventListener.mock.calls.find(([name]) => name === type)?.[1] as
@@ -67,11 +73,14 @@ beforeEach(() => {
   close.mockClear();
 });
 
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
 describe("service worker", () => {
   it("serves the app shell for navigation requests", () => {
-    expect(createHandlerBoundToURL).toHaveBeenCalledWith("/index.html");
     expect(routing.navigation).toHaveBeenCalledWith(
-      routing.handler,
+      expect.any(Function),
       expect.objectContaining({
         denylist: [
           /^\/api(\/|$)/,
@@ -82,6 +91,34 @@ describe("service worker", () => {
       }),
     );
     expect(routing.registerRoute).toHaveBeenCalled();
+  });
+
+  it("caches and returns the network shell", async () => {
+    const put = vi.fn().mockResolvedValue(undefined);
+    const match = vi.fn();
+    Object.defineProperty(globalThis, "caches", {
+      configurable: true,
+      value: { open: vi.fn().mockResolvedValue({ put, match }) },
+    });
+    const response = new Response("shell", { status: 200 });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response));
+
+    await expect(worker.shellResponse()).resolves.toBe(response);
+    expect(put).toHaveBeenCalledWith("/index.html", expect.any(Response));
+  });
+
+  it("falls back to the cached shell when offline", async () => {
+    const put = vi.fn();
+    const cached = new Response("cached", { status: 200 });
+    const match = vi.fn().mockResolvedValue(cached);
+    Object.defineProperty(globalThis, "caches", {
+      configurable: true,
+      value: { open: vi.fn().mockResolvedValue({ put, match }) },
+    });
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
+
+    await expect(worker.shellResponse()).resolves.toBe(cached);
+    expect(put).not.toHaveBeenCalled();
   });
 
   it("uses the Gym route for the default notification", () => {
