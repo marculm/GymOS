@@ -1,5 +1,6 @@
 <script lang="ts">
   import { tick } from "svelte";
+  import { Pencil, Plus, Trash2 } from "lucide-svelte";
   import type { CreateExerciseInput, Exercise } from "@gymos/shared";
   import ExerciseForm from "./ExerciseForm.svelte";
   import { formatWeight } from "./format.mts";
@@ -75,72 +76,76 @@
   }
 </script>
 
-<div class="stack">
-  <div class="card-grid">
+<div class="section">
+  <div class="section-header">
+    <span>Exercise library</span>
+    <span>{exercises.length}</span>
+  </div>
+
+  <div class="group exercises-group">
     {#if formOpen && !editingExercise}
-      <article class="card stack form-card">
+      <div class="group-form">
         <ExerciseForm onSubmit={handleSubmit} onCancel={cancel} />
-      </article>
+      </div>
     {/if}
 
     {#each exercises as exercise (exercise.id)}
-      <article
-        class="card stack"
-        class:form-card={editingExercise?.id === exercise.id}
-      >
-        {#if editingExercise?.id === exercise.id}
+      {#if editingExercise?.id === exercise.id}
+        <div class="group-form">
           <ExerciseForm
             exercise={editingExercise}
             onSubmit={handleSubmit}
             onCancel={cancel}
           />
-        {:else}
-          <div class="row">
-            <h3 class="card-title">{exercise.name}</h3>
-            <span class="badge">{exercise.muscleGroup}</span>
+        </div>
+      {:else}
+        <div class="list-row">
+          <div class="list-main">
+            <h3 class="list-title">{exercise.name}</h3>
+            <span class="list-subtitle">
+              {exercise.muscleGroup} · {exercise.defaultSets} × {exercise.defaultReps}{exercise.defaultWeightKg !=
+              null
+                ? ` @ ${formatWeight(exercise.defaultWeightKg)} kg`
+                : ""}
+            </span>
           </div>
-          <p class="muted">
-            Default: {exercise.defaultSets} × {exercise.defaultReps}
-            {exercise.defaultWeightKg != null
-              ? ` @ ${formatWeight(exercise.defaultWeightKg)} kg`
-              : ""}
-          </p>
-          <div class="row">
+          <div class="list-actions">
             <button
               type="button"
-              class="btn btn-ghost"
+              class="icon-btn muted"
               id={`edit-exercise-${exercise.id}`}
               aria-label={`Edit ${exercise.name}`}
               onclick={() => openEdit(exercise)}
             >
-              Edit
+              <Pencil size={18} aria-hidden="true" />
             </button>
             <button
               type="button"
-              class="btn btn-ghost"
+              class="icon-btn muted"
               aria-label={`Delete ${exercise.name}`}
               onclick={() => void handleDelete(exercise)}
             >
-              Delete
+              <Trash2 size={18} aria-hidden="true" />
             </button>
           </div>
-        {/if}
-      </article>
+        </div>
+      {/if}
     {/each}
+
+    {#if !formOpen}
+      <button
+        type="button"
+        class="list-row add-row"
+        id="new-exercise-button"
+        onclick={openCreate}
+      >
+        <Plus size={18} aria-hidden="true" />
+        New exercise
+      </button>
+    {/if}
   </div>
 
   {#if error}
     <p class="error" role="alert">{error}</p>
-  {/if}
-
-  {#if !formOpen}
-    <button
-      type="button"
-      class="btn btn-ghost"
-      id="new-exercise-button"
-      onclick={openCreate}
-    >
-      New exercise
-    </button>
   {/if}
 </div>

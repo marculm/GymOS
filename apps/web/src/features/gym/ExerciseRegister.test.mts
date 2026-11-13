@@ -60,45 +60,45 @@ describe("ExerciseRegister", () => {
     expect(screen.getByText(/@ 80 kg/)).toBeInTheDocument();
   });
 
-  it("renders the edit form inside the exercise card", async () => {
+  it("renders the edit form inside the exercise group", async () => {
     renderRegister();
 
     const editButton = screen.getByRole("button", {
       name: /edit bench press/i,
     });
-    const card = editButton.closest("article");
-    if (!card) throw new Error("exercise card is missing");
+    const group = editButton.closest(".exercises-group");
+    if (!group) throw new Error("exercise group is missing");
 
     await fireEvent.click(editButton);
 
     const nameInput = screen.getByLabelText("Name");
     const form = nameInput.closest("form");
     expect(form).not.toBeNull();
-    expect(card.contains(form)).toBe(true);
+    expect(group.contains(form)).toBe(true);
     for (const renderedForm of document.querySelectorAll("form")) {
-      expect(renderedForm.closest(".card-grid")).not.toBeNull();
+      expect(renderedForm.closest(".exercises-group")).not.toBeNull();
     }
     expect(nameInput).toHaveFocus();
   });
 
-  it("renders the new exercise form as the first card in the grid", async () => {
+  it("renders the new exercise form as the first item in the group", async () => {
     renderRegister();
 
     await fireEvent.click(screen.getByRole("button", { name: /new exercise/i }));
 
     const nameInput = screen.getByLabelText("Name");
-    const grid = document.querySelector(".card-grid");
-    expect(grid?.firstElementChild?.contains(nameInput)).toBe(true);
+    const group = document.querySelector(".exercises-group");
+    expect(group?.firstElementChild?.contains(nameInput)).toBe(true);
     expect(nameInput).toHaveFocus();
   });
 
   it("closes the open editor when another exercise is edited", async () => {
     renderRegister([exercise, squat]);
 
-    const squatCard = screen
+    const squatGroup = screen
       .getByRole("button", { name: /edit squat/i })
-      .closest("article");
-    if (!squatCard) throw new Error("squat card is missing");
+      .closest(".exercises-group");
+    if (!squatGroup) throw new Error("exercise group is missing");
 
     await fireEvent.click(
       screen.getByRole("button", { name: /edit bench press/i })
@@ -113,7 +113,7 @@ describe("ExerciseRegister", () => {
     });
     const nameInput = screen.getByLabelText("Name");
     expect(nameInput).toHaveValue("Squat");
-    expect(squatCard.contains(nameInput)).toBe(true);
+    expect(squatGroup.contains(nameInput)).toBe(true);
   });
 
   it("returns focus to the Edit button after saving", async () => {
@@ -174,7 +174,7 @@ describe("ExerciseRegister", () => {
       screen.getByRole("button", { name: /edit bench press/i })
     );
     expect(
-      screen.getByLabelText("Default weight (kg, optional)")
+      screen.getByLabelText("Weight (kg)")
     ).toHaveAttribute("step", "0.01");
   });
 
@@ -186,7 +186,7 @@ describe("ExerciseRegister", () => {
     );
 
     expect(
-      screen.getByLabelText("Default weight (kg, optional)")
+      screen.getByLabelText("Weight (kg)")
     ).toHaveAttribute("max", String(MAX_SET_WEIGHT_KG));
   });
 
@@ -200,13 +200,13 @@ describe("ExerciseRegister", () => {
     await fireEvent.change(screen.getByLabelText("Muscle group"), {
       target: { value: "back" },
     });
-    await fireEvent.input(screen.getByLabelText("Default sets"), {
+    await fireEvent.input(screen.getByLabelText("Sets"), {
       target: { value: "5" },
     });
-    await fireEvent.input(screen.getByLabelText("Default reps"), {
+    await fireEvent.input(screen.getByLabelText("Reps"), {
       target: { value: "12" },
     });
-    await fireEvent.input(screen.getByLabelText("Default weight (kg, optional)"), {
+    await fireEvent.input(screen.getByLabelText("Weight (kg)"), {
       target: { value: "15.5" },
     });
     await submitExerciseForm();
@@ -247,10 +247,10 @@ describe("ExerciseRegister", () => {
     const { onUpdate } = renderRegister();
     onUpdate.mockRejectedValueOnce(new Error("Name already exists"));
 
-    const card = screen
+    const group = screen
       .getByRole("button", { name: /edit bench press/i })
-      .closest("article");
-    if (!card) throw new Error("exercise card is missing");
+      .closest(".exercises-group");
+    if (!group) throw new Error("exercise group is missing");
 
     await fireEvent.click(
       screen.getByRole("button", { name: /edit bench press/i })
@@ -262,7 +262,7 @@ describe("ExerciseRegister", () => {
 
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent("Name already exists");
-    expect(card.contains(alert)).toBe(true);
+    expect(group.contains(alert)).toBe(true);
     expect(screen.getByLabelText("Name")).toHaveValue("Incline Bench Press");
   });
 
