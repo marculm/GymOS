@@ -14,6 +14,6 @@ RUN bun --filter @gymos/web build
 
 FROM nginxinc/nginx-unprivileged:1.29-alpine AS runtime
 
-COPY --from=builder /app/apps/web/dist /usr/share/nginx/html
+COPY --from=builder /app/apps/web/build /usr/share/nginx/html
 COPY apps/web/nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 8080
