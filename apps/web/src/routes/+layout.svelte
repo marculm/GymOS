@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { page } from "$app/state";
+  import TabBar from "$lib/TabBar.svelte";
   import "../styles.css";
 
   let { children } = $props();
@@ -13,4 +15,6 @@
   <main class="content">
     {@render children()}
   </main>
+
+  <TabBar pathname={page.url.pathname} />
 </div>

@@ -7,7 +7,7 @@ function read(relativePath: string): string {
 }
 
 const styles = read("./styles.css");
-const html = read("../index.html");
+const html = read("./app.html");
 const viteConfig = read("../vite.config.ts");
 
 function cssVar(name: string): string {
