@@ -704,15 +704,14 @@ git commit -m "#126: Hide the tab bar during a session"
 
 **Interfaces:**
 - Consumes: the existing Workbox precache manifest and the service worker listeners.
-- Produces: a `NavigationRoute` bound to `/index.html` with a denylist for `/api/`, `/health`, `/sw.js`, and `/manifest.webmanifest`; manifest `start_url: "/gym"` and `scope: "/"`; default notification URL `/gym`.
+- Produces: a `NavigationRoute` with a network-first shell handler (`shellResponse`) and a denylist for `/api/`, `/health`, `/sw.js`, and `/manifest.webmanifest`; manifest `start_url: "/gym"` and `scope: "/"`; default notification URL `/gym`.
 
 - [ ] **Step 1: Write the failing service-worker and manifest tests**
 
-In `apps/web/src/sw.test.mts`, extend the mocks and add a test. Replace the `workbox-precaching` mock with:
+In `apps/web/src/sw.test.mts`, extend the mocks and add tests. Replace the `workbox-precaching` mock with:
 
 ```ts
 const routing = vi.hoisted(() => ({
-  handler: vi.fn(),
   navigation: vi.fn(),
   registerRoute: vi.fn(),
 }));
@@ -720,7 +719,6 @@ const routing = vi.hoisted(() => ({
 vi.mock("workbox-precaching", () => ({
   precacheAndRoute: vi.fn(),
   cleanupOutdatedCaches: vi.fn(),
-  createHandlerBoundToURL: vi.fn(() => routing.handler),
 }));
 
 vi.mock("workbox-routing", () => ({
@@ -733,13 +731,12 @@ vi.mock("workbox-routing", () => ({
 }));
 ```
 
-Add this test inside the `describe("service worker")` block:
+Add these tests inside the `describe("service worker")` block:
 
 ```ts
 it("serves the app shell for navigation requests", () => {
-  expect(createHandlerBoundToURL).toHaveBeenCalledWith("/index.html");
   expect(routing.navigation).toHaveBeenCalledWith(
-    routing.handler,
+    expect.any(Function),
     expect.objectContaining({
       denylist: [
         /^\/api(\/|$)/,
@@ -751,13 +748,45 @@ it("serves the app shell for navigation requests", () => {
   );
   expect(routing.registerRoute).toHaveBeenCalled();
 });
+
+it("caches and returns the network shell", async () => {
+  const put = vi.fn().mockResolvedValue(undefined);
+  const match = vi.fn();
+  Object.defineProperty(globalThis, "caches", {
+    configurable: true,
+    value: { open: vi.fn().mockResolvedValue({ put, match }) },
+  });
+  const response = new Response("shell", { status: 200 });
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response));
+
+  await expect(worker.shellResponse()).resolves.toBe(response);
+  expect(put).toHaveBeenCalledWith("/index.html", expect.any(Response));
+});
+
+it("falls back to the cached shell when offline", async () => {
+  const put = vi.fn();
+  const cached = new Response("cached", { status: 200 });
+  const match = vi.fn().mockResolvedValue(cached);
+  Object.defineProperty(globalThis, "caches", {
+    configurable: true,
+    value: { open: vi.fn().mockResolvedValue({ put, match }) },
+  });
+  vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
+
+  await expect(worker.shellResponse()).resolves.toBe(cached);
+  expect(put).not.toHaveBeenCalled();
+});
 ```
 
-Import `createHandlerBoundToURL` alongside the other Vitest imports:
+Capture the imported module for the shell tests:
 
 ```ts
-import { createHandlerBoundToURL } from "workbox-precaching";
+let worker: typeof import("./sw.ts");
+// inside beforeAll:
+worker = await import("./sw.ts");
 ```
+
+Add `afterEach(() => vi.unstubAllGlobals());` to the test file.
 
 Update the default notification URL. The existing tests pass explicit URLs and stay unchanged; add this test for the fallback:
 
@@ -792,21 +821,38 @@ Expected: FAIL because there is no navigation route and no `start_url`.
 
 Add `"workbox-routing": "^7.4.1"` to the web dev dependencies and run `bun install`.
 
-In `apps/web/src/sw.ts`, import and register the fallback after `precacheAndRoute`:
+In `apps/web/src/sw.ts`, import and register the navigation shell handler after `precacheAndRoute`. The static adapter writes `index.html` after the PWA plugin scans the client output, so it cannot be precached; the handler caches it at runtime:
 
 ```ts
 import {
   cleanupOutdatedCaches,
-  createHandlerBoundToURL,
   precacheAndRoute,
 } from "workbox-precaching";
 import { NavigationRoute, registerRoute } from "workbox-routing";
 
+const SHELL_CACHE = "gymos-shell";
+const SHELL_URL = "/index.html";
+
 precacheAndRoute(self.__WB_MANIFEST);
 cleanupOutdatedCaches();
 
+export async function shellResponse(): Promise<Response> {
+  const cache = await caches.open(SHELL_CACHE);
+  try {
+    const response = await fetch(SHELL_URL, { cache: "no-cache" });
+    if (response.ok) {
+      await cache.put(SHELL_URL, response.clone());
+    }
+    return response;
+  } catch {
+    const cached = await cache.match(SHELL_URL);
+    if (cached) return cached;
+    throw new Error("App shell is not cached");
+  }
+}
+
 registerRoute(
-  new NavigationRoute(createHandlerBoundToURL("/index.html"), {
+  new NavigationRoute(shellResponse, {
     denylist: [
       /^\/api(\/|$)/,
       /^\/health$/,
@@ -815,6 +861,19 @@ registerRoute(
     ],
   }),
 );
+
+self.addEventListener("install", (event) => {
+  event.waitUntil(
+    caches
+      .open(SHELL_CACHE)
+      .then(async (cache) => {
+        const response = await fetch(SHELL_URL, { cache: "no-cache" });
+        if (response.ok) await cache.put(SHELL_URL, response.clone());
+      })
+      .catch(() => undefined),
+  );
+  void self.skipWaiting();
+});
 ```
 
 Change the default notification URL in `apps/web/src/sw.ts` from `"/"` to `"/gym"`.
@@ -928,10 +987,11 @@ Expected: all pass. The `DATABASE_URL` and `NODE_OPTIONS` values are for the dis
 test -f apps/web/build/index.html
 test -f apps/web/build/sw.js
 test -f apps/web/build/manifest.webmanifest
+grep -q "gymos-shell" apps/web/build/sw.js
 ! grep -R "ZodError" apps/web/build/_app/immutable
 ```
 
-Expected: the files exist and no Zod code is in the client bundle (ADR-0048).
+Expected: the files exist, the service worker contains the shell cache, and no Zod code is in the client bundle (ADR-0048).
 
 - [ ] **Step 3: Smoke-test the static server**
 

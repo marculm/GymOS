@@ -32,8 +32,8 @@ supports that toolchain.
   web app still makes no server-side requests of its own.
 - The static nginx/Kubernetes deployment stays; only the build output directory and the
   immutable asset cache path change.
-- The explicit service worker gains a `NavigationRoute` fallback to `index.html` so deep
-  links work offline.
+- The explicit service worker gains a network-first `NavigationRoute` shell handler that
+  caches `/index.html` and serves that cache offline; the install event primes it.
 - SvelteKit 3 and the Vite 8/TypeScript 6/Vitest 5 toolchain upgrade are deferred to a
   separate ADR. This decision does not depend on them.
 
@@ -49,7 +49,7 @@ supports that toolchain.
   the app stays online-only per ADR-0012.
 - The app now depends on the SvelteKit release line. A later SvelteKit 3 upgrade is a
   dependency and toolchain task, not an application restructure.
-- The service worker's SPA navigation fallback is new behavior and must not intercept
+- The service worker's navigation shell handler is new behavior and must not intercept
   `/api`, `/health`, the service worker, or the manifest.
 
 ## Considered Options

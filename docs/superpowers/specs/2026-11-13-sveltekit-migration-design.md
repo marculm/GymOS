@@ -99,9 +99,12 @@ src/lib/shell.svelte.ts        module-level sessionActive state
 - Keep the plugin's automatic registration. The build emits `registerSW.js` and injects
   it into the generated HTML; no manual registration code is added.
 - Add `workbox-routing` to the web dev dependencies. `src/sw.ts` registers a
-  `NavigationRoute` backed by `createHandlerBoundToURL('/index.html')`, with a denylist
-  for `/api/`, `/health`, `/sw.js`, and `/manifest.webmanifest`. This keeps deep links
-  such as `/nutrition` working offline; `precacheAndRoute` alone only maps `/`.
+  `NavigationRoute` with a network-first shell handler: it fetches `/index.html`,
+  caches it, and serves that cache when offline. The service worker's `install` event
+  primes the cache. The static adapter writes `index.html` after the PWA plugin scans
+  the client output, so the plugin cannot precache it. The denylist covers `/api/`,
+  `/health`, `/sw.js`, and `/manifest.webmanifest`; this keeps deep links such as
+  `/nutrition` working offline.
 - Manifest: add `start_url: '/gym'` and `scope: '/'`; keep icons, colors, display, and
   copy. `src/vite-env.d.ts` adds the `vite-plugin-pwa/client` types.
 
@@ -179,9 +182,9 @@ after this migration.
   not require route or component restructuring.
 - **Test environment.** SvelteKit modules (`$app/state`) need mocks in happy-dom. Keep
   tests at the layout and route level rather than asserting router internals.
-- **Offline deep links.** Without the navigation fallback, only `/` works offline. The
-  fallback route and its denylist are required and are covered by the manual smoke
-  test.
+- **Offline deep links.** Without the navigation shell handler, only precached assets
+  work offline. The handler, its install-time priming, and its denylist are required and
+  covered by the service-worker tests plus the manual smoke test.
 - **Resolution conditions.** The existing `browser` condition stays; removing it makes
   Vitest load Svelte's server build. The build must still be checked for the ADR-0048
   Zod-free property.

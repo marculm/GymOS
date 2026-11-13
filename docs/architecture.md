@@ -419,9 +419,9 @@ those slices are built. See ADR-0017.
 - `@testing-library/svelte`, Vitest, and happy-dom for tests.
 - `svelte-check` for type checking.
 
-The PWA is installed from the browser. The service worker caches the app shell and
-falls back to `index.html` for navigations, so deep links work offline; data is
-online-only (ADR-0012).
+The PWA is installed from the browser. The service worker caches the app shell from
+`/index.html` for navigations, so deep links work offline; data is online-only
+(ADR-0012).
 
 ### 4.2 Directory Layout
 
