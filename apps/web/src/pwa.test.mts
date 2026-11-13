@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { pwaManifest } from "./pwa-manifest.mts";
 
 const srcDir = dirname(fileURLToPath(import.meta.url));
-const publicDir = resolve(srcDir, "../public");
+const publicDir = resolve(srcDir, "../static");
 
 function pngSize(path: string): { width: number; height: number } {
   const png = readFileSync(path);
