@@ -172,6 +172,11 @@ fieldset {
   color: var(--on-accent);
 }
 
+.btn-danger {
+  background: color-mix(in srgb, var(--danger) 16%, var(--surface));
+  color: var(--danger);
+}
+
 .btn-ghost {
   background: var(--surface-2);
   color: var(--text);
@@ -540,7 +545,7 @@ textarea.input {
 .focus-top-actions {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 8px;
 }
 
 .finish-action {
@@ -814,6 +819,14 @@ textarea.input {
   margin-top: 2px;
   padding-bottom: 4px;
   border-top: 1px solid var(--separator);
+  animation: set-panel-in 160ms ease both;
+}
+
+@keyframes set-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
 }
 
 .focus-set-row {
@@ -906,7 +919,7 @@ textarea.input {
   border: 0;
   background: none;
   color: var(--muted);
-  font-size: 0.6875rem;
+  font-size: 0.625rem;
   font-weight: 500;
   white-space: nowrap;
 }

@@ -714,7 +714,7 @@
                           </button>
                           <button
                             type="button"
-                            class="btn btn-primary btn-compact"
+                            class="btn btn-danger btn-compact"
                             disabled={pending}
                             onclick={() => void removeSet(set)}
                           >
@@ -730,7 +730,7 @@
                         </span>
                         <button
                           type="button"
-                          class="icon-btn danger"
+                          class="icon-btn muted"
                           aria-label={`Delete set ${set.setNumber} for ${page.name}`}
                           disabled={pending}
                           onclick={() => (deleteTarget = set.id)}
