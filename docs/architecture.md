@@ -10,8 +10,9 @@ is complete.
 ## 1. System Context
 
 GymOS is a single-user gym and nutrition application. The first slice is a gym tracker:
-create a plan, start a workout, log sets, and finish. History and progress views live in
-the Workouts gallery tab (ADR-0032, ADR-0040).
+create a plan, start a workout, log sets, and finish. Training opens on the next workout;
+history lives in Settings, and the progress API is not surfaced in the current UI
+(ADR-0032, ADR-0056).
 
 ```text
 ┌──────────────────────────────┐
@@ -410,11 +411,14 @@ those slices are built. See ADR-0017.
 - Svelte 5 with SvelteKit 2 and Vite, built as a static SPA.
 - `vite-plugin-pwa` for the manifest and service worker.
 - Plain CSS with custom properties and named component classes (ADR-0012).
-- Warm light theme only: warm white background, warm grey surfaces, near-black text
-  and actions, no colored accent (ADR-0020).
+- Instrument design system: the root is a dark training space with white display
+  numerals and a green rest signal; Nutrition and Settings are light token scopes. The
+  app has no bottom tab bar, a gear in the corner, and a horizontal space swipe outside
+  workouts (ADR-0056, superseding ADR-0055 and ADR-0020).
 - No server-side rendering: `ssr = false`, `adapter-static` with an `index.html`
   fallback. Top-level routes are `/gym`, `/nutrition`, and `/extractor`; the root
-  layout owns the header, content area, and tab bar (ADR-0054).
+  layout renders the current full-screen space plus the Settings sheet, and `/`
+  redirects to `/gym` (ADR-0054, ADR-0056).
 - `lucide-svelte` for icons.
 - `@testing-library/svelte`, Vitest, and happy-dom for tests.
 - `svelte-check` for type checking.
@@ -442,23 +446,26 @@ apps/web/
     │   ├── nutrition/+page.svelte
     │   └── extractor/+page.svelte
     ├── lib/
-    │   ├── TabBar.svelte
-    │   └── shell.svelte.ts
+    │   ├── SettingsButton.svelte
+    │   ├── SettingsSheet.svelte
+    │   ├── rest-timer.ts
+    │   ├── settings.svelte.ts
+    │   └── space.ts
     ├── api/
     │   ├── client.mts
     │   ├── gym.mts
     │   └── gym.test.mts
     ├── features/gym/
+    │   ├── ExerciseForm.svelte
     │   ├── ExerciseRegister.svelte
-    │   ├── ExerciseRegister.test.mts
-    │   ├── GymView.svelte
-    │   ├── GymView.test.mts
     │   ├── History.svelte
+    │   ├── Library.svelte
     │   ├── PlanForm.svelte
-    │   ├── Progress.svelte
+    │   ├── SessionSheet.svelte
     │   ├── SessionView.svelte
-    │   ├── SetLogForm.svelte
-    │   └── SessionView.test.mts
+    │   ├── TrainingStart.svelte
+    │   ├── WorkoutPicker.svelte
+    │   └── gym-data.svelte.ts
     └── test/
         └── setup.mts
 ```
@@ -468,84 +475,72 @@ apps/web/
 - Components are `.svelte` files.
 - State uses Svelte 5 runes: `$state`, `$derived`, `$effect`, `$props`.
 - Events use attributes (`onclick`, `onsubmit`), not `on:click`.
-- Top-level navigation is route-based: `/gym`, `/nutrition`, and `/extractor`. The root
-  layout owns the header, content area, and tab bar; `/` redirects to `/gym`. The gym
-  page reports its active session through a module-level shell state, and `GymView`
-  notifies only when that state changes.
+- Top-level routes are `/gym` (Training), `/nutrition` (Nutrition), and `/extractor`
+  (deep link only). The root layout renders the current space and the Settings sheet;
+  `/` redirects to `/gym`. There is no bottom tab bar.
+- Training is full-screen and dark; Nutrition is the light counter-space. Outside a
+  workout, a horizontal swipe moves between the spaces with a route change and a view
+  transition; each has a tappable hint as a fallback. Inside a workout the space swipe is
+  disabled.
+- A gear fixed top-right opens Settings, a light full-screen sheet with Plans, Exercises,
+  History, Rest timer, Notifications, and AI Extractor. Settings is hidden during a
+  workout.
 - Data fetching and mutations live in `src/api/`; components call that layer and never
-  call `fetch` directly.
-- The exercise register creates, edits, and soft-deletes exercises. Session cards reuse the
-  register's form to edit an exercise inline, without leaving the workout (ADR-0019,
-  ADR-0024). Exercise defaults provide the targets shown in plans and sessions and the
-  weight placeholder; completing a session updates them from the last two workouts
-  (ADR-0038, ADR-0039).
-- Plans can be edited and deleted from the plan list. Editing replaces the plan's
-  exercise selection and order; targets in responses come from the exercise defaults,
-  and past sessions and logged sets are unaffected (ADR-0025, ADR-0038).
-- The training rotation section shows the next suggested plan and lets the user add,
-  remove, and reorder plans. Free workouts never advance it (ADR-0026).
-- The start screen leads with the suggested next workout and one primary start action;
-  free workouts are a secondary action (ADR-0027).
-- Below the next workout, three gallery tabs browse the Exercises, Plans, and Workouts
-  areas with WAI-ARIA tab semantics and arrow-key navigation. A panel mounts when its
-  tab is selected and reloads when opened again (ADR-0040).
-- The Exercises tab shows a card grid of exercises with their defaults and edit/delete
-  actions. The Plans tab shows the rotation controls and plan cards with their
-  start/edit/delete actions. Create and edit forms render inside the grid: editing
-  replaces the matching card's content, and a new item opens as the first card. One card
-  edits at a time, cancel restores the card, and save or cancel returns focus to the
-  Edit button (ADR-0040, ADR-0051).
-- The Workouts tab shows a progress section with personal records and per-workout
-  volume, then history cards with date, plan, duration, and set count, plan and date
-  filters, and a "Load more" action; opening a session expands its sets and duration
-  inline (ADR-0032, ADR-0040).
+  call `fetch` directly. `gym-data.svelte.ts` is the shared store for exercises, plans,
+  and rotation: it loads them once, exposes `nextPlan`, and performs plan/exercise CRUD
+  and rotation updates so the start screen and management views stay in sync. The active
+  session stays local to the training page.
+- The exercise register creates, edits, and soft-deletes exercises. Plans can be edited
+  and deleted; editing replaces the plan's exercise selection and order; targets in
+  responses come from the exercise defaults, and past sessions and logged sets are
+  unaffected (ADR-0024, ADR-0025, ADR-0038). Exercise defaults also provide the targets
+  shown in sessions; completing a session updates them from the last two workouts
+  (ADR-0039).
+- The rotation shows the next suggested plan and lets the user add, remove, and reorder
+  plans. Free workouts never advance it (ADR-0026). Plans, the rotation, and the exercise
+  register are managed in grouped Settings subviews; their forms use the settings-row
+  style and return focus to the triggering control.
+- The start screen leads with the suggested next workout, its description and exercise
+  count, and one white Start action; free workouts are a secondary action. It shows no
+  exercise list (ADR-0027).
 - The secondary action opens a modal picker with every plan and a free workout. Choosing
   a plan counts as a deviation; choosing free never advances the rotation (ADR-0028).
-- Set logging happens inside each exercise card: plan cards show their target and their
-  own form; free sessions build cards with an "Add exercise" control. No global set form
-  remains (ADR-0029). An expanded card also opens the shared exercise form for editing its
-  defaults (ADR-0019, ADR-0024). Each submission carries a client-generated idempotency
-  key, so retrying a failed one replays the stored set (ADR-0047).
-- Every exercise card starts collapsed and the exercise name is its toggle. A collapsed
-  card shows only the name, plus a visible "Done" label once the card is done. A planned
-  card auto-collapses when its logged sets reach the target; re-expanding it keeps it open
-  while extra sets are logged. Done cards use a muted background and text; free and
-  ad-hoc cards have no target and are manual-only (ADR-0019, ADR-0029).
-- Every weight input shows the exercise's `defaultWeightKg` as a placeholder, capped at
-  `MAX_SET_WEIGHT_KG` so the set form always accepts it (ADR-0022). Completing a
-  session derives new defaults from all sets of the exercise in the last two completed
-  workouts: average weight rounded to 0.5 kg, and average reps of the sets within 2.5 kg
-  of it. Reps are not prefilled, and RPE is no longer recorded (ADR-0039, ADR-0031).
-- Every weight input accepts two decimals (`step=0.01`). The set form places Reps before
-  Weight in compact side-by-side fields; Enter in the weight field submits the set and
-  accepts the default when the field is empty, keeping the keyboard order Reps → Weight →
-  Add set. Displayed weights use up to two decimals without trailing zeros across set
-  rows, history, progress, plan targets, and defaults (ADR-0022, ADR-0041). Hover styles
-  apply only on devices that support hover with a fine pointer, so touch taps leave no
-  sticky hover state (ADR-0041).
-- The session screen displays every logged set, including exercises that are not part of
-  the session's plan (ADR-0019). Logged sets carry `exerciseName`, so deleted exercises
-  stay readable in history.
-- While the session is active, each set row offers a confirmed Delete action and a left
-  swipe that removes it immediately with a 5-second undo window. The API deletes the set
-  and renumbers the remaining sets of that exercise in one transaction; the client
-  mirrors the renumbering without reloading (ADR-0037). Completed sessions do not allow
-  deletion; each history set row offers an inline edit for reps and weight instead, and
+- An active workout is a horizontal focus pager: one exercise at a time, with the timer,
+  Finish, and the exercise switcher fixed above. A horizontal swipe moves between the
+  plan's exercises; the next action is the tappable equivalent. The switcher lists every
+  exercise, allows out-of-order jumps, and offers Finish workout; for free workouts it
+  also adds exercises (ADR-0056).
+- Each exercise page shows the last performance (the plan targets derived from exercise
+  defaults), Reps and Weight at display size, set progress, and a white Log set action.
+  Values are prefilled from the last set or the targets. Steppers change reps by 1 and
+  weight by 2.5 kg; tapping a value opens a numeric input that accepts two decimals.
+  Each submission carries a client-generated idempotency key, so retrying a failed one
+  replays the stored set (ADR-0047).
+- Logging a set starts the rest timer automatically. The timer is fixed above the pager,
+  turns green while running, and is not reset by paging. It defaults to 2:30, offers
+  120/150/180-second presets, and resumes a running countdown from local storage after a
+  reload (ADR-0056). Notifications are configured in Settings; the workout has no
+  notification toggle.
+- Set progress opens a sheet with the current exercise's logged sets. A set is deleted
+  after an inline confirmation; the API renumbers the remaining sets of that exercise and
+  the client mirrors the renumbering without reloading (ADR-0056). Completed sessions do
+  not allow deletion; each history set row offers an inline edit for reps and weight, and
   the corrected set replaces the row without reloading (ADR-0043).
+- Every logged set, including ad-hoc exercises outside the plan, becomes a page after
+  the plan's exercises. Logged sets carry `exerciseName`, so deleted exercises stay
+  readable in history (ADR-0019).
+- History lives in Settings: plan and date filters, pagination, session summaries, and an
+  inline detail with sets and duration (ADR-0032). Progress charts are removed from the
+  UI; the backend progress endpoint remains available for future use.
 - After a start conflict (`409`), the screen re-reads the active session; if none exists,
-  it retries the start once or shows a message (ADR-0019).
-- After a `409` from finishing, logging a set, or deleting a set, the screen re-reads the
-  active session; if none exists, the session was already completed elsewhere, so it
-  clears the session and refreshes rotation and defaults as a successful finish would
-  (ADR-0050).
-- Plan start actions include the plan name, errors render in `role="alert"` live regions,
-  and starting or finishing a session moves focus to the session or next-workout heading
-  (ADR-0034).
-- While a session is active, the layout hides the main tab bar and SessionView keeps its
-  fixed session bar, which makes the Nutrition and AI Extractor tabs unreachable. It
-  keeps Finish workout and a rest timer visible; the timer autostarts after a logged
-  set, offers 120/150/180-second presets, and resumes a running countdown from local
-  storage after a reload (ADR-0036).
+  it retries the start once or shows a message (ADR-0019). After a `409` from finishing,
+  logging a set, or deleting a set, it re-reads the active session; if none exists, the
+  session was already completed elsewhere, so it clears the session and refreshes
+  rotation and defaults as a successful finish would (ADR-0050).
+- Errors render in `role="alert"` live regions. Starting or finishing a session moves
+  focus to the session exercise heading or the next-workout heading (ADR-0034).
+- The PWA theme color and background are black; the light spaces are scoped by the
+  `.light-space` token block. The theme test checks WCAG AA in both scopes.
 
 ### 4.4 API Layer
 
@@ -639,8 +634,9 @@ Required regression coverage (ADR-0018):
 - Problem-details shape for `404`, `409`, and `422`.
 - Rotation suggestions: wrap-around, deviations, ignored free workouts, missing plans,
   and empty history (ADR-0026).
-- Progress analytics: personal records by weight, then reps, then newest set; per-session
-  volume; active sessions excluded (ADR-0032).
+- Progress analytics API: personal records by weight, then reps, then newest set;
+  per-session volume; active sessions excluded (ADR-0032). The current UI does not use
+  this endpoint (ADR-0056).
 - History filters by plan and start-date range, and session detail includes sets,
   start/finish times, and duration (ADR-0032).
 
@@ -701,7 +697,7 @@ The target architecture deliberately excludes:
 | [0017](adr/0017-validation-limits-and-unimplemented-features.md) | Input limits and 501 stubs |
 | [0018](adr/0018-testing-strategy.md) | Testing strategy and required coverage |
 | [0019](adr/0019-session-ui-behavior.md) | Session screen behavior |
-| [0020](adr/0020-warm-light-ui-theme.md) | Warm light UI theme |
+| [0020](adr/0020-warm-light-ui-theme.md) | Superseded by ADR-0055 |
 | [0021](adr/0021-reject-invalid-muscle-groups.md) | Reject invalid muscle groups on read |
 | [0022](adr/0022-workout-set-reps-and-weight-limits.md) | Workout set reps and weight limits |
 | [0023](adr/0023-seed-configured-current-user.md) | Seed the configured current user |
@@ -710,18 +706,18 @@ The target architecture deliberately excludes:
 | [0026](adr/0026-workout-rotation.md) | Workout rotation and next-workout suggestion |
 | [0027](adr/0027-gym-start-screen-hierarchy.md) | Gym start screen hierarchy |
 | [0028](adr/0028-alternate-workout-picker.md) | Alternate workout picker |
-| [0029](adr/0029-inline-set-logging.md) | Inline set logging in exercise cards |
+| [0029](adr/0029-inline-set-logging.md) | Superseded by ADR-0056 |
 | [0030](adr/0030-suggested-set-weight.md) | Suggested set weight as a placeholder |
 | [0031](adr/0031-remove-rpe.md) | Remove RPE from set logging |
 | [0032](adr/0032-workout-history-and-progress.md) | Workout history and progress analytics |
 | [0033](adr/0033-collapsed-history-section.md) | Collapsed history section |
 | [0034](adr/0034-gym-accessibility-names-alerts-focus.md) | Gym accessibility names, alerts, and focus |
 | [0035](adr/0035-deployment-pipeline-and-tailnet-access.md) | Deployment pipeline and tailnet access |
-| [0036](adr/0036-session-bar-and-rest-timer.md) | Session bar and rest timer |
-| [0037](adr/0037-delete-logged-set.md) | Delete a logged set during an active workout |
+| [0036](adr/0036-session-bar-and-rest-timer.md) | Superseded by ADR-0056 |
+| [0037](adr/0037-delete-logged-set.md) | Superseded by ADR-0056 |
 | [0038](adr/0038-exercise-driven-plan-model.md) | Exercise-driven plan model |
 | [0039](adr/0039-exercise-defaults-from-workouts.md) | Exercise defaults from recent workouts |
-| [0040](adr/0040-tabbed-gym-gallery.md) | Tabbed Gym gallery |
+| [0040](adr/0040-tabbed-gym-gallery.md) | Superseded by ADR-0056 |
 | [0041](adr/0041-set-form-enter-and-hover.md) | Set form Enter submission and guarded hover |
 | [0043](adr/0043-edit-logged-set.md) | Edit a logged set in completed history |
 | [0044](adr/0044-web-push-rest-timer.md) | Web push when the rest timer ends |
@@ -729,7 +725,9 @@ The target architecture deliberately excludes:
 | [0048](adr/0048-zod-free-labels-subpath.md) | Zod-free labels subpath |
 | [0049](adr/0049-trim-plan-names-and-session-titles.md) | Trim plan names and session titles |
 | [0050](adr/0050-recover-completed-session-on-conflict.md) | Recover the gym screen from a completed-session conflict |
-| [0051](adr/0051-in-place-gallery-form-editing.md) | In-place gallery form editing |
+| [0051](adr/0051-in-place-gallery-form-editing.md) | Superseded by ADR-0056 |
 | [0052](adr/0052-issue-refinement-workflow.md) | Issue refinement workflow |
 | [0053](adr/0053-prisma-7-driver-adapter.md) | Prisma 7 with a PostgreSQL driver adapter |
 | [0054](adr/0054-adopt-sveltekit-web-app.md) | SvelteKit static SPA for the web app |
+| [0055](adr/0055-ios-inspired-design-system.md) | Superseded by ADR-0056 |
+| [0056](adr/0056-instrument-training-interface.md) | Instrument training interface |

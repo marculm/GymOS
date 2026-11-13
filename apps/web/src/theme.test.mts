@@ -10,8 +10,17 @@ const styles = read("./styles.css");
 const html = read("./app.html");
 const viteConfig = read("../vite.config.ts");
 
-function cssVar(name: string): string {
-  return styles.match(new RegExp(`--${name}: (#[0-9a-f]{6});`))?.[1] ?? "";
+function blockVar(source: string, name: string): string {
+  return source.match(new RegExp(`--${name}: (#[0-9a-f]{6});`))?.[1] ?? "";
+}
+
+function rootVar(name: string): string {
+  return blockVar(styles, name);
+}
+
+function lightVar(name: string): string {
+  const block = styles.match(/\.light-space\s*\{([^}]*)\}/s)?.[1] ?? "";
+  return blockVar(block, name);
 }
 
 function manifestColor(key: "theme_color" | "background_color"): string {
@@ -33,43 +42,68 @@ function contrast(first: string, second: string): number {
   return (lighter + 0.05) / (darker + 0.05);
 }
 
-describe("warm light theme", () => {
-  it("uses light color scheme only", () => {
-    expect(styles).toContain("color-scheme: light;");
-    expect(styles).not.toContain("color-scheme: dark;");
+describe("training-first theme", () => {
+  it("uses a dark training space and a light management space", () => {
+    expect(styles).toContain("color-scheme: dark;");
+    expect(styles).toMatch(/\.light-space\s*\{[^}]*color-scheme: light;/s);
   });
 
-  it("keeps browser chrome and PWA manifest on the page background", () => {
-    const background = cssVar("bg");
+  it("keeps browser chrome and PWA manifest on the training background", () => {
+    const background = rootVar("bg");
     const themeColor = html.match(/<meta name="theme-color" content="([^"]+)"/)?.[1];
 
-    expect(background).toBeDefined();
+    expect(background).toBe("#000000");
     expect(themeColor).toBe(background);
     expect(manifestColor("theme_color")).toBe(background);
     expect(manifestColor("background_color")).toBe(background);
   });
 
-  it("meets WCAG AA for text and control boundaries", () => {
+  it("meets WCAG AA in the training space", () => {
     const pairs: Array<[string, string, number]> = [
-      [cssVar("text"), cssVar("bg"), 4.5],
-      [cssVar("text"), cssVar("surface"), 4.5],
-      [cssVar("text"), cssVar("surface-2"), 4.5],
-      [cssVar("muted"), cssVar("bg"), 4.5],
-      [cssVar("muted"), cssVar("surface"), 4.5],
-      [cssVar("muted"), cssVar("surface-2"), 4.5],
-      [cssVar("accent"), cssVar("bg"), 4.5],
-      [cssVar("accent"), cssVar("surface"), 4.5],
-      ["#ffffff", cssVar("accent"), 4.5],
-      [cssVar("border"), cssVar("bg"), 3],
-      [cssVar("border"), cssVar("surface"), 3],
+      [rootVar("text"), rootVar("bg"), 4.5],
+      [rootVar("text"), rootVar("surface"), 4.5],
+      [rootVar("text"), rootVar("surface-2"), 4.5],
+      [rootVar("muted"), rootVar("bg"), 4.5],
+      [rootVar("muted"), rootVar("surface"), 4.5],
+      [rootVar("muted"), rootVar("surface-2"), 4.5],
+      [rootVar("accent"), rootVar("bg"), 4.5],
+      [rootVar("accent"), rootVar("surface"), 4.5],
+      [rootVar("on-accent"), rootVar("accent"), 4.5],
+      [rootVar("danger"), rootVar("surface"), 4.5],
+      [rootVar("border"), rootVar("surface"), 3],
     ];
 
     for (const [foreground, background, minimum] of pairs) {
+      expect(foreground).not.toBe("");
+      expect(background).not.toBe("");
       expect(contrast(foreground, background)).toBeGreaterThanOrEqual(minimum);
     }
   });
 
-  it("contains no dark-theme or blue-palette remnants", () => {
+  it("meets WCAG AA in the light management space", () => {
+    const pairs: Array<[string, string, number]> = [
+      [lightVar("text"), lightVar("bg"), 4.5],
+      [lightVar("text"), lightVar("surface"), 4.5],
+      [lightVar("text"), lightVar("surface-2"), 4.5],
+      [lightVar("muted"), lightVar("bg"), 4.5],
+      [lightVar("muted"), lightVar("surface"), 4.5],
+      [lightVar("muted"), lightVar("surface-2"), 4.5],
+      [lightVar("accent"), lightVar("bg"), 4.5],
+      [lightVar("accent"), lightVar("surface"), 4.5],
+      [lightVar("on-accent"), lightVar("accent"), 4.5],
+      [lightVar("danger"), lightVar("surface"), 4.5],
+      [lightVar("border"), lightVar("bg"), 3],
+      [lightVar("border"), lightVar("surface"), 3],
+    ];
+
+    for (const [foreground, background, minimum] of pairs) {
+      expect(foreground).not.toBe("");
+      expect(background).not.toBe("");
+      expect(contrast(foreground, background)).toBeGreaterThanOrEqual(minimum);
+    }
+  });
+
+  it("contains no legacy dark or warm palette remnants", () => {
     const remnants = [
       "#0f172a",
       "#1e293b",
@@ -79,6 +113,10 @@ describe("warm light theme", () => {
       "#3b82f6",
       "#2563eb",
       "#ef4444",
+      "#faf7f2",
+      "#f3ede4",
+      "#e5ddd1",
+      "#1f1b16",
     ];
 
     for (const source of [styles, html, viteConfig]) {

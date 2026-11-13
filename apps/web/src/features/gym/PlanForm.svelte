@@ -123,34 +123,43 @@
   </button>
 {:else}
   <form class="stack" onsubmit={handleSubmit}>
-    <h3 class="card-title">
+    <h3 class="card-title form-title">
       {plan ? "Edit training plan" : "New training plan"}
     </h3>
 
-    <label class="field">
-      <span class="label">Name</span>
-      <input
-        class="input"
-        required
-        maxlength={100}
-        bind:this={nameInput}
-        bind:value={name}
-      />
-    </label>
+    <div class="form-rows">
+      <label class="field">
+        <span class="label">Name</span>
+        <input
+          class="input"
+          required
+          maxlength={100}
+          placeholder="Plan name"
+          bind:this={nameInput}
+          bind:value={name}
+        />
+      </label>
 
-    <label class="field">
-      <span class="label">Description (optional)</span>
-      <input class="input" maxlength={500} bind:value={description} />
-    </label>
+      <label class="field field-block">
+        <span class="label">Description</span>
+        <textarea
+          class="input"
+          rows="2"
+          maxlength={500}
+          placeholder="Optional"
+          bind:value={description}
+        ></textarea>
+      </label>
+    </div>
 
-    <div class="stack">
+    <div class="plan-exercises">
       {#each rows as row, index (index)}
         {@const rowExercise = available.find(
           (entry) => entry.id === row.exerciseId
         )}
-        <div class="plan-exercise stack">
-          <div class="row">
-            <label class="field grow">
+        <div class="plan-exercise">
+          <div class="form-rows">
+            <label class="field">
               <span class="label">Exercise</span>
               <select
                 class="input"
@@ -164,25 +173,27 @@
                 {/each}
               </select>
             </label>
-            <button
-              type="button"
-              class="btn btn-ghost"
-              aria-label={`Remove ${rowExercise?.name ?? "exercise"}`}
-              disabled={rows.length === 1}
-              onclick={() => removeRow(index)}
-            >
-              Remove
-            </button>
+            <label class="field field-block">
+              <span class="label">Notes</span>
+              <textarea
+                class="input"
+                rows="2"
+                maxlength={500}
+                placeholder="Optional"
+                aria-label={`Notes (optional) for ${rowExercise?.name ?? "exercise"}`}
+                bind:value={row.notes}
+              ></textarea>
+            </label>
           </div>
-          <label class="field">
-            <span class="label">Notes (optional)</span>
-            <textarea
-              class="input"
-              maxlength={500}
-              aria-label={`Notes (optional) for ${rowExercise?.name ?? "exercise"}`}
-              bind:value={row.notes}
-            ></textarea>
-          </label>
+          <button
+            type="button"
+            class="remove-exercise"
+            aria-label={`Remove ${rowExercise?.name ?? "exercise"}`}
+            disabled={rows.length === 1}
+            onclick={() => removeRow(index)}
+          >
+            Remove
+          </button>
         </div>
       {/each}
     </div>
@@ -192,10 +203,17 @@
     {/if}
 
     {#if rows.length >= MAX_PLAN_EXERCISES}
-      <p class="muted">Maximum 50 exercises per plan.</p>
+      <p class="muted form-note">Maximum 50 exercises per plan.</p>
     {/if}
 
-    <div class="row">
+    <div class="form-actions">
+      <button
+        type="submit"
+        class="btn btn-primary"
+        disabled={pending || name.trim().length === 0 || rows.length === 0}
+      >
+        Save plan
+      </button>
       <button
         type="button"
         class="btn btn-ghost"
@@ -211,13 +229,6 @@
         onclick={onCancel}
       >
         Cancel
-      </button>
-      <button
-        type="submit"
-        class="btn btn-primary"
-        disabled={pending || name.trim().length === 0 || rows.length === 0}
-      >
-        Save plan
       </button>
     </div>
   </form>

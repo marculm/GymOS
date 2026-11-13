@@ -22,6 +22,7 @@
 
   onMount(() => {
     dialog?.showModal();
+    dialog?.focus();
   });
 
   $effect(() => {
@@ -60,6 +61,7 @@
 <dialog
   bind:this={dialog}
   class="card picker"
+  tabindex="-1"
   aria-labelledby="workout-picker-title"
   onclick={handleBackdropClick}
   onclose={notifyClose}
