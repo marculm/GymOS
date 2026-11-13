@@ -1,8 +1,25 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { createHandlerBoundToURL } from "workbox-precaching";
+
+const routing = vi.hoisted(() => ({
+  handler: vi.fn(),
+  navigation: vi.fn(),
+  registerRoute: vi.fn(),
+}));
 
 vi.mock("workbox-precaching", () => ({
   precacheAndRoute: vi.fn(),
   cleanupOutdatedCaches: vi.fn(),
+  createHandlerBoundToURL: vi.fn(() => routing.handler),
+}));
+
+vi.mock("workbox-routing", () => ({
+  NavigationRoute: class {
+    constructor(handler: unknown, options: unknown) {
+      routing.navigation(handler, options);
+    }
+  },
+  registerRoute: routing.registerRoute,
 }));
 
 type WorkerListener = (event: unknown) => void;
@@ -51,6 +68,31 @@ beforeEach(() => {
 });
 
 describe("service worker", () => {
+  it("serves the app shell for navigation requests", () => {
+    expect(createHandlerBoundToURL).toHaveBeenCalledWith("/index.html");
+    expect(routing.navigation).toHaveBeenCalledWith(
+      routing.handler,
+      expect.objectContaining({
+        denylist: [
+          /^\/api(\/|$)/,
+          /^\/health$/,
+          /^\/sw\.js$/,
+          /^\/manifest\.webmanifest$/,
+        ],
+      }),
+    );
+    expect(routing.registerRoute).toHaveBeenCalled();
+  });
+
+  it("uses the Gym route for the default notification", () => {
+    pushListener({ data: null, waitUntil: vi.fn() });
+
+    expect(showNotification).toHaveBeenCalledWith(
+      "Rest is over",
+      expect.objectContaining({ data: { url: "/gym" } }),
+    );
+  });
+
   it("shows a notification from the push payload", () => {
     const waitUntil = vi.fn();
 

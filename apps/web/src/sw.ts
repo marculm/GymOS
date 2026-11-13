@@ -1,8 +1,10 @@
 /// <reference lib="webworker" />
 import {
   cleanupOutdatedCaches,
+  createHandlerBoundToURL,
   precacheAndRoute,
 } from "workbox-precaching";
+import { NavigationRoute, registerRoute } from "workbox-routing";
 
 declare const self: ServiceWorkerGlobalScope & {
   __WB_MANIFEST: Parameters<typeof precacheAndRoute>[0];
@@ -10,6 +12,17 @@ declare const self: ServiceWorkerGlobalScope & {
 
 precacheAndRoute(self.__WB_MANIFEST);
 cleanupOutdatedCaches();
+
+registerRoute(
+  new NavigationRoute(createHandlerBoundToURL("/index.html"), {
+    denylist: [
+      /^\/api(\/|$)/,
+      /^\/health$/,
+      /^\/sw\.js$/,
+      /^\/manifest\.webmanifest$/,
+    ],
+  }),
+);
 
 // Keep the autoUpdate behavior the generated service worker had.
 self.addEventListener("install", () => {
@@ -23,7 +36,7 @@ self.addEventListener("activate", (event) => {
 const DEFAULT_NOTIFICATION = {
   title: "Rest is over",
   body: "Time for your next set.",
-  url: "/",
+  url: "/gym",
 };
 
 type NotificationPayload = typeof DEFAULT_NOTIFICATION;

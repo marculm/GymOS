@@ -14,6 +14,11 @@ function pngSize(path: string): { width: number; height: number } {
 }
 
 describe("PWA manifest assets", () => {
+  it("starts at the Gym route", () => {
+    expect(pwaManifest.start_url).toBe("/gym");
+    expect(pwaManifest.scope).toBe("/");
+  });
+
   it("ships every icon at its declared size", () => {
     const icons = pwaManifest.icons ?? [];
 

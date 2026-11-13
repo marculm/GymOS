@@ -7,6 +7,8 @@ export const pwaManifest: Partial<ManifestOptions> = {
   theme_color: "#faf7f2",
   background_color: "#faf7f2",
   display: "standalone",
+  start_url: "/gym",
+  scope: "/",
   icons: [
     {
       src: "/pwa-192x192.png",
