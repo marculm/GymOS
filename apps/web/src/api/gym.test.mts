@@ -7,7 +7,6 @@ import {
   deletePlan,
   deleteSet,
   getActiveSession,
-  getProgress,
   getRotation,
   getSession,
   listAllExercises,
@@ -317,19 +316,6 @@ describe("gym api client", () => {
 
     await expect(getSession("session-1")).resolves.toEqual(session);
     expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/gym/sessions/session-1");
-  });
-
-  it("gets progress analytics", async () => {
-    const progress = { personalRecords: [], volume: [] };
-    const fetchMock = mockFetch(
-      new Response(JSON.stringify(progress), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      })
-    );
-
-    await expect(getProgress()).resolves.toEqual(progress);
-    expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/gym/progress");
   });
 
   it("returns null for a missing active session", async () => {

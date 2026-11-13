@@ -11,7 +11,6 @@ import type {
   UpdateWorkoutRotationInput,
   UpdateWorkoutSetInput,
   WorkoutPlan,
-  WorkoutProgress,
   WorkoutRotation,
   WorkoutSessionDetail,
   WorkoutSessionSummary,
@@ -133,10 +132,6 @@ export function listSessions(
 
 export function getSession(id: string): Promise<WorkoutSessionDetail> {
   return api.get<WorkoutSessionDetail>(`/gym/sessions/${id}`);
-}
-
-export function getProgress(): Promise<WorkoutProgress> {
-  return api.get<WorkoutProgress>("/gym/progress");
 }
 
 export function addSet(
