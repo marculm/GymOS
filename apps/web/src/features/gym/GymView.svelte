@@ -61,8 +61,13 @@
     onSessionActiveChange?: (active: boolean) => void;
   } = $props();
 
+  let sessionActive = $derived(activeSession !== null);
+  let lastSessionActive: boolean | undefined;
+
   $effect(() => {
-    onSessionActiveChange?.(activeSession !== null);
+    if (sessionActive === lastSessionActive) return;
+    lastSessionActive = sessionActive;
+    onSessionActiveChange?.(sessionActive);
   });
 
   function messageOf(value: unknown): string {

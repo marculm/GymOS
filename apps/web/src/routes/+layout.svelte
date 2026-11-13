@@ -1,6 +1,7 @@
 <script lang="ts">
   import { page } from "$app/state";
   import TabBar from "$lib/TabBar.svelte";
+  import { shell } from "$lib/shell.svelte.ts";
   import "../styles.css";
 
   let { children } = $props();
@@ -16,5 +17,7 @@
     {@render children()}
   </main>
 
-  <TabBar pathname={page.url.pathname} />
+  {#if !shell.sessionActive}
+    <TabBar pathname={page.url.pathname} />
+  {/if}
 </div>
