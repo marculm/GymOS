@@ -241,7 +241,7 @@ describe("SessionView", () => {
     renderSession();
 
     await fireEvent.click(
-      screen.getByRole("button", { name: "Choose exercise" })
+      screen.getByRole("button", { name: "Exercises" })
     );
     const dialog = await screen.findByRole("dialog", { name: "Exercises" });
     await fireEvent.click(

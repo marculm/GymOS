@@ -480,11 +480,11 @@
       </button>
       <button
         type="button"
-        class="icon-btn muted"
-        aria-label="Choose exercise"
+        class="focus-exercises"
         onclick={() => (showSwitcher = true)}
       >
-        <LayoutGrid size={20} aria-hidden="true" />
+        <LayoutGrid size={16} aria-hidden="true" />
+        <span>Exercises</span>
       </button>
     </div>
   </header>
