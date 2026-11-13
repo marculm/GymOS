@@ -26,13 +26,15 @@
 - The navigation fallback must not intercept `/api/*`, `/health`, `/sw.js`, or `/manifest.webmanifest`.
 - An active session hides the tab bar, and returning to `/gym` recovers the session through `getActiveSession`.
 - nginx must serve SvelteKit's hashed `/_app/immutable/*` assets with a long cache and keep `sw.js` and the manifest uncached.
-- PWA registration must happen exactly once per app load through `registerSW({ immediate: true })`.
+- `vite-plugin-pwa` must keep emitting `registerSW.js` and injecting it into the built HTML, so the PWA update flow is unchanged.
 
 ---
 
 ### Task 1: Add SvelteKit and render the Gym screen at `/gym`
 
 **Files:**
+- Modify: `package.json` (root `test` and `test:watch` scripts)
+- Delete: `vitest.config.ts` (root project aggregator)
 - Modify: `apps/web/package.json`
 - Create: `apps/web/svelte.config.js`
 - Create: `apps/web/src/app.html`
@@ -89,7 +91,7 @@ describe("Gym route", () => {
 
 - [ ] **Step 2: Run it to verify it fails**
 
-Run: `bunx vitest run --project @gymos/web apps/web/src/routes/gym/page.test.mts`
+Run: `bun run --cwd apps/web test src/routes/gym/page.test.mts`
 Expected: FAIL with a missing `./+page.svelte` import or an unresolved SvelteKit config.
 
 - [ ] **Step 3: Add the SvelteKit configuration**
@@ -214,7 +216,7 @@ Create `apps/web/src/routes/gym/+page.svelte`:
 <GymView />
 ```
 
-Update `apps/web/vite.config.ts` to use the SvelteKit plugin. Remove `resolve.conditions` and the bare `svelte()` plugin. Keep `VitePWA`, the dev proxies, and the `test` block:
+Update `apps/web/vite.config.ts` to use the SvelteKit plugin. Keep `resolve.conditions: ["browser"]` (Vitest needs Svelte's browser build), `VitePWA`, the dev proxies, and the `test` block; replace the bare `svelte()` plugin:
 
 ```ts
 import { sveltekit } from "@sveltejs/kit/vite";
@@ -223,6 +225,9 @@ import { VitePWA } from "vite-plugin-pwa";
 import { pwaManifest } from "./src/pwa-manifest.mts";
 
 export default defineConfig({
+  resolve: {
+    conditions: ["browser"],
+  },
   plugins: [
     sveltekit(),
     VitePWA({
@@ -279,27 +284,44 @@ const html = readFileSync(resolve(srcDir, "app.html"), "utf8");
 
 Delete the old `index.html` in Task 2, after this test no longer reads it.
 
-- [ ] **Step 4: Install the new dependencies**
+- [ ] **Step 4: Run each workspace's tests in its own directory**
+
+SvelteKit resolves `svelte.config.js` and `.svelte-kit` from `process.cwd()`. The root
+Vitest project aggregator would run the web project from the repo root, so remove it.
+In the root `package.json`, replace the test scripts:
+
+```json
+"test": "bun --filter @gymos/api db:generate && bun run --cwd apps/api test && bun run --cwd apps/web test && bun run --cwd packages/shared test",
+"test:watch": "bun run --cwd apps/api test:watch & bun run --cwd apps/web test:watch"
+```
+
+Then delete `vitest.config.ts`:
+
+```bash
+git rm vitest.config.ts
+```
+
+- [ ] **Step 5: Install the new dependencies**
 
 Run: `bun install`
 Expected: `@sveltejs/kit` and `@sveltejs/adapter-static` resolve without peer warnings.
 
-- [ ] **Step 5: Run the test to verify it passes**
+- [ ] **Step 6: Run the test to verify it passes**
 
-Run: `bunx vitest run --project @gymos/web apps/web/src/routes/gym/page.test.mts`
+Run: `bun run --cwd apps/web test src/routes/gym/page.test.mts`
 Expected: PASS, one test.
 
-- [ ] **Step 6: Verify the static build**
+- [ ] **Step 7: Verify the static build**
 
 Run: `bun run build`
 Expected: `apps/web/build/index.html` exists and `apps/web/build/_app/` contains the JS/CSS assets.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
-git add apps/web/package.json apps/web/svelte.config.js apps/web/src/app.html \
+git add package.json apps/web/package.json apps/web/svelte.config.js apps/web/src/app.html \
   apps/web/src/routes apps/web/vite.config.ts apps/web/tsconfig.json \
-  apps/web/src/pwa.test.mts bun.lock
+  apps/web/src/pwa.test.mts bun.lock vitest.config.ts
 git commit -m "#126: Add SvelteKit scaffold"
 ```
 
@@ -387,7 +409,7 @@ describe("placeholder routes", () => {
 
 - [ ] **Step 2: Run them to verify they fail**
 
-Run: `bunx vitest run --project @gymos/web apps/web/src/lib/TabBar.test.mts apps/web/src/routes/placeholders.test.mts`
+Run: `bun run --cwd apps/web test src/lib/TabBar.test.mts apps/web/src/routes/placeholders.test.mts`
 Expected: FAIL with missing `TabBar.svelte` and placeholder route files.
 
 - [ ] **Step 3: Implement the tab bar and routes**
@@ -476,12 +498,12 @@ git rm apps/web/src/App.svelte apps/web/src/App.test.mts apps/web/src/main.mts a
 
 - [ ] **Step 4: Run the tests to verify they pass**
 
-Run: `bunx vitest run --project @gymos/web apps/web/src/lib/TabBar.test.mts apps/web/src/routes/placeholders.test.mts`
+Run: `bun run --cwd apps/web test src/lib/TabBar.test.mts apps/web/src/routes/placeholders.test.mts`
 Expected: PASS, five tests.
 
 - [ ] **Step 5: Run the whole web suite to catch the deleted entry points**
 
-Run: `bunx vitest run --project @gymos/web`
+Run: `bun run --cwd apps/web test`
 Expected: PASS. If a test still imports `App.svelte`, update it to the route it now covers.
 
 - [ ] **Step 6: Commit**
@@ -579,7 +601,7 @@ describe("session shell", () => {
 
 - [ ] **Step 2: Run it to verify it fails**
 
-Run: `bunx vitest run --project @gymos/web apps/web/src/routes/session-shell.test.mts`
+Run: `bun run --cwd apps/web test src/routes/session-shell.test.mts`
 Expected: FAIL because the page does not pass a session callback and the layout always shows the tab bar.
 
 - [ ] **Step 3: Implement the shell state**
@@ -642,7 +664,7 @@ Update `apps/web/src/routes/gym/+page.svelte`:
 
 - [ ] **Step 4: Run the test to verify it passes**
 
-Run: `bunx vitest run --project @gymos/web apps/web/src/routes/session-shell.test.mts`
+Run: `bun run --cwd apps/web test src/routes/session-shell.test.mts`
 Expected: PASS, two tests.
 
 - [ ] **Step 5: Commit**
@@ -656,124 +678,8 @@ git commit -m "#126: Hide the tab bar during a session"
 
 ---
 
-### Task 4: Register the service worker manually
 
-**Files:**
-- Modify: `apps/web/vite.config.ts`
-- Modify: `apps/web/src/vite-env.d.ts`
-- Modify: `apps/web/src/routes/+layout.svelte`
-- Modify: `apps/web/src/routes/session-shell.test.mts`
-- Test: `apps/web/src/routes/pwa-registration.test.mts`
-
-**Interfaces:**
-- Consumes: the layout and `SessionShellHarness` from Task 3.
-- Produces: `VitePWA({ injectRegister: null })`; the layout calls `registerSW({ immediate: true })` once on mount.
-
-- [ ] **Step 1: Write the failing registration test**
-
-Create `apps/web/src/routes/pwa-registration.test.mts`:
-
-```ts
-import { describe, expect, it, vi } from "vitest";
-import { render, waitFor } from "@testing-library/svelte";
-import { registerSW } from "virtual:pwa-register";
-import Harness from "../test/SessionShellHarness.svelte";
-
-vi.mock("$app/state", () => ({
-  page: { url: { pathname: "/gym" } },
-}));
-
-vi.mock("virtual:pwa-register", () => ({
-  registerSW: vi.fn(),
-}));
-
-vi.mock("../api/gym.mts", () => ({
-  listAllExercises: vi.fn().mockResolvedValue([]),
-  listAllPlans: vi.fn().mockResolvedValue([]),
-  getRotation: vi.fn().mockResolvedValue({ plans: [], nextPlanId: null }),
-  getActiveSession: vi.fn().mockResolvedValue(null),
-  createPlan: vi.fn(),
-  setRotation: vi.fn(),
-  startSession: vi.fn(),
-  addSet: vi.fn(),
-  deleteSet: vi.fn(),
-  completeSession: vi.fn(),
-}));
-
-describe("PWA registration", () => {
-  it("registers the service worker once", async () => {
-    render(Harness);
-    await waitFor(() =>
-      expect(registerSW).toHaveBeenCalledWith({ immediate: true }),
-    );
-    expect(registerSW).toHaveBeenCalledOnce();
-  });
-});
-```
-
-- [ ] **Step 2: Run it to verify it fails**
-
-Run: `bunx vitest run --project @gymos/web apps/web/src/routes/pwa-registration.test.mts`
-Expected: FAIL because the layout does not import `virtual:pwa-register` yet.
-
-- [ ] **Step 3: Implement manual registration**
-
-In `apps/web/vite.config.ts`, add `injectRegister: null` to the `VitePWA` options.
-
-In `apps/web/src/vite-env.d.ts`, change the reference to:
-
-```ts
-/// <reference types="vite/client" />
-/// <reference types="vite-plugin-pwa/client" />
-```
-
-In `apps/web/src/routes/+layout.svelte`, add the mount hook:
-
-```svelte
-<script lang="ts">
-  import { onMount } from "svelte";
-  import { page } from "$app/state";
-  import TabBar from "$lib/TabBar.svelte";
-  import { ShellState, setShellState } from "$lib/shell.svelte";
-  import { registerSW } from "virtual:pwa-register";
-  import "../styles.css";
-
-  let { children } = $props();
-
-  const shell = new ShellState();
-  setShellState(shell);
-
-  onMount(() => {
-    registerSW({ immediate: true });
-  });
-</script>
-```
-
-Add this mock to `apps/web/src/routes/session-shell.test.mts` so existing layout tests keep passing:
-
-```ts
-vi.mock("virtual:pwa-register", () => ({
-  registerSW: vi.fn(),
-}));
-```
-
-- [ ] **Step 4: Run the registration and shell tests**
-
-Run: `bunx vitest run --project @gymos/web apps/web/src/routes/pwa-registration.test.mts apps/web/src/routes/session-shell.test.mts`
-Expected: PASS.
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add apps/web/vite.config.ts apps/web/src/vite-env.d.ts \
-  apps/web/src/routes/+layout.svelte apps/web/src/routes/pwa-registration.test.mts \
-  apps/web/src/routes/session-shell.test.mts
-git commit -m "#126: Register the service worker manually"
-```
-
----
-
-### Task 5: Keep deep links working offline
+### Task 4: Keep deep links working offline
 
 **Files:**
 - Modify: `apps/web/package.json`
@@ -865,7 +771,7 @@ it("starts at the Gym route", () => {
 
 - [ ] **Step 2: Run them to verify they fail**
 
-Run: `bunx vitest run --project @gymos/web apps/web/src/sw.test.mts apps/web/src/pwa.test.mts`
+Run: `bun run --cwd apps/web test src/sw.test.mts apps/web/src/pwa.test.mts`
 Expected: FAIL because there is no navigation route and no `start_url`.
 
 - [ ] **Step 3: Implement the fallback and manifest values**
@@ -908,7 +814,7 @@ scope: "/",
 
 - [ ] **Step 4: Run the tests to verify they pass**
 
-Run: `bunx vitest run --project @gymos/web apps/web/src/sw.test.mts apps/web/src/pwa.test.mts`
+Run: `bun run --cwd apps/web test src/sw.test.mts apps/web/src/pwa.test.mts`
 Expected: PASS.
 
 - [ ] **Step 5: Commit**
@@ -921,7 +827,7 @@ git commit -m "#126: Keep deep links working offline"
 
 ---
 
-### Task 6: Update the static deployment and architecture docs
+### Task 5: Update the static deployment and architecture docs
 
 **Files:**
 - Modify: `apps/web/Dockerfile`
@@ -974,7 +880,7 @@ git commit -m "#126: Update the web architecture docs"
 
 ---
 
-### Task 7: Full verification
+### Task 6: Full verification
 
 Local test environment for this worktree: the checkout has no `.env`, so run the API tests against a disposable Postgres. Start it once, then migrate and seed:
 

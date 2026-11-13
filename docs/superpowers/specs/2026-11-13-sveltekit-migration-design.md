@@ -58,9 +58,9 @@ the Extractor become routes without another structural change.
   touch icon tags.
 - `vite.config.ts` uses `sveltekit()` instead of the bare `svelte()` plugin. `VitePWA`
   stays in the plugin list, and the `/api` and `/health` dev proxies stay.
-- The custom `resolve.conditions: ["browser"]` is removed; SvelteKit configures the
-  client resolution conditions. The build must still resolve `@gymos/shared/labels`
-  and exclude Zod (ADR-0048).
+- The existing `resolve.conditions: ["browser"]` stays. Vitest needs the browser build of
+  Svelte; without it SvelteKit resolves the server build and `mount` is unavailable. The
+  build must still resolve `@gymos/shared/labels` and exclude Zod (ADR-0048).
 
 ## Routes and Shell
 
@@ -96,8 +96,8 @@ src/lib/shell-state.svelte.ts   sessionActive context
 
 - Keep `vite-plugin-pwa` with `injectManifest`, `srcDir: 'src'`, `filename: 'sw.ts'`,
   `registerType: 'autoUpdate'`, and the existing precache globs.
-- Set `injectRegister: null`; register the worker explicitly in the layout with
-  `registerSW({ immediate: true })` from `virtual:pwa-register` inside `onMount`.
+- Keep the plugin's automatic registration. The build emits `registerSW.js` and injects
+  it into the generated HTML; no manual registration code is added.
 - Add `workbox-routing` to the web dev dependencies. `src/sw.ts` registers a
   `NavigationRoute` backed by `createHandlerBoundToURL('/index.html')`, with a denylist
   for `/api/`, `/health`, `/sw.js`, and `/manifest.webmanifest`. This keeps deep links
@@ -113,14 +113,17 @@ after this migration.
 
 ## Testing
 
-- The root Vitest project config stays; `apps/web/vite.config.ts` keeps its `test`
-  block. `sveltekit()` runs in the test pipeline.
+- The root `test` script runs each workspace's Vitest in its own directory
+  (`apps/api`, `apps/web`, `packages/shared`), because SvelteKit resolves
+  `svelte.config.js` and `.svelte-kit` from the process cwd. The root
+  `vitest.config.ts` project aggregator is removed; `apps/web/vite.config.ts` keeps its
+  `test` block.
 - Existing component tests (`GymView`, `SessionView`, `History`, and the forms) keep
   importing components directly and stay unchanged.
 - `App.test.mts` is replaced by route-level tests: the layout renders three navigation
   links with the correct `href` and `aria-current`; `/nutrition` and `/extractor` render
   their placeholder cards; `/gym` renders `GymView` with the mocked API. Mock
-  `$app/state` and `virtual:pwa-register` where needed.
+  `$app/state` where needed.
 - Add `svelte-kit sync` before `svelte-check` and Vitest (`typecheck` and `test`
   scripts) so `.svelte-kit/` exists in CI.
 - `tsconfig.json` extends `.svelte-kit/tsconfig.json`; the root strictness stays.
@@ -179,5 +182,6 @@ after this migration.
 - **Offline deep links.** Without the navigation fallback, only `/` works offline. The
   fallback route and its denylist are required and are covered by the manual smoke
   test.
-- **Resolution conditions.** The custom `resolve.conditions: ["browser"]` is removed;
-  the build must be checked for the ADR-0048 Zod-free property.
+- **Resolution conditions.** The existing `browser` condition stays; removing it makes
+  Vitest load Svelte's server build. The build must still be checked for the ADR-0048
+  Zod-free property.
