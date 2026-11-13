@@ -765,7 +765,6 @@
                 {pending ? "Saving…" : "Log set"}
               </button>
               <div class="focus-foot">
-                <span class="focus-foot-label">{session.title}</span>
                 <div class="focus-foot-nav">
                   <button
                     type="button"
@@ -774,7 +773,11 @@
                     onclick={() => void goToPage(pageIndex - 1)}
                   >
                     <ChevronLeft size={14} aria-hidden="true" />
-                    <span>Back</span>
+                    <span>
+                      Back{pageIndex > 0
+                        ? ` · ${pages[pageIndex - 1]?.name}`
+                        : ""}
+                    </span>
                   </button>
                   {#if pageIndex < pages.length - 1}
                     <button

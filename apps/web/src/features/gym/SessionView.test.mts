@@ -195,13 +195,18 @@ describe("SessionView", () => {
     renderSession();
 
     expect(
-      within(activePage()).getByRole("button", { name: "Back" })
+      within(activePage()).getByRole("button", { name: /^Back/ })
     ).toBeDisabled();
     await fireEvent.click(
       screen.getByRole("button", { name: /Next · Overhead Shoulder Press/ })
     );
+    expect(
+      within(activePage()).getByRole("button", {
+        name: /Back · Barbell Bench Press/,
+      })
+    ).toBeInTheDocument();
     await fireEvent.click(
-      within(activePage()).getByRole("button", { name: "Back" })
+      within(activePage()).getByRole("button", { name: /^Back/ })
     );
 
     expect(
