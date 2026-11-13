@@ -18,17 +18,19 @@ The **Gym Tracker** slice is implemented:
 - Create plans by selecting exercises and their order; targets come from the exercise
   defaults
 - Start free or plan-based workouts
-- Log sets with weight and reps; weights accept two decimals and display without
-  trailing zeros (ADR-0022)
-- Delete a wrongly logged set during an active workout (ADR-0037)
-- Collapse completed planned exercises into a visible done state, with a manual toggle
-  on every card (ADR-0019, ADR-0029)
-- Keep Finish workout and a rest timer always reachable in a session bar (ADR-0036)
-- Grant notification permission from the session bar and receive a web push when the
-  rest timer ends while the app is in the background (ADR-0044)
-- Finish workouts and review history (details, filters, load-more) in a collapsible
-  section at the bottom of the Gym page, with progress analytics above it (ADR-0032,
-  ADR-0033)
+- Train in a full-screen focus pager: one exercise at a time, swipe or use Next to move
+  between exercises, and use the exercise switcher for out-of-order jumps (ADR-0056)
+- Log sets with large Reps and Weight values; steppers change reps by 1 and weight by
+  2.5 kg, tapping a value opens direct entry, and weights accept two decimals (ADR-0022,
+  ADR-0056)
+- Delete a wrongly logged set from the sets sheet after an inline confirmation (ADR-0056)
+- Rely on a rest timer that defaults to 2:30, starts after each set, and survives paging
+  and reloads; configure notifications in Settings (ADR-0044, ADR-0056)
+- Finish the workout from the top bar or the switcher; review history (details, filters,
+  load-more) in Settings (ADR-0032, ADR-0056)
+- Switch between the full-screen Training and Nutrition spaces by horizontal swipe
+  outside a workout; open Settings from the gear for plans, exercises, history, the rest
+  timer, notifications, and the AI Extractor (ADR-0056)
 
 Nutrition, the AI recipe extractor, authentication, and offline logging are not implemented yet. The API is single-user (no login) and must be protected before public deployment. See [`docs/known-issues.md`](docs/known-issues.md) for known limitations.
 
