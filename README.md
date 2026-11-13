@@ -2,7 +2,7 @@
 
 An all-in-one Gym & Nutrition Operating System designed for mobile-first workout tracking, mealprep management, and recipe extraction.
 
-Built as a TypeScript Monorepo powered by **Bun**, **Hono**, **Svelte 5 (Vite PWA)**, and **PostgreSQL (Prisma)**.
+Built as a TypeScript Monorepo powered by **Bun**, **Hono**, **Svelte 5 (SvelteKit PWA)**, and **PostgreSQL (Prisma)**.
 
 ---
 
@@ -85,14 +85,14 @@ Nutrition, the AI recipe extractor, authentication, and offline logging are not 
 | :--- | :--- |
 | `bun run dev` | Starts API (`:3000`) and Web (`:5173`) concurrently |
 | `bun run dev:api` | Starts only the Hono API server with hot-reload |
-| `bun run dev:web` | Starts only the Vite frontend dev server |
+| `bun run dev:web` | Starts only the SvelteKit frontend dev server |
 | `bun run build` | Builds the frontend PWA for production |
 
 ### Testing (Vitest)
 
 | Command | Description |
 | :--- | :--- |
-| `bun run test` | Runs all Vitest suites (API, Web, Shared) in parallel |
+| `bun run test` | Runs all Vitest suites (API, Web, Shared) |
 | `bun run test:watch` | Runs Vitest in interactive watch mode |
 
 ### Database Management (PostgreSQL & Prisma)
@@ -249,7 +249,7 @@ operations. There is no authentication; the API resolves a single user from
 GymOS/
 ├── apps/
 │   ├── api/             # Backend service (Hono, Prisma, Pino logging)
-│   └── web/             # Frontend app (Svelte 5, Vite, PWA, Lucide icons)
+│   └── web/             # Frontend app (Svelte 5, SvelteKit, PWA, Lucide icons)
 ├── packages/
 │   └── shared/          # Shared Zod schemas, domain types, constants
 ├── deploy/

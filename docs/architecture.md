@@ -16,7 +16,7 @@ the Workouts gallery tab (ADR-0032, ADR-0040).
 ```text
 ┌──────────────────────────────┐
 │  apps/web                    │
-│  Svelte 5 + Vite PWA         │
+│  Svelte 5 + SvelteKit PWA    │
 │  installable, client-side    │
 └──────────────┬───────────────┘
                │  /api (same origin via reverse proxy)
@@ -49,7 +49,7 @@ authentication is added (ADR-0009). Deployment details live in
 ```text
 apps/
   api/                 # Hono + Prisma backend
-  web/                 # Svelte 5 + Vite PWA
+  web/                 # Svelte 5 + SvelteKit PWA
 packages/
   shared/              # Zod schemas, contract types, constants
 deploy/
@@ -606,9 +606,11 @@ API and UI cannot drift.
 ## 6. Conventions
 
 - TypeScript source and test files use `.mts` with explicit `.mts` imports.
+- SvelteKit route files (`+layout.ts`, `+page.ts`) use `.ts`, and runes modules use
+  `.svelte.ts`.
 - Tool configuration files (`vite.config.ts`, `vitest.config.ts`, `oxlint.config.ts`)
   stay `.ts`.
-- Svelte components use `.svelte`; plain TypeScript modules use `.mts`.
+- Svelte components use `.svelte`; other plain TypeScript modules use `.mts`.
 - TypeScript is strict, with `noUncheckedIndexedAccess`, `noFallthroughCasesInSwitch`,
   `noImplicitOverride`, and `verbatimModuleSyntax` (ADR-0002).
 - Code is self-documenting. Comments explain non-obvious logic only (AGENTS.md).
@@ -730,3 +732,4 @@ The target architecture deliberately excludes:
 | [0051](adr/0051-in-place-gallery-form-editing.md) | In-place gallery form editing |
 | [0052](adr/0052-issue-refinement-workflow.md) | Issue refinement workflow |
 | [0053](adr/0053-prisma-7-driver-adapter.md) | Prisma 7 with a PostgreSQL driver adapter |
+| [0054](adr/0054-adopt-sveltekit-web-app.md) | SvelteKit static SPA for the web app |
