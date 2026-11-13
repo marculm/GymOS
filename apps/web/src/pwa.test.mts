@@ -29,7 +29,7 @@ describe("PWA manifest assets", () => {
   });
 
   it("links the Apple touch icon and ships it at 180x180", () => {
-    const html = readFileSync(resolve(srcDir, "../index.html"), "utf8");
+    const html = readFileSync(resolve(srcDir, "app.html"), "utf8");
 
     expect(html).toContain('rel="apple-touch-icon"');
     expect(html).toContain('href="/apple-touch-icon.png"');
