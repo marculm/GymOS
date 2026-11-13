@@ -14,10 +14,10 @@ afterEach(() => {
 describe("space gestures", () => {
   it("navigates to the other space", () => {
     goToSpace("nutrition");
-    expect(goto).toHaveBeenCalledWith("/nutrition");
+    expect(goto).toHaveBeenCalledWith("/nutrition", { replaceState: true });
 
     goToSpace("training");
-    expect(goto).toHaveBeenCalledWith("/gym");
+    expect(goto).toHaveBeenCalledWith("/gym", { replaceState: true });
   });
 
   it("swipes left to advance and right to go back", () => {

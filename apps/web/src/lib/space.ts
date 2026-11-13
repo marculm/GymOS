@@ -24,14 +24,16 @@ export function goToSpace(space: Space): void {
   const doc = document as ViewTransitionDocument;
 
   if (!doc.startViewTransition) {
-    void goto(path);
+    void goto(path, { replaceState: true });
     return;
   }
 
   document.documentElement.dataset.space =
     space === "nutrition" ? "to-nutrition" : "to-training";
 
-  const transition = doc.startViewTransition(() => goto(path));
+  const transition = doc.startViewTransition(() =>
+    goto(path, { replaceState: true })
+  );
   void transition.finished.finally(() => {
     delete document.documentElement.dataset.space;
   });
