@@ -43,6 +43,7 @@
 
 html {
   background: var(--bg);
+  overflow-x: hidden;
   -webkit-text-size-adjust: 100%;
 }
 
@@ -583,8 +584,9 @@ textarea.input {
   flex: 1;
   min-height: 0;
   margin-top: 8px;
-  overflow: hidden;
+  overflow: clip;
   touch-action: pan-y;
+  overscroll-behavior-x: none;
 }
 
 .focus-track {
@@ -601,8 +603,10 @@ textarea.input {
   min-width: 0;
   height: 100%;
   padding: 8px 2px 0;
+  overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
+  touch-action: pan-y;
 }
 
 .focus-eyebrow {
