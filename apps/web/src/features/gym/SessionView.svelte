@@ -1,6 +1,13 @@
 <script lang="ts">
-  import { onDestroy, onMount, tick } from "svelte";
-  import { Bell, BellOff } from "lucide-svelte";
+  import { onMount, tick } from "svelte";
+  import {
+    Check,
+    ChevronRight,
+    LayoutGrid,
+    Minus,
+    Plus,
+    Trash2,
+  } from "lucide-svelte";
   import type {
     CreateExerciseInput,
     CreateWorkoutSetInput,
@@ -9,16 +16,17 @@
     WorkoutPlan,
     WorkoutSessionDetail,
   } from "@gymos/shared";
+  import { MAX_SET_REPS, MAX_SET_WEIGHT_KG } from "@gymos/shared/limits";
   import {
-    disablePush,
-    enablePush,
-    isPushSubscribed,
-    isPushSupported,
-    syncRestTimer,
-  } from "../../push.mts";
+    formatRestTime,
+    loadRestSeconds,
+    REST_PRESETS,
+    saveRestSeconds,
+  } from "$lib/rest-timer.ts";
+  import { syncRestTimer } from "../../push.mts";
   import ExerciseForm from "./ExerciseForm.svelte";
   import { formatWeight } from "./format.mts";
-  import SetLogForm from "./SetLogForm.svelte";
+  import SessionSheet from "./SessionSheet.svelte";
 
   let {
     session,
@@ -38,43 +46,47 @@
     onComplete: () => Promise<void>;
   } = $props();
 
-  const REST_PRESETS: readonly number[] = [120, 150, 180];
-  const DEFAULT_REST_PRESET = 120;
-  const REST_PRESET_KEY = "gymos.restTimerSeconds";
-  const REST_END_KEY = "gymos.restTimerEndsAt";
-  const SWIPE_DELETE_THRESHOLD = 60;
-  const UNDO_WINDOW_MS = 5000;
+  type SessionPage = {
+    exerciseId: string;
+    name: string;
+    exercise: Exercise | null;
+    targetSets: number;
+    targetReps: number;
+    targetWeightKg: number | null;
+    notes: string | null;
+    sets: LoggedSet[];
+  };
 
-  let freeExercises = $state<Exercise[]>([]);
-  let manualExpanded = $state<Record<string, boolean>>({});
-  let exerciseToAdd = $state("");
-  let editingExerciseId = $state<string | null>(null);
+  const REST_END_KEY = "gymos.restTimerEndsAt";
+
+  let index = $state(0);
+  let drafts = $state<Record<string, { reps: number; weightKg: number }>>({});
   let pending = $state(false);
   let error = $state<string | null>(null);
-  let finishButton = $state<HTMLButtonElement | null>(null);
-  let timerPreset = $state(loadPreset());
+  let finishing = $state(false);
+  let editing = $state<"reps" | "weight" | null>(null);
+  let editValue = $state<string | number>("");
+  let editInput = $state<HTMLInputElement | null>(null);
+  let freeExercises = $state<Exercise[]>([]);
+  let exerciseToAdd = $state("");
+  let showSwitcher = $state(false);
+  let showSets = $state(false);
+  let showTimer = $state(false);
+  let showEditExercise = $state(false);
+  let deleteTarget = $state<string | null>(null);
+  let deleteError = $state<string | null>(null);
+  let swipeStart: { x: number; y: number; pointerId: number } | null = null;
+  const pendingSetKeys = new Map<string, string>();
+
+  let timerPreset = $state(loadRestSeconds());
   const initialEnd = loadEnd();
   const initialRemaining = remainingFrom(initialEnd);
   let endsAt = initialEnd;
   let remaining = $state(initialRemaining);
   let timerRunning = $state(initialRemaining > 0);
-  let showTimerOptions = $state(false);
-  let pushSupported = $state(isPushSupported());
-  let pushEnabled = $state(false);
-  let pushPending = $state(false);
-  let hiddenSetIds = $state<Set<string>>(new Set());
-  let pendingUndos = $state<LoggedSet[]>([]);
-  const deleteTimers = new Map<string, ReturnType<typeof setTimeout>>();
-  const pendingSetKeys = new Map<string, string>();
-  let swipeStart: {
-    pointerId: number;
-    setId: string;
-    x: number;
-    y: number;
-  } | null = null;
 
-  function formatTime(seconds: number): string {
-    return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+  function messageOf(value: unknown): string {
+    return value instanceof Error ? value.message : "Something went wrong";
   }
 
   function presetStorage(): Storage | null {
@@ -82,15 +94,6 @@
       return window.localStorage ?? window.sessionStorage;
     } catch {
       return null;
-    }
-  }
-
-  function loadPreset(): number {
-    try {
-      const stored = Number(presetStorage()?.getItem(REST_PRESET_KEY));
-      return REST_PRESETS.includes(stored) ? stored : DEFAULT_REST_PRESET;
-    } catch {
-      return DEFAULT_REST_PRESET;
     }
   }
 
@@ -127,50 +130,6 @@
     void syncRestTimer(endsAt);
   }
 
-  async function refreshPushState() {
-    pushSupported = isPushSupported();
-    pushEnabled = await isPushSubscribed();
-  }
-
-  async function togglePush() {
-    if (pushPending || !pushSupported) return;
-
-    pushPending = true;
-    error = null;
-    try {
-      if (pushEnabled) {
-        await disablePush();
-        pushEnabled = false;
-        void syncRestTimer(null);
-      } else {
-        pushEnabled = await enablePush();
-        if (!pushEnabled) {
-          error =
-            "Notifications are unavailable. The in-app timer still works.";
-        } else if (timerRunning && endsAt !== null) {
-          void syncRestTimer(endsAt);
-        }
-      }
-    } catch (pushError) {
-      error =
-        pushError instanceof Error
-          ? pushError.message
-          : "Could not change notification settings";
-    } finally {
-      pushPending = false;
-    }
-  }
-
-  function selectPreset(preset: number) {
-    timerPreset = preset;
-    try {
-      presetStorage()?.setItem(REST_PRESET_KEY, String(preset));
-    } catch {
-      // Remembering the preset is best-effort; the timer still runs.
-    }
-    startTimer();
-  }
-
   function clearTimer() {
     remaining = 0;
     timerRunning = false;
@@ -183,9 +142,11 @@
     void syncRestTimer(null);
   }
 
-  function toggleTimer() {
-    if (timerRunning) stopTimer();
-    else startTimer();
+  function selectPreset(seconds: number) {
+    timerPreset = seconds;
+    saveRestSeconds(seconds);
+    startTimer();
+    showTimer = false;
   }
 
   $effect(() => {
@@ -198,600 +159,749 @@
   });
 
   onMount(() => {
-    void refreshPushState();
+    if (!timerRunning) storeEnd(null);
   });
 
-  const completed = $derived(session.completedAt !== null);
-
-  const setsByExercise = $derived.by(() => {
-    const map = new Map<string, LoggedSet[]>();
+  const pages = $derived.by<SessionPage[]>(() => {
+    const byExercise = new Map<string, LoggedSet[]>();
     for (const set of session.sets) {
-      const current = map.get(set.exerciseId) ?? [];
+      const current = byExercise.get(set.exerciseId) ?? [];
       current.push(set);
-      map.set(set.exerciseId, current);
+      byExercise.set(set.exerciseId, current);
     }
-    for (const sets of map.values()) {
+    for (const sets of byExercise.values()) {
       sets.sort((a, b) => a.setNumber - b.setNumber);
     }
-    return map;
-  });
 
-  const planExerciseIds = $derived(
-    new Set(plan?.exercises.map((entry) => entry.exercise.id) ?? [])
-  );
+    const result: SessionPage[] = [];
+    const seen = new Set<string>();
 
-  const setGroups = $derived.by(() => {
-    const groups: Array<{
-      exerciseId: string;
-      name: string;
-      sets: LoggedSet[];
-    }> = [];
-
-    for (const [exerciseId, sets] of setsByExercise) {
-      if (planExerciseIds.has(exerciseId)) continue;
-      const name = sets[0]?.exerciseName ?? "Unknown exercise";
-      groups.push({ exerciseId, name, sets });
-    }
-
-    return groups;
-  });
-
-  const freeCards = $derived.by(() => {
-    const byId = new Map(exercises.map((exercise) => [exercise.id, exercise]));
-    const cards = new Map<
-      string,
-      {
-        exerciseId: string;
-        name: string;
-        sets: LoggedSet[];
-        exercise: Exercise | null;
+    if (plan) {
+      for (const entry of plan.exercises) {
+        const exerciseId = entry.exercise.id;
+        seen.add(exerciseId);
+        result.push({
+          exerciseId,
+          name: entry.exercise.name,
+          exercise: entry.exercise,
+          targetSets: entry.targetSets,
+          targetReps: entry.targetReps,
+          targetWeightKg: entry.targetWeightKg,
+          notes: entry.notes,
+          sets: byExercise.get(exerciseId) ?? [],
+        });
       }
-    >();
+    }
 
-    for (const freeExercise of freeExercises) {
-      const exercise = byId.get(freeExercise.id) ?? freeExercise;
-      cards.set(exercise.id, {
-        exerciseId: exercise.id,
-        name: exercise.name,
-        sets: setsByExercise.get(exercise.id) ?? [],
+    for (const [exerciseId, sets] of byExercise) {
+      if (seen.has(exerciseId)) continue;
+      const exercise = exercises.find((entry) => entry.id === exerciseId) ?? null;
+      const last = sets[sets.length - 1];
+      result.push({
+        exerciseId,
+        name: exercise?.name ?? sets[0]?.exerciseName ?? "Exercise",
         exercise,
+        targetSets: exercise?.defaultSets ?? Math.max(sets.length, 1),
+        targetReps: exercise?.defaultReps ?? last?.reps ?? 8,
+        targetWeightKg: exercise?.defaultWeightKg ?? last?.weightKg ?? null,
+        notes: null,
+        sets,
       });
     }
 
-    for (const group of setGroups) {
-      if (cards.has(group.exerciseId)) continue;
-      cards.set(group.exerciseId, {
-        exerciseId: group.exerciseId,
-        name: byId.get(group.exerciseId)?.name ?? group.name,
-        sets: group.sets,
-        exercise: byId.get(group.exerciseId) ?? null,
+    for (const free of freeExercises) {
+      if (seen.has(free.id) || byExercise.has(free.id)) continue;
+      result.push({
+        exerciseId: free.id,
+        name: free.name,
+        exercise: free,
+        targetSets: free.defaultSets,
+        targetReps: free.defaultReps,
+        targetWeightKg: free.defaultWeightKg,
+        notes: null,
+        sets: [],
       });
     }
 
-    return [...cards.values()];
+    return result;
   });
 
+  const current = $derived(
+    pages[Math.min(index, Math.max(pages.length - 1, 0))] ?? null
+  );
+  const draft = $derived(
+    current ? draftFor(current) : { reps: 1, weightKg: 0 }
+  );
   const addableExercises = $derived(
     exercises.filter(
-      (exercise) => !freeCards.some((card) => card.exerciseId === exercise.id)
+      (exercise) => !pages.some((page) => page.exerciseId === exercise.id)
     )
   );
 
-  function isCardExpanded(exerciseId: string): boolean {
-    return manualExpanded[exerciseId] ?? false;
-  }
-
-  function toggleCard(exerciseId: string, expanded: boolean) {
-    manualExpanded = { ...manualExpanded, [exerciseId]: !expanded };
-    if (expanded && editingExerciseId === exerciseId) {
-      editingExerciseId = null;
-    }
-  }
-
-  function startEditing(exerciseId: string) {
-    editingExerciseId = exerciseId;
-  }
-
-  async function closeExerciseEdit(exerciseId: string) {
-    editingExerciseId = null;
-    await tick();
-    document.getElementById(`edit-exercise-${exerciseId}`)?.focus();
-  }
-
-  async function saveExercise(
-    exerciseId: string,
-    input: CreateExerciseInput
-  ): Promise<void> {
-    try {
-      await onUpdateExercise(exerciseId, input);
-    } catch (saveError) {
-      if (editingExerciseId !== exerciseId) {
-        error =
-          saveError instanceof Error
-            ? saveError.message
-            : "Could not save the exercise";
-      }
-      throw saveError;
-    }
-    if (editingExerciseId !== exerciseId) return;
-    editingExerciseId = null;
-    await tick();
-    manualExpanded = { ...manualExpanded, [exerciseId]: true };
-    await tick();
-    document.getElementById(`edit-exercise-${exerciseId}`)?.focus();
-  }
-
-  const doneState = new Map<string, boolean>();
-
   $effect(() => {
-    for (const entry of plan?.exercises ?? []) {
-      const exerciseId = entry.exercise.id;
-      const done =
-        visibleSets(setsByExercise.get(exerciseId) ?? []).length >=
-        entry.targetSets;
-      if (done && doneState.get(exerciseId) !== true) {
-        manualExpanded = { ...manualExpanded, [exerciseId]: false };
-      }
-      doneState.set(exerciseId, done);
-    }
+    const max = Math.max(pages.length - 1, 0);
+    if (index > max) index = max;
   });
 
-  function addExercise() {
-    const exercise = addableExercises.find(
-      (entry) => entry.id === exerciseToAdd
-    );
-    if (!exercise) return;
-    freeExercises = [...freeExercises, exercise];
-    exerciseToAdd = "";
-  }
-
-  async function logSet(
-    exerciseId: string,
-    input: Omit<CreateWorkoutSetInput, "exerciseId" | "idempotencyKey">
-  ): Promise<boolean> {
-    if (pending) return false;
-
-    pending = true;
-    try {
-      const idempotencyKey =
-        pendingSetKeys.get(exerciseId) ?? crypto.randomUUID();
-      pendingSetKeys.set(exerciseId, idempotencyKey);
-      await onLogSet({ exerciseId, ...input, idempotencyKey });
-      pendingSetKeys.delete(exerciseId);
-      startTimer();
-      return true;
-    } finally {
-      pending = false;
-    }
-  }
-
-  async function deleteSet(set: LoggedSet) {
-    if (pending) return;
-    if (!confirm(`Delete set ${set.setNumber} for ${set.exerciseName}?`)) {
-      return;
-    }
-
-    pending = true;
-    error = null;
-
-    try {
-      await onDeleteSet(set.id);
-    } catch (deleteError) {
-      error =
-        deleteError instanceof Error
-          ? deleteError.message
-          : "Could not delete the set";
-    } finally {
-      pending = false;
-    }
-  }
-
-  function visibleSets(sets: LoggedSet[]): LoggedSet[] {
-    return sets.filter((set) => !hiddenSetIds.has(set.id));
-  }
-
-  function scheduleDelete(set: LoggedSet) {
-    if (completed || pending || deleteTimers.has(set.id)) return;
-    error = null;
-    hiddenSetIds = new Set(hiddenSetIds).add(set.id);
-    pendingUndos = [...pendingUndos, set];
-    deleteTimers.set(
-      set.id,
-      setTimeout(() => void flushDelete(set.id), UNDO_WINDOW_MS)
-    );
-  }
-
-  async function flushDelete(setId: string): Promise<boolean> {
-    const timer = deleteTimers.get(setId);
-    if (!timer) return true;
-    clearTimeout(timer);
-    deleteTimers.delete(setId);
-    pendingUndos = pendingUndos.filter((set) => set.id !== setId);
-
-    try {
-      await onDeleteSet(setId);
-      return true;
-    } catch (deleteError) {
-      hiddenSetIds = new Set([...hiddenSetIds].filter((id) => id !== setId));
-      error =
-        deleteError instanceof Error
-          ? deleteError.message
-          : "Could not delete the set";
-      return false;
-    }
-  }
-
-  async function undoDelete(set: LoggedSet) {
-    const timer = deleteTimers.get(set.id);
-    if (!timer) return;
-    clearTimeout(timer);
-    deleteTimers.delete(set.id);
-    pendingUndos = pendingUndos.filter((entry) => entry.id !== set.id);
-    hiddenSetIds = new Set([...hiddenSetIds].filter((id) => id !== set.id));
-    await tick();
-    manualExpanded = { ...manualExpanded, [set.exerciseId]: true };
-  }
-
-  async function flushPendingDeletes(): Promise<boolean> {
-    const results = await Promise.all(
-      [...deleteTimers.keys()].map((setId) => flushDelete(setId))
-    );
-    return results.every(Boolean);
-  }
-
-  onDestroy(() => void flushPendingDeletes());
-
-  function startSwipe(event: PointerEvent, set: LoggedSet) {
-    if (completed || pending || event.button !== 0) return;
-    swipeStart = {
-      pointerId: event.pointerId,
-      setId: set.id,
-      x: event.clientX,
-      y: event.clientY,
+  function draftFor(page: SessionPage) {
+    const stored = drafts[page.exerciseId];
+    if (stored) return stored;
+    const last = page.sets[page.sets.length - 1];
+    return {
+      reps: last?.reps ?? page.targetReps,
+      weightKg: last?.weightKg ?? page.targetWeightKg ?? 0,
     };
   }
 
-  function endSwipe(event: PointerEvent, set: LoggedSet) {
-    if (!swipeStart || event.pointerId !== swipeStart.pointerId) return;
-    const start = swipeStart;
-    swipeStart = null;
-    if (set.id !== start.setId) return;
-    const dx = event.clientX - start.x;
-    const dy = event.clientY - start.y;
-    if (dx <= -SWIPE_DELETE_THRESHOLD && Math.abs(dx) > Math.abs(dy)) {
-      scheduleDelete(set);
+  function isDone(page: SessionPage): boolean {
+    return page.sets.length >= page.targetSets;
+  }
+
+  function dotIndices(count: number): number[] {
+    return Array.from({ length: count }, (_, index) => index);
+  }
+
+  function clamp(value: number, min: number, max: number): number {
+    return Math.min(max, Math.max(min, value));
+  }
+
+  function setDraft(kind: "reps" | "weightKg", value: number) {
+    if (!current) return;
+    drafts = {
+      ...drafts,
+      [current.exerciseId]: { ...draft, [kind]: value },
+    };
+  }
+
+  function adjustReps(delta: number) {
+    setDraft("reps", clamp(Math.round(draft.reps + delta), 1, MAX_SET_REPS));
+  }
+
+  function adjustWeight(delta: number) {
+    const next = Math.round((draft.weightKg + delta) * 100) / 100;
+    setDraft("weightKg", clamp(next, 0, MAX_SET_WEIGHT_KG));
+  }
+
+  async function beginEdit(kind: "reps" | "weight") {
+    editing = kind;
+    editValue = String(draft[kind === "weight" ? "weightKg" : "reps"]);
+    await tick();
+    editInput?.focus();
+    editInput?.select();
+  }
+
+  function commitEdit() {
+    if (!editing) return;
+    const parsed = Number(String(editValue).replace(",", "."));
+    if (Number.isFinite(parsed)) {
+      if (editing === "reps") {
+        setDraft("reps", clamp(Math.round(parsed), 1, MAX_SET_REPS));
+      } else {
+        setDraft("weightKg", clamp(parsed, 0, MAX_SET_WEIGHT_KG));
+      }
     }
+    editing = null;
+  }
+
+  function cancelEdit() {
+    editing = null;
+  }
+
+  function handleEditKeydown(event: KeyboardEvent) {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      commitEdit();
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      cancelEdit();
+    }
+  }
+
+  async function logSet() {
+    if (!current || pending) return;
+    pending = true;
+    error = null;
+
+    try {
+      const idempotencyKey =
+        pendingSetKeys.get(current.exerciseId) ?? crypto.randomUUID();
+      pendingSetKeys.set(current.exerciseId, idempotencyKey);
+      await onLogSet({
+        exerciseId: current.exerciseId,
+        reps: draft.reps,
+        weightKg: draft.weightKg,
+        idempotencyKey,
+      });
+      pendingSetKeys.delete(current.exerciseId);
+      drafts = {
+        ...drafts,
+        [current.exerciseId]: { reps: draft.reps, weightKg: draft.weightKg },
+      };
+      editing = null;
+      startTimer();
+    } catch (logError) {
+      error = messageOf(logError);
+    } finally {
+      pending = false;
+    }
+  }
+
+  async function goToPage(nextIndex: number, focus = true) {
+    if (nextIndex < 0 || nextIndex >= pages.length) return;
+    index = nextIndex;
+    editing = null;
+    if (focus) {
+      await tick();
+      document.getElementById("session-focus")?.focus();
+    }
+  }
+
+  function startSwipe(event: PointerEvent) {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    swipeStart = {
+      x: event.clientX,
+      y: event.clientY,
+      pointerId: event.pointerId,
+    };
+  }
+
+  function endSwipe(event: PointerEvent) {
+    if (!swipeStart || event.pointerId !== swipeStart.pointerId) return;
+    const dx = event.clientX - swipeStart.x;
+    const dy = event.clientY - swipeStart.y;
+    swipeStart = null;
+    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.4) return;
+    if (dx < 0) void goToPage(index + 1);
+    else void goToPage(index - 1);
   }
 
   function cancelSwipe() {
     swipeStart = null;
   }
 
-  async function handleComplete() {
+  function openSets() {
+    deleteTarget = null;
+    deleteError = null;
+    showSets = true;
+  }
+
+  async function removeSet(set: LoggedSet) {
     if (pending) return;
-
     pending = true;
-    error = null;
-    let failed = false;
-
+    deleteError = null;
     try {
-      if (await flushPendingDeletes()) {
-        await onComplete();
-        stopTimer();
-      } else {
-        failed = true;
-      }
-    } catch (completeError) {
-      failed = true;
-      error =
-        completeError instanceof Error
-          ? completeError.message
-          : "Could not finish the workout";
+      await onDeleteSet(set.id);
+      deleteTarget = null;
+    } catch (removeError) {
+      deleteError = messageOf(removeError);
     } finally {
       pending = false;
     }
+  }
 
-    if (failed) {
-      await tick();
-      finishButton?.focus();
+  function selectPage(pageIndex: number) {
+    showSwitcher = false;
+    void goToPage(pageIndex);
+  }
+
+  async function addExercise() {
+    const exercise = addableExercises.find(
+      (entry) => entry.id === exerciseToAdd
+    );
+    if (!exercise) return;
+    freeExercises = [...freeExercises, exercise];
+    exerciseToAdd = "";
+    await tick();
+    showSwitcher = false;
+    await goToPage(pages.length - 1);
+  }
+
+  function openEditExercise() {
+    if (!current?.exercise) return;
+    showSwitcher = false;
+    showEditExercise = true;
+  }
+
+  async function saveExercise(input: CreateExerciseInput) {
+    if (!current?.exercise) return;
+    await onUpdateExercise(current.exercise.id, input);
+    showEditExercise = false;
+  }
+
+  async function finish() {
+    if (finishing || pending) return;
+    finishing = true;
+    error = null;
+    try {
+      await onComplete();
+      stopTimer();
+    } catch (finishError) {
+      error = messageOf(finishError);
+    } finally {
+      finishing = false;
     }
+  }
+
+  function finishFromSwitcher() {
+    showSwitcher = false;
+    void finish();
   }
 </script>
 
-{#snippet setRow(set: LoggedSet)}
-  <div
-    class="set-row"
-    role="group"
-    onpointerdown={(event) => startSwipe(event, set)}
-    onpointerup={(event) => endSwipe(event, set)}
-    onpointercancel={cancelSwipe}
-  >
-    <span class="badge">Set {set.setNumber}</span>
-    <span class="grow">{set.reps} × {formatWeight(set.weightKg)} kg</span>
-    {#if !completed}
+<div class="session-screen">
+  <header class="focus-top">
+    <button
+      type="button"
+      class="timer-pill"
+      class:running={timerRunning}
+      aria-label={
+        timerRunning
+          ? `Rest timer running, ${formatRestTime(remaining)}`
+          : `Rest timer, ${formatRestTime(timerPreset)}`
+      }
+      onclick={() => (showTimer = true)}
+    >
+      <span class="timer-dot" aria-hidden="true"></span>
+      {formatRestTime(timerRunning ? remaining : timerPreset)}
+    </button>
+    <div class="focus-top-actions">
       <button
         type="button"
-        class="btn btn-ghost set-delete"
-        disabled={pending}
-        aria-label={`Delete set ${set.setNumber} for ${set.exerciseName}`}
-        onclick={() => void deleteSet(set)}
+        class="finish-action"
+        disabled={pending || finishing}
+        onclick={() => void finish()}
       >
-        Delete
+        {finishing ? "Finishing…" : "Finish"}
       </button>
-    {/if}
-  </div>
-{/snippet}
-
-{#snippet cardHeader(
-  exerciseId: string,
-  name: string,
-  expanded: boolean,
-  done: boolean
-)}
-  <h3 class="card-title card-heading">
-    <button
-      type="button"
-      class="card-toggle"
-      aria-expanded={expanded}
-      aria-controls={`sets-${exerciseId}`}
-      aria-describedby={done ? `done-${exerciseId}` : undefined}
-      aria-label={`${expanded ? "Collapse" : "Expand"} ${name}`}
-      onclick={() => toggleCard(exerciseId, expanded)}
-    >
-      <span>{name}</span>
-      {#if done}
-        <span class="badge" id={`done-${exerciseId}`}>Done</span>
-      {/if}
-    </button>
-  </h3>
-{/snippet}
-
-{#snippet exerciseEdit(exerciseId: string, exercise: Exercise)}
-  {#if editingExerciseId === exerciseId}
-    <ExerciseForm
-      exercise={exercise}
-      onSubmit={(input) => saveExercise(exerciseId, input)}
-      onCancel={() => void closeExerciseEdit(exerciseId)}
-    />
-  {:else}
-    <button
-      id={`edit-exercise-${exerciseId}`}
-      type="button"
-      class="btn btn-ghost"
-      disabled={pending}
-      aria-label={`Edit exercise ${exercise.name}`}
-      onclick={() => startEditing(exerciseId)}
-    >
-      Edit exercise
-    </button>
-  {/if}
-{/snippet}
-
-{#snippet setRowsAndForm(
-  exerciseId: string,
-  sets: LoggedSet[],
-  exercise: Exercise | null
-)}
-  {#if sets.length === 0}
-    <p class="muted">No sets yet</p>
-  {:else}
-    {#each sets as set (set.id)}
-      {@render setRow(set)}
-    {/each}
-  {/if}
-  {#if !completed && exercise}
-    {#if editingExerciseId !== exerciseId}
-      <SetLogForm
-        exercise={exercise}
-        disabled={pending}
-        onSubmit={(input) => logSet(exerciseId, input)}
-      />
-    {/if}
-    {@render exerciseEdit(exerciseId, exercise)}
-  {/if}
-{/snippet}
-
-<div class="stack">
-  <header class="card stack">
-    <div>
-      <p class="muted">{new Date(session.startedAt).toLocaleString()}</p>
-      <h2 class="card-title" id="session-heading" tabindex="-1">
-        {session.title}
-      </h2>
+      <button
+        type="button"
+        class="icon-btn muted"
+        aria-label="Choose exercise"
+        onclick={() => (showSwitcher = true)}
+      >
+        <LayoutGrid size={20} aria-hidden="true" />
+      </button>
     </div>
   </header>
 
-  {#if plan}
-    {#each plan.exercises as planExercise (planExercise.id)}
-      {@const exerciseId = planExercise.exercise.id}
-      {@const sets = visibleSets(setsByExercise.get(exerciseId) ?? [])}
-      {@const done = sets.length >= planExercise.targetSets}
-      {@const expanded = isCardExpanded(exerciseId)}
-      <section class="card stack" class:exercise-done={done}>
-        {@render cardHeader(
-          exerciseId,
-          planExercise.exercise.name,
-          expanded,
-          done
-        )}
-        {#if planExercise.notes}
-          <p class="muted exercise-notes">{planExercise.notes}</p>
-        {/if}
-        <div class="stack" id={`sets-${exerciseId}`}>
-          {#if expanded}
-            <p class="muted">
-              {planExercise.targetSets} × {planExercise.targetReps}
-              {planExercise.targetWeightKg != null
-                ? ` @ ${formatWeight(planExercise.targetWeightKg)} kg`
+  <div class="exercise-progress" aria-hidden="true">
+    {#each pages as page, pageIndex (page.exerciseId)}
+      <span
+        class:done={isDone(page)}
+        class:current={pageIndex === index}
+      ></span>
+    {/each}
+  </div>
+
+  {#if error}
+    <p class="error focus-alert" role="alert">{error}</p>
+  {/if}
+
+  {#if pages.length === 0}
+    <div class="focus-empty">
+      <p class="focus-eyebrow">Free workout</p>
+      <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+      <h1 class="focus-title" id="session-focus" tabindex="-1">
+        No exercises yet
+      </h1>
+      <p class="focus-last">Add an exercise to start logging sets.</p>
+      <div class="grow"></div>
+      <button
+        type="button"
+        class="focus-primary"
+        onclick={() => (showSwitcher = true)}
+      >
+        Add exercise
+      </button>
+    </div>
+  {:else}
+    <div
+      class="focus-pager"
+      role="group"
+      aria-label="Workout exercises"
+      onpointerdown={startSwipe}
+      onpointerup={endSwipe}
+      onpointercancel={cancelSwipe}
+    >
+      <div
+        class="focus-track"
+        style={`transform: translateX(-${index * 100}%)`}
+      >
+        {#each pages as page, pageIndex (page.exerciseId)}
+          {@const pageDraft = draftFor(page)}
+          {@const active = pageIndex === index}
+          {@const done = isDone(page)}
+          <section
+            class="focus-page"
+            aria-hidden={!active}
+            inert={!active}
+            aria-label={`Exercise ${pageIndex + 1} of ${pages.length}: ${page.name}`}
+          >
+            <p class="focus-eyebrow">Exercise {pageIndex + 1} of {pages.length}</p>
+            <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+            <h1
+              class="focus-title"
+              id={active ? "session-focus" : undefined}
+              tabindex={active ? -1 : undefined}
+            >
+              {page.name}
+            </h1>
+            {#if page.notes}
+              <p class="focus-notes">{page.notes}</p>
+            {/if}
+            <p class="focus-last">
+              Last time · {page.targetSets} × {page.targetReps}{page.targetWeightKg !=
+              null
+                ? ` @ ${formatWeight(page.targetWeightKg)} kg`
                 : ""}
             </p>
-            {@render setRowsAndForm(exerciseId, sets, planExercise.exercise)}
-          {/if}
-        </div>
-      </section>
-    {/each}
 
-    {#each setGroups as group (group.exerciseId)}
-      {@const expanded = isCardExpanded(group.exerciseId)}
-      {@const exercise =
-        exercises.find((entry) => entry.id === group.exerciseId) ?? null}
-      <section class="card stack">
-        {@render cardHeader(
-          group.exerciseId,
-          exercise?.name ?? group.name,
-          expanded,
-          false
-        )}
-        <div class="stack" id={`sets-${group.exerciseId}`}>
-          {#if expanded}
-            {#each visibleSets(group.sets) as set (set.id)}
-              {@render setRow(set)}
-            {/each}
-            {#if !completed && exercise}
-              {@render exerciseEdit(group.exerciseId, exercise)}
-            {/if}
-          {/if}
-        </div>
-      </section>
-    {/each}
-  {:else}
-    {#if freeCards.length === 0}
-      <p class="empty">No sets logged yet</p>
-    {/if}
+            <div class="focus-metrics">
+              <div class="focus-metric">
+                <span class="focus-metric-label">Reps</span>
+                <div class="focus-metric-row">
+                  <button
+                    type="button"
+                    class="step-btn"
+                    aria-label="Decrease reps"
+                    disabled={!active || pending}
+                    onclick={() => adjustReps(-1)}
+                  >
+                    <Minus size={18} aria-hidden="true" />
+                  </button>
+                  {#if active && editing === "reps"}
+                    <input
+                      bind:this={editInput}
+                      class="metric-input"
+                      type="number"
+                      inputmode="numeric"
+                      min={1}
+                      max={MAX_SET_REPS}
+                      step={1}
+                      bind:value={editValue}
+                      onblur={commitEdit}
+                      onkeydown={handleEditKeydown}
+                    />
+                  {:else}
+                    <button
+                      type="button"
+                      class="metric-value"
+                      aria-label={`Edit reps, current ${pageDraft.reps}`}
+                      disabled={!active}
+                      onclick={() => void beginEdit("reps")}
+                    >
+                      {pageDraft.reps}
+                    </button>
+                  {/if}
+                  <button
+                    type="button"
+                    class="step-btn"
+                    aria-label="Increase reps"
+                    disabled={!active || pending}
+                    onclick={() => adjustReps(1)}
+                  >
+                    <Plus size={18} aria-hidden="true" />
+                  </button>
+                </div>
+              </div>
 
-    {#each freeCards as card (card.exerciseId)}
-      {@const expanded = isCardExpanded(card.exerciseId)}
-      <section class="card stack">
-        {@render cardHeader(card.exerciseId, card.name, expanded, false)}
-        <div class="stack" id={`sets-${card.exerciseId}`}>
-          {#if expanded}
-            {@render setRowsAndForm(
-              card.exerciseId,
-              visibleSets(card.sets),
-              card.exercise
-            )}
-          {/if}
-        </div>
-      </section>
-    {/each}
+              <div class="focus-metric">
+                <span class="focus-metric-label">Weight</span>
+                <div class="focus-metric-row">
+                  <button
+                    type="button"
+                    class="step-btn"
+                    aria-label="Decrease weight"
+                    disabled={!active || pending}
+                    onclick={() => adjustWeight(-2.5)}
+                  >
+                    <Minus size={18} aria-hidden="true" />
+                  </button>
+                  {#if active && editing === "weight"}
+                    <input
+                      bind:this={editInput}
+                      class="metric-input"
+                      type="number"
+                      inputmode="decimal"
+                      min={0}
+                      max={MAX_SET_WEIGHT_KG}
+                      step={0.01}
+                      bind:value={editValue}
+                      onblur={commitEdit}
+                      onkeydown={handleEditKeydown}
+                    />
+                  {:else}
+                    <button
+                      type="button"
+                      class="metric-value"
+                      aria-label={`Edit weight, current ${pageDraft.weightKg} kg`}
+                      disabled={!active}
+                      onclick={() => void beginEdit("weight")}
+                    >
+                      {formatWeight(pageDraft.weightKg)}
+                    </button>
+                  {/if}
+                  <button
+                    type="button"
+                    class="step-btn"
+                    aria-label="Increase weight"
+                    disabled={!active || pending}
+                    onclick={() => adjustWeight(2.5)}
+                  >
+                    <Plus size={18} aria-hidden="true" />
+                  </button>
+                </div>
+              </div>
+            </div>
 
-    {#if !completed}
-      <section class="card stack">
-        <h3 class="card-title">Add exercise</h3>
-        <div class="row">
-          <label class="field grow">
-            <span class="label">Exercise</span>
-            <select
-              class="input"
-              value={exerciseToAdd}
-              disabled={pending}
-              onchange={(event) => (exerciseToAdd = event.currentTarget.value)}
-            >
-              <option value="">Choose an exercise</option>
-              {#each addableExercises as exercise (exercise.id)}
-                <option value={exercise.id}>{exercise.name}</option>
-              {/each}
-            </select>
-          </label>
-          <button
-            type="button"
-            class="btn btn-primary"
-            disabled={pending || !exerciseToAdd}
-            onclick={addExercise}
-          >
-            Add exercise
-          </button>
-        </div>
-        {#if exercises.length === 0}
-          <p class="muted">
-            No exercises available. Add one in the exercise register.
-          </p>
-        {/if}
-      </section>
-    {/if}
-  {/if}
-</div>
-
-{#if !completed}
-  <div class="session-bar" role="region" aria-label="Workout controls">
-    {#if error}
-      <p class="error" role="alert">{error}</p>
-    {/if}
-
-    {#if pendingUndos.length > 0}
-      <div class="stack" role="status" aria-live="polite">
-        {#each pendingUndos as set (set.id)}
-          {@const current =
-            session.sets.find((entry) => entry.id === set.id) ?? set}
-          <p class="muted">
-            Deleted set {current.setNumber} for {current.exerciseName}.
             <button
               type="button"
-              class="btn btn-ghost"
-              aria-label={`Undo deleting set ${current.setNumber} for ${current.exerciseName}`}
-              onclick={() => void undoDelete(set)}
+              class="focus-sets"
+              disabled={!active}
+              aria-label={`${page.sets.length} of ${Math.max(page.targetSets, page.sets.length)} sets. Open sets`}
+              onclick={openSets}
             >
-              Undo
+              <span class="set-dots" aria-hidden="true">
+                {#each dotIndices(
+                  Math.max(page.targetSets, page.sets.length)
+                ) as dot (dot)}
+                  <i class:on={dot < page.sets.length}></i>
+                {/each}
+              </span>
+              <span>
+                {page.sets.length} of {Math.max(
+                  page.targetSets,
+                  page.sets.length
+                )} sets
+              </span>
+              {#if done}
+                <span class="done-pill">
+                  <Check size={12} aria-hidden="true" />
+                  Done
+                </span>
+              {/if}
+              <ChevronRight size={15} class="sets-chevron" aria-hidden="true" />
             </button>
-          </p>
+
+            <div class="grow"></div>
+
+            <div class="focus-actions">
+              <button
+                type="button"
+                class="focus-primary"
+                disabled={pending || !active}
+                onclick={() => void logSet()}
+              >
+                {pending ? "Saving…" : "Log set"}
+              </button>
+              <div class="focus-foot">
+                <span class="focus-foot-label">{session.title}</span>
+                {#if pageIndex < pages.length - 1}
+                  <button
+                    type="button"
+                    class="focus-next"
+                    onclick={() => void goToPage(pageIndex + 1)}
+                  >
+                    <span>Next · {pages[pageIndex + 1]?.name}</span>
+                    <ChevronRight size={14} aria-hidden="true" />
+                  </button>
+                {:else}
+                  <button
+                    type="button"
+                    class="focus-next"
+                    disabled={finishing}
+                    onclick={() => void finish()}
+                  >
+                    Finish workout
+                  </button>
+                {/if}
+              </div>
+            </div>
+          </section>
         {/each}
+      </div>
+    </div>
+  {/if}
+
+  <SessionSheet
+    open={showSwitcher}
+    title="Exercises"
+    onClose={() => (showSwitcher = false)}
+  >
+    <div class="switcher-list">
+      {#each pages as page, pageIndex (page.exerciseId)}
+        <button
+          type="button"
+          class="switcher-row"
+          class:current={pageIndex === index}
+          aria-current={pageIndex === index ? "true" : undefined}
+          onclick={() => selectPage(pageIndex)}
+        >
+          <span class="switcher-index">{pageIndex + 1}</span>
+          <span class="switcher-main">
+            <span class="switcher-name">{page.name}</span>
+            <span class="switcher-meta">
+              {page.sets.length} / {page.targetSets} sets
+            </span>
+          </span>
+          {#if isDone(page)}
+            <Check class="switcher-check" size={16} aria-hidden="true" />
+          {/if}
+        </button>
+      {/each}
+    </div>
+
+    {#if !plan}
+      <div class="switcher-add">
+        <label class="field grow">
+          <span class="label">Add exercise</span>
+          <select
+            class="input"
+            value={exerciseToAdd}
+            onchange={(event) => (exerciseToAdd = event.currentTarget.value)}
+          >
+            <option value="">Choose an exercise</option>
+            {#each addableExercises as exercise (exercise.id)}
+              <option value={exercise.id}>{exercise.name}</option>
+            {/each}
+          </select>
+        </label>
+        <button
+          type="button"
+          class="btn btn-ghost btn-compact"
+          disabled={!exerciseToAdd}
+          onclick={() => void addExercise()}
+        >
+          Add
+        </button>
       </div>
     {/if}
 
-    <div id="rest-timer-options" hidden={!showTimerOptions}>
-      <div class="row">
-        {#each REST_PRESETS as preset (preset)}
-          <button
-            type="button"
-            class="btn btn-ghost timer-preset"
-            aria-pressed={preset === timerPreset}
-            onclick={() => selectPreset(preset)}
-          >
-            {formatTime(preset)}
-          </button>
-        {/each}
-        <button type="button" class="btn btn-ghost" onclick={toggleTimer}>
-          {timerRunning ? "Stop" : "Reset"}
-        </button>
-      </div>
-    </div>
+    {#if current?.exercise}
+      <button
+        type="button"
+        class="switcher-action"
+        onclick={openEditExercise}
+      >
+        Edit {current.name}
+      </button>
+    {/if}
 
-    <div class="row">
-      {#if pushSupported}
+    <button
+      type="button"
+      class="btn btn-primary switcher-finish"
+      disabled={finishing}
+      onclick={finishFromSwitcher}
+    >
+      {finishing ? "Finishing…" : "Finish workout"}
+    </button>
+  </SessionSheet>
+
+  <SessionSheet
+    open={showSets}
+    title={current ? `${current.name} sets` : "Sets"}
+    onClose={() => (showSets = false)}
+  >
+    {#if current && current.sets.length > 0}
+      <div class="sheet-sets">
+        {#each current.sets as set (set.id)}
+          {#if deleteTarget === set.id}
+            <div class="set-confirm">
+              <span>Delete set {set.setNumber}?</span>
+              <div class="set-confirm-actions">
+                <button
+                  type="button"
+                  class="btn btn-ghost btn-compact"
+                  disabled={pending}
+                  onclick={() => (deleteTarget = null)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-primary btn-compact"
+                  disabled={pending}
+                  onclick={() => void removeSet(set)}
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          {:else}
+            <div class="set-row sheet-set-row">
+              <span class="badge">Set {set.setNumber}</span>
+              <span class="grow set-value">
+                {set.reps} × {formatWeight(set.weightKg)} kg
+              </span>
+              <button
+                type="button"
+                class="icon-btn danger"
+                aria-label={`Delete set ${set.setNumber} for ${set.exerciseName}`}
+                disabled={pending}
+                onclick={() => (deleteTarget = set.id)}
+              >
+                <Trash2 size={17} aria-hidden="true" />
+              </button>
+            </div>
+          {/if}
+        {/each}
+      </div>
+    {:else}
+      <p class="muted">No sets logged yet.</p>
+    {/if}
+    {#if deleteError}
+      <p class="error" role="alert">{deleteError}</p>
+    {/if}
+  </SessionSheet>
+
+  <SessionSheet
+    open={showTimer}
+    title="Rest timer"
+    onClose={() => (showTimer = false)}
+  >
+    <div class="timer-presets">
+      {#each REST_PRESETS as preset (preset)}
         <button
           type="button"
-          class="btn btn-ghost session-notifications"
-          aria-label="Rest notifications"
-          aria-pressed={pushEnabled}
-          disabled={pushPending}
-          onclick={() => void togglePush()}
+          class="btn btn-ghost timer-preset"
+          aria-pressed={preset === timerPreset}
+          onclick={() => selectPreset(preset)}
         >
-          {#if pushEnabled}
-            <BellOff size={18} aria-hidden="true" />
-          {:else}
-            <Bell size={18} aria-hidden="true" />
-          {/if}
+          {formatRestTime(preset)}
         </button>
-      {/if}
-      <button
-        type="button"
-        class="btn btn-ghost session-timer"
-        aria-label={`Rest timer ${formatTime(remaining)}`}
-        aria-expanded={showTimerOptions}
-        aria-controls="rest-timer-options"
-        onclick={() => (showTimerOptions = !showTimerOptions)}
-      >
-        {formatTime(remaining)}
-      </button>
-      <button
-        bind:this={finishButton}
-        type="button"
-        class="btn btn-primary grow"
-        disabled={pending}
-        onclick={() => void handleComplete()}
-      >
-        Finish workout
-      </button>
+      {/each}
     </div>
-  </div>
-{/if}
+    {#if timerRunning}
+      <button
+        type="button"
+        class="btn btn-ghost timer-stop"
+        onclick={() => {
+          stopTimer();
+          showTimer = false;
+        }}
+      >
+        Stop timer
+      </button>
+    {/if}
+    <p class="sheet-note">
+      The timer starts automatically after each logged set. Notifications are in
+      Settings.
+    </p>
+  </SessionSheet>
+
+  <SessionSheet
+    open={showEditExercise}
+    title={current ? `Edit ${current.name}` : "Edit exercise"}
+    onClose={() => (showEditExercise = false)}
+  >
+    {#if current?.exercise}
+      <ExerciseForm
+        exercise={current.exercise}
+        onSubmit={saveExercise}
+        onCancel={() => (showEditExercise = false)}
+      />
+    {:else}
+      <p class="muted">This exercise is no longer in the register.</p>
+    {/if}
+  </SessionSheet>
+</div>

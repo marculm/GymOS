@@ -1,166 +1,84 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
-import {
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-  within,
-} from "@testing-library/svelte";
-import { MAX_SET_REPS, MAX_SET_WEIGHT_KG } from "@gymos/shared/limits";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/svelte";
 import type {
-  CreateExerciseInput,
-  CreateWorkoutSetInput,
   Exercise,
-  LoggedSet,
   WorkoutPlan,
   WorkoutSessionDetail,
 } from "@gymos/shared";
 import SessionView from "./SessionView.svelte";
 
-type Props = {
-  session: WorkoutSessionDetail;
-  plan: WorkoutPlan | null;
-  exercises: Exercise[];
-  onLogSet: (input: CreateWorkoutSetInput) => Promise<void>;
-  onDeleteSet: (setId: string) => Promise<void>;
-  onUpdateExercise: (id: string, input: CreateExerciseInput) => Promise<void>;
-  onComplete: () => Promise<void>;
-};
-
-const exercise: Exercise = {
-  id: "exercise-1",
-  name: "Bench Press",
-  muscleGroup: "chest",
-  description: null,
-  defaultSets: 4,
-  defaultReps: 10,
-  defaultWeightKg: 60,
-};
-
-const extraExercise: Exercise = {
-  id: "exercise-2",
-  name: "Cable Fly",
+const bench: Exercise = {
+  id: "ex-1",
+  name: "Barbell Bench Press",
   muscleGroup: "chest",
   description: null,
   defaultSets: 3,
-  defaultReps: 12,
-  defaultWeightKg: 15,
+  defaultReps: 8,
+  defaultWeightKg: 80,
 };
 
-const bodyweightExercise: Exercise = {
-  ...exercise,
+const shoulder: Exercise = {
+  id: "ex-2",
+  name: "Overhead Shoulder Press",
+  muscleGroup: "shoulders",
+  description: null,
+  defaultSets: 3,
+  defaultReps: 8,
+  defaultWeightKg: 40,
+};
+
+const tricep: Exercise = {
+  id: "ex-3",
+  name: "Tricep Rope Pushdown",
+  muscleGroup: "arms",
+  description: null,
+  defaultSets: 3,
+  defaultReps: 8,
   defaultWeightKg: null,
-};
-
-const planExercise = {
-  id: "plan-exercise-1",
-  position: 0,
-  targetSets: 4,
-  targetReps: 8,
-  targetWeightKg: 80,
-  notes: null,
-  exercise,
 };
 
 const plan: WorkoutPlan = {
   id: "plan-1",
   name: "Push Day",
-  description: null,
-  createdAt: "2026-10-26T18:00:00.000Z",
-  exercises: [planExercise],
-};
-
-const twoExercisePlan: WorkoutPlan = {
-  ...plan,
-  exercises: [
-    planExercise,
-    {
-      id: "plan-exercise-2",
-      position: 1,
-      targetSets: 3,
-      targetReps: 12,
-      targetWeightKg: 15,
-      notes: null,
-      exercise: extraExercise,
-    },
-  ],
+  description: "Chest, shoulders, and triceps",
+  createdAt: "2026-11-13T18:00:00.000Z",
+  exercises: [bench, shoulder, tricep].map((exercise, position) => ({
+    id: `plan-ex-${exercise.id}`,
+    position,
+    targetSets: exercise.defaultSets,
+    targetReps: exercise.defaultReps,
+    targetWeightKg: exercise.defaultWeightKg,
+    notes: null,
+    exercise,
+  })),
 };
 
 const session: WorkoutSessionDetail = {
   id: "session-1",
   title: "Push Day",
   planId: plan.id,
-  startedAt: "2026-10-26T18:00:00.000Z",
+  startedAt: "2026-11-13T18:00:00.000Z",
   completedAt: null,
   sets: [],
 };
 
-const freeSession: WorkoutSessionDetail = {
-  ...session,
-  title: "Free workout",
-  planId: null,
-};
-
-const cableSet: LoggedSet = {
-  id: "set-1",
-  exerciseId: "exercise-2",
-  exerciseName: "Cable Fly",
-  setNumber: 1,
-  reps: 12,
-  weightKg: 15,
-  createdAt: "2026-10-26T18:05:00.000Z",
-};
-
-const missingExerciseSet: LoggedSet = {
-  ...cableSet,
-  exerciseId: "exercise-missing",
-  exerciseName: "Deleted Press",
-};
-
-const benchSet: LoggedSet = {
-  id: "set-1",
-  exerciseId: "exercise-1",
-  exerciseName: "Bench Press",
-  setNumber: 1,
-  reps: 8,
-  weightKg: 80,
-  createdAt: "2026-10-26T18:05:00.000Z",
-};
-
-const benchSet2: LoggedSet = {
-  ...benchSet,
-  id: "set-2",
-  setNumber: 2,
-  reps: 6,
-};
-
-function loggedSets(base: LoggedSet, count: number): LoggedSet[] {
-  return Array.from({ length: count }, (_, index) => ({
-    ...base,
-    id: `set-${index + 1}`,
-    setNumber: index + 1,
-  }));
-}
-
-function deferred() {
-  let resolve!: () => void;
-  const promise = new Promise<void>((res) => {
-    resolve = res;
-  });
-  return { promise, resolve };
-}
-
-function renderSession(overrides: Partial<Props> = {}) {
+function renderSession(
+  overrides: Partial<{
+    session: WorkoutSessionDetail;
+    plan: WorkoutPlan | null;
+    exercises: Exercise[];
+  }> = {}
+) {
   const onLogSet = vi.fn().mockResolvedValue(undefined);
   const onDeleteSet = vi.fn().mockResolvedValue(undefined);
   const onUpdateExercise = vi.fn().mockResolvedValue(undefined);
   const onComplete = vi.fn().mockResolvedValue(undefined);
 
-  const result = render(SessionView, {
+  render(SessionView, {
     props: {
       session,
       plan,
-      exercises: [exercise, extraExercise],
+      exercises: [bench, shoulder, tricep],
       onLogSet,
       onDeleteSet,
       onUpdateExercise,
@@ -169,1461 +87,201 @@ function renderSession(overrides: Partial<Props> = {}) {
     },
   });
 
-  return {
-    onLogSet,
-    onDeleteSet,
-    onUpdateExercise,
-    onComplete,
-    rerender: result.rerender,
-    unmount: result.unmount,
-  };
+  return { onLogSet, onDeleteSet, onUpdateExercise, onComplete };
 }
 
-async function submitExerciseForm() {
-  const form = screen.getByLabelText("Name").closest("form");
-  if (!form) throw new Error("exercise form is missing");
-  await fireEvent.submit(form);
-}
-
-function cardForm(name: string) {
-  const form = screen.getByRole("form", { name: `Add set for ${name}` });
-  // happy-dom rejects two-decimal values against step=0.01; browsers accept them.
-  (form as HTMLFormElement).noValidate = true;
-  return within(form);
-}
-
-async function expand(name: string) {
-  await fireEvent.click(
-    screen.getByRole("button", { name: `Expand ${name}` })
-  );
-}
-
-const UUID_PATTERN =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-async function collapse(name: string) {
-  await fireEvent.click(
-    screen.getByRole("button", { name: `Collapse ${name}` })
-  );
-}
-
-function swipeSet(setNumber: number, dx: number, dy = 0) {
-  const row = screen.getByText(`Set ${setNumber}`).closest(".set-row");
-  if (!row) throw new Error("set row is missing");
-  fireEvent.pointerDown(row, {
-    clientX: 200,
-    clientY: 40,
-    pointerId: 1,
-    button: 0,
-  });
-  fireEvent.pointerUp(row, {
-    clientX: 200 + dx,
-    clientY: 40 + dy,
-    pointerId: 1,
-    button: 0,
-  });
-}
+beforeEach(() => {
+  try {
+    window.localStorage?.clear();
+  } catch {
+    // localStorage is unavailable in the test environment.
+  }
+});
 
 describe("SessionView", () => {
-  afterEach(() => {
-    vi.unstubAllGlobals();
-    vi.useRealTimers();
-  });
-
-  it("renders the plan exercise and its target", async () => {
+  it("focuses the first exercise and shows its last performance", () => {
     renderSession();
 
     expect(
-      screen.getByRole("heading", { name: "Bench Press" })
+      screen.getByRole("heading", { name: "Barbell Bench Press" })
     ).toBeInTheDocument();
-    await expand("Bench Press");
-    expect(screen.getByText(/4\s*×\s*8/)).toBeInTheDocument();
-    expect(screen.getByText(/@ 80 kg/)).toBeInTheDocument();
+    expect(screen.getByText("Exercise 1 of 3")).toBeInTheDocument();
+    expect(screen.getByText(/3 × 8 @ 80 kg/)).toBeInTheDocument();
     expect(
-      cardForm("Bench Press").getByRole("button", {
-        name: "Add set for Bench Press",
-      })
-    ).toBeInTheDocument();
-  });
-
-  it("renders plan exercise notes", () => {
-    renderSession({
-      plan: {
-        ...plan,
-        exercises: [{ ...planExercise, notes: "Pause at the bottom." }],
-      },
-    });
-
-    expect(screen.getByText("Pause at the bottom.")).toBeInTheDocument();
-  });
-
-  it("starts with every card collapsed", () => {
-    renderSession({
-      plan: twoExercisePlan,
-      session: { ...session, sets: loggedSets(benchSet, 4) },
-    });
-
-    expect(screen.queryAllByRole("form")).toHaveLength(0);
-    expect(
-      screen.getByRole("button", { name: "Expand Bench Press" })
-    ).toHaveAttribute("aria-expanded", "false");
-    expect(
-      screen.getByRole("button", { name: "Expand Cable Fly" })
-    ).toHaveAttribute("aria-expanded", "false");
-    expect(screen.queryByText(/sets logged/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/4\s*×\s*8/)).not.toBeInTheDocument();
-  });
-
-  it("toggles a card by its name without a show/hide button", async () => {
-    renderSession();
-
-    expect(
-      screen.queryByRole("button", { name: /^(Show|Hide)$/ })
-    ).not.toBeInTheDocument();
-    await expand("Bench Press");
-    expect(
-      screen.getByRole("button", { name: "Collapse Bench Press" })
-    ).toHaveAttribute("aria-expanded", "true");
-    await collapse("Bench Press");
-    expect(
-      screen.getByRole("button", { name: "Expand Bench Press" })
-    ).toHaveAttribute("aria-expanded", "false");
-  });
-
-  it("edits an exercise from its session card", async () => {
-    const { onUpdateExercise } = renderSession();
-    await expand("Bench Press");
-
-    await fireEvent.click(
-      screen.getByRole("button", { name: /edit exercise bench press/i })
-    );
-
-    expect(screen.getByLabelText("Name")).toHaveValue("Bench Press");
-    expect(screen.getByLabelText("Name")).toHaveFocus();
-    expect(
-      screen.getByRole("form", { name: "Edit exercise" })
-    ).toBeInTheDocument();
-    expect(screen.getByLabelText("Default sets")).toHaveValue(4);
-    expect(screen.getByLabelText("Default reps")).toHaveValue(10);
-    expect(
-      screen.getByLabelText("Default weight (kg, optional)")
-    ).toHaveValue(60);
-
-    await fireEvent.input(screen.getByLabelText("Name"), {
-      target: { value: "Incline Bench Press" },
-    });
-    await fireEvent.change(screen.getByLabelText("Muscle group"), {
-      target: { value: "back" },
-    });
-    await fireEvent.input(screen.getByLabelText("Default sets"), {
-      target: { value: "5" },
-    });
-    await fireEvent.input(screen.getByLabelText("Default reps"), {
-      target: { value: "12" },
-    });
-    await fireEvent.input(screen.getByLabelText("Default weight (kg, optional)"), {
-      target: { value: "85" },
-    });
-    await submitExerciseForm();
-
-    await waitFor(() => {
-      expect(onUpdateExercise).toHaveBeenCalledWith("exercise-1", {
-        name: "Incline Bench Press",
-        muscleGroup: "back",
-        description: null,
-        defaultSets: 5,
-        defaultReps: 12,
-        defaultWeightKg: 85,
-      });
-    });
-    expect(screen.queryByLabelText("Name")).not.toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Collapse Bench Press" })
+      screen.getByRole("button", { name: "Edit reps, current 8" })
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /edit exercise bench press/i })
-    ).toHaveFocus();
-  });
-
-  it("returns focus to the edit action after cancel", async () => {
-    renderSession();
-    await expand("Bench Press");
-    await fireEvent.click(
-      screen.getByRole("button", { name: /edit exercise bench press/i })
-    );
-    await fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
-
-    expect(screen.queryByLabelText("Name")).not.toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /edit exercise bench press/i })
-    ).toHaveFocus();
-  });
-
-  it("keeps a card expanded when saved defaults make it done", async () => {
-    const donePlan: WorkoutPlan = {
-      ...plan,
-      exercises: plan.exercises.map((entry) => ({ ...entry, targetSets: 1 })),
-    };
-    let rerender: ReturnType<typeof renderSession>["rerender"] | undefined;
-    const onUpdateExercise = vi.fn(async () => {
-      await rerender?.({ plan: donePlan });
-    });
-    const rendered = renderSession({
-      session: { ...session, sets: [benchSet] },
-      onUpdateExercise,
-    });
-    rerender = rendered.rerender;
-
-    await expand("Bench Press");
-    await fireEvent.click(
-      screen.getByRole("button", { name: /edit exercise bench press/i })
-    );
-    await fireEvent.input(screen.getByLabelText("Default sets"), {
-      target: { value: "1" },
-    });
-    await submitExerciseForm();
-
-    await waitFor(() => {
-      expect(onUpdateExercise).toHaveBeenCalled();
-    });
-    expect(
-      screen.getByRole("button", { name: "Collapse Bench Press" })
-    ).toBeInTheDocument();
-    expect(screen.getByText(/1\s*×\s*8/)).toBeInTheDocument();
-  });
-
-  it("does not reopen a card collapsed while saving", async () => {
-    const request = deferred();
-    const onUpdateExercise = vi.fn().mockReturnValue(request.promise);
-    renderSession({ onUpdateExercise });
-    await expand("Bench Press");
-    await fireEvent.click(
-      screen.getByRole("button", { name: /edit exercise bench press/i })
-    );
-    await fireEvent.input(screen.getByLabelText("Default sets"), {
-      target: { value: "1" },
-    });
-    await submitExerciseForm();
-    expect(onUpdateExercise).toHaveBeenCalled();
-    await collapse("Bench Press");
-
-    request.resolve();
-    await new Promise((resolve) => setTimeout(resolve, 0));
-
-    expect(
-      screen.getByRole("button", { name: "Expand Bench Press" })
+      screen.getByRole("button", { name: "Edit weight, current 80 kg" })
     ).toBeInTheDocument();
   });
 
-  it("disables cancel while an exercise save is pending", async () => {
-    const request = deferred();
-    renderSession({
-      onUpdateExercise: vi.fn().mockReturnValue(request.promise),
-    });
-    await expand("Bench Press");
-    await fireEvent.click(
-      screen.getByRole("button", { name: /edit exercise bench press/i })
-    );
-    await submitExerciseForm();
-
-    expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
-
-    request.resolve();
-  });
-
-  it("keeps an open edit when another card is collapsed", async () => {
-    renderSession({ plan: twoExercisePlan });
-    await expand("Bench Press");
-    await expand("Cable Fly");
-    await fireEvent.click(
-      screen.getByRole("button", { name: /edit exercise bench press/i })
-    );
-    await collapse("Cable Fly");
-
-    expect(screen.getByLabelText("Name")).toHaveValue("Bench Press");
-  });
-
-  it("keeps the active edit when another save finishes", async () => {
-    const request = deferred();
-    renderSession({
-      plan: twoExercisePlan,
-      onUpdateExercise: vi.fn().mockReturnValue(request.promise),
-    });
-    await expand("Bench Press");
-    await expand("Cable Fly");
-    await fireEvent.click(
-      screen.getByRole("button", { name: /edit exercise bench press/i })
-    );
-    await submitExerciseForm();
-    await fireEvent.click(
-      screen.getByRole("button", { name: /edit exercise cable fly/i })
-    );
-
-    request.resolve();
-    await new Promise((resolve) => setTimeout(resolve, 0));
-
-    expect(screen.getByLabelText("Name")).toHaveValue("Cable Fly");
-  });
-
-  it("shows a failed save after the card is collapsed", async () => {
-    let reject!: (error: Error) => void;
-    const request = new Promise<void>((_, rejectPromise) => {
-      reject = rejectPromise;
-    });
-    renderSession({
-      onUpdateExercise: vi.fn().mockReturnValue(request),
-    });
-    await expand("Bench Press");
-    await fireEvent.click(
-      screen.getByRole("button", { name: /edit exercise bench press/i })
-    );
-    await submitExerciseForm();
-    await collapse("Bench Press");
-
-    reject(new Error("Name already exists"));
-    await new Promise((resolve) => setTimeout(resolve, 0));
-
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Name already exists"
-    );
-  });
-
-  it("keeps the exercise form open when a save fails", async () => {
-    renderSession({
-      onUpdateExercise: vi
-        .fn()
-        .mockRejectedValue(new Error("Name already exists")),
-    });
-    await expand("Bench Press");
-
-    await fireEvent.click(
-      screen.getByRole("button", { name: /edit exercise bench press/i })
-    );
-    await fireEvent.input(screen.getByLabelText("Name"), {
-      target: { value: "Incline Bench Press" },
-    });
-    await submitExerciseForm();
-
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Name already exists"
-    );
-    expect(screen.getByLabelText("Name")).toHaveValue("Incline Bench Press");
-  });
-
-  it("edits an exercise logged outside the plan", async () => {
-    const { onUpdateExercise, rerender } = renderSession({
-      session: { ...session, sets: [cableSet] },
-    });
-    await expand("Cable Fly");
-
-    await fireEvent.click(
-      screen.getByRole("button", { name: /edit exercise cable fly/i })
-    );
-    await fireEvent.input(screen.getByLabelText("Name"), {
-      target: { value: "Cable Fly Pro" },
-    });
-    await submitExerciseForm();
-
-    await waitFor(() => {
-      expect(onUpdateExercise).toHaveBeenCalledWith(
-        "exercise-2",
-        expect.objectContaining({ name: "Cable Fly Pro" })
-      );
-    });
-
-    await rerender({
-      exercises: [exercise, { ...extraExercise, name: "Cable Fly Pro" }],
-    });
-    expect(
-      screen.getByRole("button", { name: "Collapse Cable Fly Pro" })
-    ).toBeInTheDocument();
-  });
-
-  it("edits an exercise logged in a free session", async () => {
-    const { onUpdateExercise, rerender } = renderSession({
-      session: { ...freeSession, sets: [cableSet] },
-      plan: null,
-    });
-    await expand("Cable Fly");
-
-    await fireEvent.click(
-      screen.getByRole("button", { name: /edit exercise cable fly/i })
-    );
-    await fireEvent.input(screen.getByLabelText("Name"), {
-      target: { value: "Cable Fly Pro" },
-    });
-    await submitExerciseForm();
-
-    await waitFor(() => {
-      expect(onUpdateExercise).toHaveBeenCalledWith(
-        "exercise-2",
-        expect.objectContaining({ name: "Cable Fly Pro" })
-      );
-    });
-
-    await rerender({
-      exercises: [exercise, { ...extraExercise, name: "Cable Fly Pro" }],
-    });
-    expect(
-      screen.getByRole("button", { name: "Collapse Cable Fly Pro" })
-    ).toBeInTheDocument();
-  });
-
-  it("shows saved values on an added free-session card", async () => {
-    const { onUpdateExercise, rerender } = renderSession({
-      session: freeSession,
-      plan: null,
-    });
-    await fireEvent.change(screen.getByLabelText("Exercise"), {
-      target: { value: "exercise-2" },
-    });
-    await fireEvent.click(
-      screen.getByRole("button", { name: "Add exercise" })
-    );
-    await expand("Cable Fly");
-
-    await fireEvent.click(
-      screen.getByRole("button", { name: /edit exercise cable fly/i })
-    );
-    await fireEvent.input(screen.getByLabelText("Name"), {
-      target: { value: "Cable Fly Pro" },
-    });
-    await submitExerciseForm();
-
-    await waitFor(() => {
-      expect(onUpdateExercise).toHaveBeenCalledWith(
-        "exercise-2",
-        expect.objectContaining({ name: "Cable Fly Pro" })
-      );
-    });
-
-    await rerender({
-      exercises: [exercise, { ...extraExercise, name: "Cable Fly Pro" }],
-    });
-    expect(
-      screen.getByRole("button", { name: "Collapse Cable Fly Pro" })
-    ).toBeInTheDocument();
-  });
-
-  it("offers no edit action for an exercise that is not loaded", async () => {
-    renderSession({ session: { ...session, sets: [missingExerciseSet] } });
-    await expand("Deleted Press");
-
-    expect(
-      screen.queryByRole("button", { name: /edit exercise/i })
-    ).not.toBeInTheDocument();
-  });
-
-  it("logs a set from the exercise card", async () => {
+  it("logs a set with the current values and starts the rest timer", async () => {
     const { onLogSet } = renderSession();
-    await expand("Bench Press");
 
-    await fireEvent.input(cardForm("Bench Press").getByLabelText("Weight (kg)"), {
-      target: { value: "82.5" },
-    });
-    await fireEvent.input(cardForm("Bench Press").getByLabelText("Reps"), {
-      target: { value: "6" },
-    });
-    await fireEvent.click(
-      cardForm("Bench Press").getByRole("button", { name: /add set/i })
+    await fireEvent.click(screen.getByRole("button", { name: "Log set" }));
+
+    await waitFor(() => expect(onLogSet).toHaveBeenCalledOnce());
+    expect(onLogSet).toHaveBeenCalledWith(
+      expect.objectContaining({
+        exerciseId: "ex-1",
+        reps: 8,
+        weightKg: 80,
+        idempotencyKey: expect.any(String),
+      })
     );
-
-    await waitFor(() => {
-      expect(onLogSet).toHaveBeenCalledWith(
-        expect.objectContaining({
-          exerciseId: "exercise-1",
-          weightKg: 82.5,
-          reps: 6,
-          idempotencyKey: expect.any(String),
-        })
-      );
-    });
-  });
-
-  it("retries a failed set with the same idempotency key", async () => {
-    const onLogSet = vi
-      .fn<(input: CreateWorkoutSetInput) => Promise<void>>()
-      .mockRejectedValueOnce(new Error("Network down"))
-      .mockResolvedValueOnce(undefined);
-    renderSession({ onLogSet });
-    await expand("Bench Press");
-    const form = cardForm("Bench Press");
-
-    await fireEvent.input(form.getByLabelText("Weight (kg)"), {
-      target: { value: "80" },
-    });
-    await fireEvent.input(form.getByLabelText("Reps"), {
-      target: { value: "8" },
-    });
-    await fireEvent.click(form.getByRole("button", { name: /add set/i }));
-
-    await waitFor(() => {
-      expect(screen.getByRole("alert")).toHaveTextContent("Network down");
-    });
-
-    await fireEvent.click(form.getByRole("button", { name: /add set/i }));
-    await waitFor(() => expect(onLogSet).toHaveBeenCalledTimes(2));
-
-    const [first, second] = onLogSet.mock.calls;
-    expect(first?.[0].idempotencyKey).toMatch(UUID_PATTERN);
-    expect(second?.[0].idempotencyKey).toBe(first?.[0].idempotencyKey);
-  });
-
-  it("keeps the pending set key when the card is reopened", async () => {
-    const onLogSet = vi
-      .fn<(input: CreateWorkoutSetInput) => Promise<void>>()
-      .mockRejectedValueOnce(new Error("Network down"))
-      .mockResolvedValueOnce(undefined);
-    renderSession({ onLogSet });
-    await expand("Bench Press");
-
-    await fireEvent.input(cardForm("Bench Press").getByLabelText("Weight (kg)"), {
-      target: { value: "80" },
-    });
-    await fireEvent.input(cardForm("Bench Press").getByLabelText("Reps"), {
-      target: { value: "8" },
-    });
-    await fireEvent.click(
-      cardForm("Bench Press").getByRole("button", { name: /add set/i })
-    );
-    await waitFor(() => {
-      expect(screen.getByRole("alert")).toHaveTextContent("Network down");
-    });
-
-    await collapse("Bench Press");
-    await expand("Bench Press");
-    await fireEvent.input(cardForm("Bench Press").getByLabelText("Weight (kg)"), {
-      target: { value: "80" },
-    });
-    await fireEvent.input(cardForm("Bench Press").getByLabelText("Reps"), {
-      target: { value: "8" },
-    });
-    await fireEvent.click(
-      cardForm("Bench Press").getByRole("button", { name: /add set/i })
-    );
-
-    await waitFor(() => expect(onLogSet).toHaveBeenCalledTimes(2));
-    const [first, second] = onLogSet.mock.calls;
-    expect(second?.[0].idempotencyKey).toBe(first?.[0].idempotencyKey);
-  });
-
-  it("uses a new key for the set after a successful one", async () => {
-    const onLogSet = vi
-      .fn<(input: CreateWorkoutSetInput) => Promise<void>>()
-      .mockResolvedValue(undefined);
-    renderSession({ onLogSet });
-    await expand("Bench Press");
-
-    for (const reps of ["8", "6"]) {
-      await fireEvent.input(
-        cardForm("Bench Press").getByLabelText("Weight (kg)"),
-        { target: { value: "80" } }
-      );
-      await fireEvent.input(cardForm("Bench Press").getByLabelText("Reps"), {
-        target: { value: reps },
-      });
-      await fireEvent.click(
-        cardForm("Bench Press").getByRole("button", { name: /add set/i })
-      );
-    }
-    await waitFor(() => expect(onLogSet).toHaveBeenCalledTimes(2));
-
-    const [first, second] = onLogSet.mock.calls;
-    expect(second?.[0].idempotencyKey).not.toBe(first?.[0].idempotencyKey);
-  });
-
-  it("logs each card's set for that card's exercise", async () => {
-    const { onLogSet } = renderSession({ plan: twoExercisePlan });
-    await expand("Cable Fly");
-
-    await fireEvent.input(cardForm("Cable Fly").getByLabelText("Weight (kg)"), {
-      target: { value: "15" },
-    });
-    await fireEvent.input(cardForm("Cable Fly").getByLabelText("Reps"), {
-      target: { value: "12" },
-    });
-    await fireEvent.click(
-      cardForm("Cable Fly").getByRole("button", { name: /add set/i })
-    );
-
-    await waitFor(() => {
-      expect(onLogSet).toHaveBeenCalledWith(
-        expect.objectContaining({
-          exerciseId: "exercise-2",
-          weightKg: 15,
-          reps: 12,
-          idempotencyKey: expect.any(String),
-        })
-      );
-    });
-  });
-
-  it("has no global set form", () => {
-    renderSession();
-
     expect(
-      screen.queryByRole("heading", { name: "Log a set" })
-    ).not.toBeInTheDocument();
-    expect(screen.queryByLabelText("Exercise")).not.toBeInTheDocument();
-  });
-
-  it("disables every set form while a set is being logged", async () => {
-    const request = deferred();
-    renderSession({
-      plan: twoExercisePlan,
-      onLogSet: vi.fn().mockReturnValue(request.promise),
-    });
-    await expand("Bench Press");
-    await expand("Cable Fly");
-
-    await fireEvent.input(cardForm("Bench Press").getByLabelText("Weight (kg)"), {
-      target: { value: "80" },
-    });
-    await fireEvent.input(cardForm("Bench Press").getByLabelText("Reps"), {
-      target: { value: "8" },
-    });
-    await fireEvent.click(
-      cardForm("Bench Press").getByRole("button", { name: /add set/i })
-    );
-    await waitFor(() =>
-      expect(
-        cardForm("Bench Press").getByLabelText("Weight (kg)")
-      ).toBeDisabled()
-    );
-
-    const otherForm = cardForm("Cable Fly");
-    expect(otherForm.getByLabelText("Weight (kg)")).toBeDisabled();
-    expect(otherForm.getByLabelText("Reps")).toBeDisabled();
-    expect(otherForm.getByRole("button", { name: /add set/i })).toBeDisabled();
-
-    request.resolve();
-    await waitFor(() =>
-      expect(
-        cardForm("Bench Press").getByLabelText("Weight (kg)")
-      ).not.toBeDisabled()
-    );
-  });
-
-  it("disables the set forms while the workout is being finished", async () => {
-    const request = deferred();
-    renderSession({ onComplete: vi.fn().mockReturnValue(request.promise) });
-    await expand("Bench Press");
-
-    await fireEvent.click(
-      screen.getByRole("button", { name: "Finish workout" })
-    );
-    await waitFor(() =>
-      expect(cardForm("Bench Press").getByLabelText("Weight (kg)")).toBeDisabled()
-    );
-
-    request.resolve();
-    await waitFor(() =>
-      expect(
-        cardForm("Bench Press").getByLabelText("Weight (kg)")
-      ).not.toBeDisabled()
-    );
-  });
-
-  it("shows a failed log in the card that failed and keeps its values", async () => {
-    renderSession({
-      plan: twoExercisePlan,
-      onLogSet: vi.fn().mockRejectedValue(new Error("Network down")),
-    });
-    await expand("Bench Press");
-    await expand("Cable Fly");
-
-    await fireEvent.input(cardForm("Bench Press").getByLabelText("Weight (kg)"), {
-      target: { value: "82.5" },
-    });
-    await fireEvent.input(cardForm("Bench Press").getByLabelText("Reps"), {
-      target: { value: "6" },
-    });
-    await fireEvent.click(
-      cardForm("Bench Press").getByRole("button", { name: /add set/i })
-    );
-
-    await waitFor(() =>
-      expect(cardForm("Bench Press").getByRole("alert")).toHaveTextContent(
-        "Network down"
-      )
-    );
-    expect(cardForm("Cable Fly").queryByRole("alert")).not.toBeInTheDocument();
-    expect(cardForm("Bench Press").getByLabelText("Weight (kg)")).toHaveValue(
-      82.5
-    );
-    expect(cardForm("Bench Press").getByLabelText("Reps")).toHaveValue(6);
-    expect(
-      cardForm("Bench Press").getByLabelText("Weight (kg)")
-    ).not.toBeDisabled();
-  });
-
-  it("caps weight and reps at the API limits", async () => {
-    renderSession();
-    await expand("Bench Press");
-
-    expect(cardForm("Bench Press").getByLabelText("Weight (kg)")).toHaveAttribute(
-      "max",
-      String(MAX_SET_WEIGHT_KG)
-    );
-    expect(cardForm("Bench Press").getByLabelText("Reps")).toHaveAttribute(
-      "max",
-      String(MAX_SET_REPS)
-    );
-  });
-
-  it("has no RPE field", async () => {
-    renderSession();
-    await expand("Bench Press");
-
-    expect(
-      cardForm("Bench Press").queryByLabelText("RPE (optional)")
-    ).not.toBeInTheDocument();
-  });
-
-  it("shows the exercise default weight as a placeholder without prefilling inputs", async () => {
-    renderSession({ plan: twoExercisePlan });
-    await expand("Bench Press");
-    await expand("Cable Fly");
-
-    const weight = cardForm("Bench Press").getByLabelText("Weight (kg)");
-    expect(weight).toHaveAttribute("placeholder", "60");
-    expect(weight).toHaveValue(null);
-    expect(cardForm("Bench Press").getByLabelText("Reps")).toHaveValue(null);
-    expect(cardForm("Cable Fly").getByLabelText("Weight (kg)")).toHaveAttribute(
-      "placeholder",
-      "15"
-    );
-  });
-
-  it("has no weight placeholder without a default", async () => {
-    renderSession({
-      plan: {
-        ...plan,
-        exercises: [
-          {
-            ...planExercise,
-            exercise: bodyweightExercise,
-          },
-        ],
-      },
-    });
-    await expand("Bench Press");
-
-    expect(
-      cardForm("Bench Press").getByLabelText("Weight (kg)").getAttribute(
-        "placeholder"
-      )
-    ).toBeNull();
-  });
-
-  it("submits typed values instead of the placeholder", async () => {
-    const { onLogSet } = renderSession();
-    await expand("Bench Press");
-    const form = cardForm("Bench Press");
-
-    await fireEvent.click(form.getByRole("button", { name: /add set/i }));
-    await fireEvent.input(form.getByLabelText("Weight (kg)"), {
-      target: { value: "65" },
-    });
-    await fireEvent.click(form.getByRole("button", { name: /add set/i }));
-    expect(onLogSet).not.toHaveBeenCalled();
-
-    await fireEvent.input(form.getByLabelText("Reps"), {
-      target: { value: "5" },
-    });
-    await fireEvent.click(form.getByRole("button", { name: /add set/i }));
-
-    await waitFor(() => {
-      expect(onLogSet).toHaveBeenCalledWith(
-        expect.objectContaining({
-          exerciseId: "exercise-1",
-          weightKg: 65,
-          reps: 5,
-          idempotencyKey: expect.any(String),
-        })
-      );
-    });
-  });
-
-  it("deletes a set after confirmation", async () => {
-    vi.stubGlobal("confirm", vi.fn(() => true));
-    const { onDeleteSet } = renderSession({
-      session: { ...session, sets: [benchSet, benchSet2] },
-    });
-    await expand("Bench Press");
-
-    await fireEvent.click(
-      screen.getByRole("button", { name: "Delete set 2 for Bench Press" })
-    );
-
-    await waitFor(() => {
-      expect(onDeleteSet).toHaveBeenCalledWith("set-2");
-    });
-  });
-
-  it("keeps the set when the confirmation is cancelled", async () => {
-    vi.stubGlobal("confirm", vi.fn(() => false));
-    const { onDeleteSet } = renderSession({
-      session: { ...session, sets: [benchSet] },
-    });
-    await expand("Bench Press");
-
-    await fireEvent.click(
-      screen.getByRole("button", { name: "Delete set 1 for Bench Press" })
-    );
-
-    expect(onDeleteSet).not.toHaveBeenCalled();
-  });
-
-  it("shows a failed delete in the session bar", async () => {
-    vi.stubGlobal("confirm", vi.fn(() => true));
-    renderSession({
-      session: { ...session, sets: [benchSet] },
-      onDeleteSet: vi.fn().mockRejectedValue(new Error("Could not delete")),
-    });
-    await expand("Bench Press");
-
-    await fireEvent.click(
-      screen.getByRole("button", { name: "Delete set 1 for Bench Press" })
-    );
-
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Could not delete"
-    );
-    expect(screen.getByText("Set 1")).toBeInTheDocument();
-  });
-
-  it("deletes a swiped set after the undo window", async () => {
-    vi.useFakeTimers();
-    const { onDeleteSet } = renderSession({
-      session: { ...session, sets: [benchSet, benchSet2] },
-    });
-    await expand("Bench Press");
-
-    swipeSet(2, -100);
-
-    expect(screen.queryByText("Set 2")).not.toBeInTheDocument();
-    expect(
-      screen.getByRole("button", {
-        name: "Undo deleting set 2 for Bench Press",
+      await screen.findByRole("button", {
+        name: /Rest timer running, 2:30/,
       })
     ).toBeInTheDocument();
-    expect(onDeleteSet).not.toHaveBeenCalled();
-
-    await vi.advanceTimersByTimeAsync(5000);
-
-    expect(onDeleteSet).toHaveBeenCalledWith("set-2");
-    expect(
-      screen.queryByRole("button", { name: /undo deleting/i })
-    ).not.toBeInTheDocument();
   });
 
-  it("restores a swiped set when undo is clicked", async () => {
-    vi.useFakeTimers();
-    const { onDeleteSet } = renderSession({
-      session: { ...session, sets: [benchSet] },
-    });
-    await expand("Bench Press");
-
-    swipeSet(1, -100);
-    expect(screen.queryByText("Set 1")).not.toBeInTheDocument();
+  it("changes reps and weight with the steppers", async () => {
+    renderSession();
 
     await fireEvent.click(
-      screen.getByRole("button", {
-        name: "Undo deleting set 1 for Bench Press",
-      })
+      screen.getByRole("button", { name: "Increase reps" })
     );
-
-    expect(screen.getByText("Set 1")).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: /undo deleting/i })
-    ).not.toBeInTheDocument();
+      screen.getByRole("button", { name: "Edit reps, current 9" })
+    ).toBeInTheDocument();
 
-    await vi.advanceTimersByTimeAsync(5000);
-    expect(onDeleteSet).not.toHaveBeenCalled();
-  });
-
-  it("keeps the card expanded when undo restores the target count", async () => {
-    vi.useFakeTimers();
-    const { onDeleteSet } = renderSession({
-      session: { ...session, sets: loggedSets(benchSet, 4) },
-    });
-    await expand("Bench Press");
-
-    swipeSet(4, -100);
     await fireEvent.click(
-      screen.getByRole("button", {
-        name: "Undo deleting set 4 for Bench Press",
-      })
+      screen.getByRole("button", { name: "Increase weight" })
+    );
+    expect(
+      screen.getByRole("button", { name: "Edit weight, current 82.5 kg" })
+    ).toBeInTheDocument();
+  });
+
+  it("accepts a typed value", async () => {
+    renderSession();
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Edit reps, current 8" })
+    );
+    const input = document.querySelector<HTMLInputElement>(".metric-input");
+    if (!input) throw new Error("metric input is missing");
+    await fireEvent.input(input, { target: { value: "10" } });
+    await fireEvent.blur(input);
+
+    expect(
+      screen.getByRole("button", { name: "Edit reps, current 10" })
+    ).toBeInTheDocument();
+  });
+
+  it("moves to the next exercise", async () => {
+    renderSession();
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: /Next · Overhead Shoulder Press/ })
     );
 
-    await waitFor(() => {
-      expect(screen.getByText("Set 4")).toBeInTheDocument();
-    });
-
-    await vi.advanceTimersByTimeAsync(5000);
-    expect(onDeleteSet).not.toHaveBeenCalled();
-  });
-
-  it("restores a swiped set when the delayed delete fails", async () => {
-    vi.useFakeTimers();
-    const onDeleteSet = vi
-      .fn()
-      .mockRejectedValue(new Error("Could not delete"));
-    renderSession({
-      session: { ...session, sets: [benchSet] },
-      onDeleteSet,
-    });
-    await expand("Bench Press");
-
-    swipeSet(1, -100);
-    expect(screen.queryByText("Set 1")).not.toBeInTheDocument();
-
-    await vi.advanceTimersByTimeAsync(5000);
-
-    expect(screen.getByText("Set 1")).toBeInTheDocument();
-    expect(screen.getByRole("alert")).toHaveTextContent("Could not delete");
-    expect(onDeleteSet).toHaveBeenCalledWith("set-1");
-  });
-
-  it("ignores short and vertical swipes", async () => {
-    const { onDeleteSet } = renderSession({
-      session: { ...session, sets: [benchSet] },
-    });
-    await expand("Bench Press");
-
-    swipeSet(1, -20);
-    swipeSet(1, -100, 120);
-
-    expect(screen.getByText("Set 1")).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: /undo deleting/i })
-    ).not.toBeInTheDocument();
-    expect(onDeleteSet).not.toHaveBeenCalled();
+      await screen.findByRole("heading", { name: "Overhead Shoulder Press" })
+    ).toBeInTheDocument();
+    expect(screen.getByText("Exercise 2 of 3")).toBeInTheDocument();
   });
 
-  it("does not delete when the swipe ends on another row", async () => {
-    const { onDeleteSet } = renderSession({
-      session: { ...session, sets: [benchSet, benchSet2] },
-    });
-    await expand("Bench Press");
+  it("swipes between exercises", async () => {
+    renderSession();
 
-    const first = screen.getByText("Set 1").closest(".set-row");
-    const second = screen.getByText("Set 2").closest(".set-row");
-    if (!first || !second) throw new Error("set rows are missing");
-    fireEvent.pointerDown(first, {
+    const pager = screen.getByRole("group", { name: "Workout exercises" });
+    await fireEvent.pointerDown(pager, {
+      clientX: 300,
+      clientY: 200,
+      pointerId: 1,
+    });
+    await fireEvent.pointerUp(pager, {
       clientX: 200,
-      clientY: 40,
+      clientY: 200,
       pointerId: 1,
-      button: 0,
-    });
-    fireEvent.pointerUp(second, {
-      clientX: 80,
-      clientY: 40,
-      pointerId: 1,
-      button: 0,
     });
 
-    expect(screen.getByText("Set 1")).toBeInTheDocument();
-    expect(screen.getByText("Set 2")).toBeInTheDocument();
-    expect(onDeleteSet).not.toHaveBeenCalled();
+    expect(
+      await screen.findByRole("heading", { name: "Overhead Shoulder Press" })
+    ).toBeInTheDocument();
   });
 
-  it("flushes a pending swipe delete on unmount", async () => {
-    vi.useFakeTimers();
-    const { onDeleteSet, unmount } = renderSession({
-      session: { ...session, sets: [benchSet] },
-    });
-    await expand("Bench Press");
+  it("jumps to an exercise from the switcher", async () => {
+    renderSession();
 
-    swipeSet(1, -100);
-    expect(onDeleteSet).not.toHaveBeenCalled();
-
-    unmount();
-
-    expect(onDeleteSet).toHaveBeenCalledWith("set-1");
-  });
-
-  it("flushes a pending swipe delete before finishing", async () => {
-    const { onDeleteSet, onComplete } = renderSession({
-      session: { ...session, sets: [benchSet] },
-    });
-    await expand("Bench Press");
-
-    swipeSet(1, -100);
     await fireEvent.click(
-      screen.getByRole("button", { name: "Finish workout" })
+      screen.getByRole("button", { name: "Choose exercise" })
     );
-
-    await waitFor(() => {
-      expect(onDeleteSet).toHaveBeenCalledWith("set-1");
-      expect(onComplete).toHaveBeenCalled();
-    });
-    const deleteOrder = onDeleteSet.mock.invocationCallOrder[0];
-    const completeOrder = onComplete.mock.invocationCallOrder[0];
-    if (deleteOrder === undefined || completeOrder === undefined) {
-      throw new Error("expected both calls");
-    }
-    expect(deleteOrder).toBeLessThan(completeOrder);
-  });
-
-  it("keeps the session open when a pending delete fails on finish", async () => {
-    const onDeleteSet = vi
-      .fn()
-      .mockRejectedValue(new Error("Could not delete"));
-    const onComplete = vi.fn().mockResolvedValue(undefined);
-    renderSession({
-      session: { ...session, sets: [benchSet] },
-      onDeleteSet,
-      onComplete,
-    });
-    await expand("Bench Press");
-
-    swipeSet(1, -100);
+    const dialog = await screen.findByRole("dialog", { name: "Exercises" });
     await fireEvent.click(
-      screen.getByRole("button", { name: "Finish workout" })
+      within(dialog).getByRole("button", { name: /Tricep Rope Pushdown/ })
     );
 
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Could not delete"
+    expect(
+      await screen.findByRole("heading", { name: "Tricep Rope Pushdown" })
+    ).toBeInTheDocument();
+  });
+
+  it("deletes a logged set from the sets sheet", async () => {
+    const withSet: WorkoutSessionDetail = {
+      ...session,
+      sets: [
+        {
+          id: "set-1",
+          exerciseId: bench.id,
+          exerciseName: bench.name,
+          setNumber: 1,
+          reps: 8,
+          weightKg: 80,
+          createdAt: "2026-11-13T18:05:00.000Z",
+        },
+      ],
+    };
+    const { onDeleteSet } = renderSession({ session: withSet });
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: /1 of 3 sets/ })
     );
-    expect(onComplete).not.toHaveBeenCalled();
-    expect(screen.getByText("Set 1")).toBeInTheDocument();
-  });
-
-  it("offers no delete action for a completed session", async () => {
-    const { onDeleteSet } = renderSession({
-      session: {
-        ...session,
-        completedAt: "2026-10-26T19:00:00.000Z",
-        sets: [benchSet],
-      },
+    const dialog = await screen.findByRole("dialog", {
+      name: "Barbell Bench Press sets",
     });
-    await expand("Bench Press");
+    await fireEvent.click(
+      within(dialog).getByRole("button", {
+        name: "Delete set 1 for Barbell Bench Press",
+      })
+    );
+    await fireEvent.click(
+      within(dialog).getByRole("button", { name: "Delete" })
+    );
 
-    expect(
-      screen.queryByRole("button", { name: /delete set/i })
-    ).not.toBeInTheDocument();
-
-    swipeSet(1, -100);
-    expect(screen.getByText("Set 1")).toBeInTheDocument();
-    expect(onDeleteSet).not.toHaveBeenCalled();
-  });
-
-  it("auto-collapses a planned card when its target sets are reached", async () => {
-    const { rerender } = renderSession({
-      session: { ...session, sets: loggedSets(benchSet, 3) },
-    });
-    await expand("Bench Press");
-
-    await rerender({ session: { ...session, sets: loggedSets(benchSet, 4) } });
-
-    expect(
-      screen.queryByRole("form", { name: "Add set for Bench Press" })
-    ).not.toBeInTheDocument();
-    const toggle = screen.getByRole("button", { name: "Expand Bench Press" });
-    expect(toggle).toHaveAttribute("aria-expanded", "false");
-    expect(toggle).toHaveAttribute("aria-controls", "sets-exercise-1");
-    expect(toggle).toHaveAccessibleDescription("Done");
-    expect(document.getElementById("sets-exercise-1")).toBeInTheDocument();
-    expect(toggle.closest("section")).toHaveClass("exercise-done");
-    expect(screen.getByText("Done")).toBeInTheDocument();
-    expect(screen.queryByText(/sets logged/)).not.toBeInTheDocument();
-  });
-
-  it("keeps a manually expanded card open while it is below its target", async () => {
-    const { rerender } = renderSession({
-      session: { ...session, sets: loggedSets(benchSet, 1) },
-    });
-    await expand("Bench Press");
-
-    await rerender({ session: { ...session, sets: loggedSets(benchSet, 3) } });
-
-    expect(
-      screen.getByRole("form", { name: "Add set for Bench Press" })
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Collapse Bench Press" })
-    ).toHaveAttribute("aria-expanded", "true");
-  });
-
-  it("auto-collapses again after a done card drops below its target", async () => {
-    const { rerender } = renderSession({
-      session: { ...session, sets: loggedSets(benchSet, 4) },
-    });
-    await expand("Bench Press");
-
-    await rerender({ session: { ...session, sets: loggedSets(benchSet, 3) } });
-    await rerender({ session: { ...session, sets: loggedSets(benchSet, 4) } });
-
-    expect(
-      screen.queryByRole("form", { name: "Add set for Bench Press" })
-    ).not.toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Expand Bench Press" })
-    ).toHaveAttribute("aria-expanded", "false");
-  });
-
-  it("expands a done card manually and keeps the done state", async () => {
-    renderSession({
-      session: { ...session, sets: loggedSets(benchSet, 4) },
-    });
-
-    await expand("Bench Press");
-
-    expect(
-      screen.getByRole("form", { name: "Add set for Bench Press" })
-    ).toBeInTheDocument();
-    expect(screen.getByText("Done")).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Collapse Bench Press" })
-    ).toHaveAttribute("aria-expanded", "true");
-  });
-
-  it("does not re-collapse a manually expanded card after extra sets", async () => {
-    const { rerender } = renderSession({
-      session: { ...session, sets: loggedSets(benchSet, 4) },
-    });
-
-    await expand("Bench Press");
-    await rerender({ session: { ...session, sets: loggedSets(benchSet, 5) } });
-
-    expect(
-      screen.getByRole("form", { name: "Add set for Bench Press" })
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Collapse Bench Press" })
-    ).toHaveAttribute("aria-expanded", "true");
-    expect(screen.getByText("Done")).toBeInTheDocument();
-  });
-
-  it("starts a free exercise card collapsed and toggles it manually", async () => {
-    renderSession({
-      session: { ...freeSession, sets: [cableSet] },
-      plan: null,
-    });
-
-    expect(
-      screen.queryByRole("form", { name: "Add set for Cable Fly" })
-    ).not.toBeInTheDocument();
-    expect(screen.queryByText("1 set logged")).not.toBeInTheDocument();
-
-    await expand("Cable Fly");
-
-    expect(
-      screen.getByRole("form", { name: "Add set for Cable Fly" })
-    ).toBeInTheDocument();
-
-    await collapse("Cable Fly");
-
-    expect(
-      screen.queryByRole("form", { name: "Add set for Cable Fly" })
-    ).not.toBeInTheDocument();
-  });
-
-  it("never auto-collapses a free exercise without a target", async () => {
-    const { rerender } = renderSession({
-      session: { ...freeSession, sets: loggedSets(cableSet, 8) },
-      plan: null,
-    });
-    await expand("Cable Fly");
-
-    await rerender({
-      session: { ...freeSession, sets: loggedSets(cableSet, 9) },
-      plan: null,
-    });
-
-    expect(
-      screen.getByRole("form", { name: "Add set for Cable Fly" })
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Collapse Cable Fly" })
-    ).toHaveAttribute("aria-expanded", "true");
-  });
-
-  it("displays weights with up to two decimals", async () => {
-    renderSession({
-      session: {
-        ...session,
-        sets: [
-          { ...benchSet, weightKg: 22.25 },
-          { ...benchSet2, weightKg: 22.5 },
-        ],
-      },
-      plan: {
-        ...plan,
-        exercises: [{ ...planExercise, targetWeightKg: 22.25 }],
-      },
-    });
-    await expand("Bench Press");
-
-    expect(screen.getByText("8 × 22.25 kg")).toBeInTheDocument();
-    expect(screen.getByText("6 × 22.5 kg")).toBeInTheDocument();
-    expect(screen.getByText(/@ 22.25 kg/)).toBeInTheDocument();
-    expect(screen.queryByText(/22\.50/)).not.toBeInTheDocument();
+    await waitFor(() => expect(onDeleteSet).toHaveBeenCalledWith("set-1"));
   });
 
   it("finishes the workout", async () => {
     const { onComplete } = renderSession();
 
-    await fireEvent.click(
-      screen.getByRole("button", { name: "Finish workout" })
-    );
+    await fireEvent.click(screen.getByRole("button", { name: "Finish" }));
 
-    await waitFor(() => {
-      expect(onComplete).toHaveBeenCalledTimes(1);
-    });
+    await waitFor(() => expect(onComplete).toHaveBeenCalledOnce());
   });
 
-  it("returns focus to finish after a failed completion", async () => {
+  it("adds an exercise to a free workout", async () => {
     renderSession({
-      onComplete: vi.fn().mockRejectedValue(new Error("Could not finish")),
-    });
-
-    const finish = screen.getByRole("button", { name: "Finish workout" });
-    finish.focus();
-    await fireEvent.click(finish);
-
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Could not finish"
-    );
-    await waitFor(() => expect(finish).toHaveFocus());
-  });
-
-  it("hides logging controls for a completed session", async () => {
-    renderSession({
-      session: { ...session, completedAt: "2026-10-26T19:00:00.000Z" },
-    });
-    await expand("Bench Press");
-
-    expect(
-      screen.queryByRole("button", { name: "Finish workout" })
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: /add set/i })
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: /edit exercise/i })
-    ).not.toBeInTheDocument();
-    expect(screen.queryByRole("form")).not.toBeInTheDocument();
-  });
-
-  it("uses the set's exercise name when the exercise is not in the loaded list", async () => {
-    renderSession({
-      session: { ...session, sets: [missingExerciseSet] },
-    });
-    await expand("Deleted Press");
-
-    expect(
-      screen.getByRole("heading", { name: "Deleted Press" })
-    ).toBeInTheDocument();
-    expect(screen.getByText("Set 1")).toBeInTheDocument();
-    expect(
-      screen.queryByRole("form", { name: "Add set for Deleted Press" })
-    ).not.toBeInTheDocument();
-  });
-
-  it("shows sets for exercises outside the plan", async () => {
-    renderSession({
-      session: { ...session, sets: [cableSet] },
-    });
-    await expand("Cable Fly");
-
-    expect(
-      screen.getByRole("heading", { name: "Cable Fly" })
-    ).toBeInTheDocument();
-    expect(screen.getByText("Set 1")).toBeInTheDocument();
-    expect(
-      screen.queryByRole("form", { name: "Add set for Cable Fly" })
-    ).not.toBeInTheDocument();
-  });
-
-  it("starts a free session with an empty state and an add exercise control", () => {
-    renderSession({ session: freeSession, plan: null });
-
-    expect(screen.getByText("No sets logged yet")).toBeInTheDocument();
-    expect(screen.getByLabelText("Exercise")).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Add exercise" })
-    ).toBeDisabled();
-  });
-
-  it("adds an exercise card to a free session and logs a set", async () => {
-    const { onLogSet } = renderSession({
-      session: freeSession,
       plan: null,
+      session: { ...session, title: "Free workout", planId: null },
     });
-
-    await fireEvent.change(screen.getByLabelText("Exercise"), {
-      target: { value: extraExercise.id },
-    });
-    await fireEvent.click(
-      screen.getByRole("button", { name: "Add exercise" })
-    );
 
     expect(
-      screen.getByRole("heading", { name: "Cable Fly" })
+      screen.getByRole("heading", { name: "No exercises yet" })
     ).toBeInTheDocument();
-    await expand("Cable Fly");
-    expect(
-      screen.getByRole("form", { name: "Add set for Cable Fly" })
-    ).toBeInTheDocument();
-    expect(cardForm("Cable Fly").getByLabelText("Weight (kg)")).toHaveAttribute(
-      "placeholder",
-      "15"
-    );
-
-    await fireEvent.input(cardForm("Cable Fly").getByLabelText("Weight (kg)"), {
-      target: { value: "20" },
-    });
-    await fireEvent.input(cardForm("Cable Fly").getByLabelText("Reps"), {
-      target: { value: "10" },
-    });
-    await fireEvent.click(
-      cardForm("Cable Fly").getByRole("button", { name: /add set/i })
-    );
-
-    await waitFor(() => {
-      expect(onLogSet).toHaveBeenCalledWith(
-        expect.objectContaining({
-          exerciseId: "exercise-2",
-          weightKg: 20,
-          reps: 10,
-          idempotencyKey: expect.any(String),
-        })
-      );
-    });
-  });
-
-  it("keeps one card and clears the form after a free-session set is logged", async () => {
-    const { rerender } = renderSession({ session: freeSession, plan: null });
-
-    await fireEvent.change(screen.getByLabelText("Exercise"), {
-      target: { value: extraExercise.id },
-    });
     await fireEvent.click(
       screen.getByRole("button", { name: "Add exercise" })
     );
-    await expand("Cable Fly");
-    await fireEvent.input(cardForm("Cable Fly").getByLabelText("Weight (kg)"), {
-      target: { value: "20" },
+    const dialog = await screen.findByRole("dialog", { name: "Exercises" });
+    await fireEvent.change(within(dialog).getByLabelText("Add exercise"), {
+      target: { value: "ex-1" },
     });
-    await fireEvent.input(cardForm("Cable Fly").getByLabelText("Reps"), {
-      target: { value: "10" },
-    });
-    await fireEvent.click(
-      cardForm("Cable Fly").getByRole("button", { name: /add set/i })
-    );
-
-    await waitFor(() =>
-      expect(cardForm("Cable Fly").getByLabelText("Weight (kg)")).toHaveValue(
-        null
-      )
-    );
-
-    await rerender({ session: { ...freeSession, sets: [cableSet] } });
+    await fireEvent.click(within(dialog).getByRole("button", { name: "Add" }));
 
     expect(
-      screen.getAllByRole("form", { name: "Add set for Cable Fly" })
-    ).toHaveLength(1);
-    expect(screen.getByText("Set 1")).toBeInTheDocument();
-  });
-
-  it("does not offer an exercise that already has a card", () => {
-    renderSession({
-      session: { ...freeSession, sets: [cableSet] },
-      plan: null,
-    });
-
-    const select = screen.getByLabelText("Exercise");
-    expect(
-      within(select).queryByRole("option", { name: "Cable Fly" })
-    ).not.toBeInTheDocument();
-    expect(
-      within(select).getByRole("option", { name: "Bench Press" })
-    ).toBeInTheDocument();
-  });
-
-  it("disables the add exercise control while a set is being logged", async () => {
-    const request = deferred();
-    renderSession({
-      session: freeSession,
-      plan: null,
-      onLogSet: vi.fn().mockReturnValue(request.promise),
-    });
-
-    await fireEvent.change(screen.getByLabelText("Exercise"), {
-      target: { value: exercise.id },
-    });
-    await fireEvent.click(
-      screen.getByRole("button", { name: "Add exercise" })
-    );
-    await expand("Bench Press");
-    await fireEvent.input(cardForm("Bench Press").getByLabelText("Weight (kg)"), {
-      target: { value: "80" },
-    });
-    await fireEvent.input(cardForm("Bench Press").getByLabelText("Reps"), {
-      target: { value: "8" },
-    });
-    await fireEvent.click(
-      cardForm("Bench Press").getByRole("button", { name: /add set/i })
-    );
-
-    await waitFor(() =>
-      expect(screen.getByLabelText("Exercise")).toBeDisabled()
-    );
-    expect(
-      screen.getByRole("button", { name: "Add exercise" })
-    ).toBeDisabled();
-
-    request.resolve();
-  });
-
-  it("shows a read-only card for an unregistered free-session exercise", async () => {
-    renderSession({
-      session: { ...freeSession, sets: [missingExerciseSet] },
-      plan: null,
-    });
-    await expand("Deleted Press");
-
-    expect(
-      screen.getByRole("heading", { name: "Deleted Press" })
-    ).toBeInTheDocument();
-    expect(screen.getByText("Set 1")).toBeInTheDocument();
-    expect(
-      screen.queryByRole("form", { name: "Add set for Deleted Press" })
-    ).not.toBeInTheDocument();
-  });
-
-  it("hides adding and logging controls for a completed free session", async () => {
-    renderSession({
-      session: {
-        ...freeSession,
-        completedAt: "2026-10-26T19:00:00.000Z",
-        sets: [cableSet],
-      },
-      plan: null,
-    });
-    await expand("Cable Fly");
-
-    expect(
-      screen.queryByRole("button", { name: "Add exercise" })
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: /add set/i })
-    ).not.toBeInTheDocument();
-    expect(screen.queryByLabelText("Exercise")).not.toBeInTheDocument();
-    expect(screen.getByText("Set 1")).toBeInTheDocument();
-  });
-
-  it("disables adding exercises when none are available", () => {
-    renderSession({ session: freeSession, plan: null, exercises: [] });
-
-    expect(
-      screen.getByRole("button", { name: "Add exercise" })
-    ).toBeDisabled();
-    expect(
-      screen.getByText("No exercises available. Add one in the exercise register.")
+      await screen.findByRole("heading", { name: "Barbell Bench Press" })
     ).toBeInTheDocument();
   });
 });
