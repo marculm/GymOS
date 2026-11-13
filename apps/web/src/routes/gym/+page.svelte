@@ -1,10 +1,5 @@
 <script lang="ts">
-  import GymView from "$features/gym/GymView.svelte";
-  import { shell } from "$lib/shell.svelte.ts";
-
-  function handleSessionActive(active: boolean) {
-    shell.sessionActive = active;
-  }
+  import TrainingStart from "$features/gym/TrainingStart.svelte";
 </script>
 
-<GymView onSessionActiveChange={handleSessionActive} />
+<TrainingStart />
