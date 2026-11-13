@@ -551,7 +551,7 @@ Create `apps/web/src/routes/session-shell.test.mts`:
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/svelte";
 import type { WorkoutSessionDetail } from "@gymos/shared";
-import { getActiveSession, getRotation, listAllExercises, listAllPlans } from "../api/gym.mts";
+import { getActiveSession } from "../api/gym.mts";
 import { shell } from "../lib/shell.svelte.ts";
 import Harness from "../test/SessionShellHarness.svelte";
 
