@@ -248,7 +248,7 @@ describe("SessionView", () => {
     ).toBeInTheDocument();
   });
 
-  it("deletes a logged set from the sets sheet", async () => {
+  it("deletes a logged set from the inline list", async () => {
     const withSet: WorkoutSessionDetail = {
       ...session,
       sets: [
@@ -268,17 +268,15 @@ describe("SessionView", () => {
     await fireEvent.click(
       screen.getByRole("button", { name: /1 of 3 sets/ })
     );
-    const dialog = await screen.findByRole("dialog", {
-      name: "Barbell Bench Press sets",
-    });
+    const panel = document.querySelector<HTMLElement>(".focus-set-panel");
+    if (!panel) throw new Error("inline set list is missing");
+    expect(within(panel).getByText("Set 1")).toBeInTheDocument();
     await fireEvent.click(
-      within(dialog).getByRole("button", {
+      within(panel).getByRole("button", {
         name: "Delete set 1 for Barbell Bench Press",
       })
     );
-    await fireEvent.click(
-      within(dialog).getByRole("button", { name: "Delete" })
-    );
+    await fireEvent.click(within(panel).getByRole("button", { name: "Delete" }));
 
     await waitFor(() => expect(onDeleteSet).toHaveBeenCalledWith("set-1"));
   });

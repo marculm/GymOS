@@ -777,6 +777,60 @@ textarea.input {
 
 .sets-chevron {
   margin-left: auto;
+  transition: transform 180ms ease;
+}
+
+.sets-chevron.open {
+  transform: rotate(90deg);
+}
+
+.focus-set-panel {
+  flex: none;
+  margin-top: 2px;
+  padding-bottom: 4px;
+  border-top: 1px solid var(--separator);
+}
+
+.focus-set-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  border-top: 0.5px solid var(--separator);
+  font-size: 0.875rem;
+}
+
+.focus-set-row:first-child {
+  border-top: 0;
+}
+
+.focus-set-number {
+  flex: none;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.focus-set-value {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.focus-set-empty {
+  margin: 12px 2px;
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.focus-set-error {
+  margin: 8px 0;
+}
+
+.focus-set-panel .set-confirm {
+  margin: 8px 0;
 }
 
 .focus-actions {
@@ -1017,19 +1071,6 @@ textarea.input {
 
 .switcher-finish {
   width: 100%;
-}
-
-.sheet-sets {
-  display: flex;
-  flex-direction: column;
-}
-
-.sheet-set-row {
-  border-top: 1px solid var(--separator);
-}
-
-.sheet-set-row:first-child {
-  border-top: 0;
 }
 
 .set-confirm {

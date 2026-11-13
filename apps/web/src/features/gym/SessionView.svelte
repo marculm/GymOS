@@ -71,7 +71,7 @@
   let freeExercises = $state<Exercise[]>([]);
   let exerciseToAdd = $state("");
   let showSwitcher = $state(false);
-  let showSets = $state(false);
+  let setsOpen = $state(false);
   let showTimer = $state(false);
   let showEditExercise = $state(false);
   let deleteTarget = $state<string | null>(null);
@@ -351,6 +351,9 @@
     if (nextIndex < 0 || nextIndex >= pages.length) return;
     index = nextIndex;
     editing = null;
+    setsOpen = false;
+    deleteTarget = null;
+    deleteError = null;
     if (focus) {
       await tick();
       document.getElementById("session-focus")?.focus();
@@ -381,10 +384,10 @@
     swipeStart = null;
   }
 
-  function openSets() {
+  function toggleSets() {
+    setsOpen = !setsOpen;
     deleteTarget = null;
     deleteError = null;
-    showSets = true;
   }
 
   async function removeSet(set: LoggedSet) {
@@ -660,8 +663,10 @@
               type="button"
               class="focus-sets"
               disabled={!active}
-              aria-label={`${page.sets.length} of ${Math.max(page.targetSets, page.sets.length)} sets. Open sets`}
-              onclick={openSets}
+              aria-expanded={active ? setsOpen : false}
+              aria-controls={active ? "focus-sets-panel" : undefined}
+              aria-label={`${page.sets.length} of ${Math.max(page.targetSets, page.sets.length)} sets. ${setsOpen ? "Hide" : "Show"} sets`}
+              onclick={toggleSets}
             >
               <span class="set-dots" aria-hidden="true">
                 {#each dotIndices(
@@ -682,8 +687,67 @@
                   Done
                 </span>
               {/if}
-              <ChevronRight size={15} class="sets-chevron" aria-hidden="true" />
+              <ChevronRight
+                size={15}
+                class={`sets-chevron ${active && setsOpen ? "open" : ""}`}
+                aria-hidden="true"
+              />
             </button>
+
+            {#if active && setsOpen}
+              <div class="focus-set-panel" id="focus-sets-panel">
+                {#if page.sets.length === 0}
+                  <p class="focus-set-empty">No sets logged yet.</p>
+                {:else}
+                  {#each page.sets as set (set.id)}
+                    {#if deleteTarget === set.id}
+                      <div class="set-confirm">
+                        <span>Delete set {set.setNumber}?</span>
+                        <div class="set-confirm-actions">
+                          <button
+                            type="button"
+                            class="btn btn-ghost btn-compact"
+                            disabled={pending}
+                            onclick={() => (deleteTarget = null)}
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            class="btn btn-primary btn-compact"
+                            disabled={pending}
+                            onclick={() => void removeSet(set)}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    {:else}
+                      <div class="focus-set-row">
+                        <span class="focus-set-number">Set {set.setNumber}</span>
+                        <span class="focus-set-value">
+                          {set.reps} × {formatWeight(set.weightKg)} kg
+                        </span>
+                        <button
+                          type="button"
+                          class="icon-btn danger"
+                          aria-label={`Delete set ${set.setNumber} for ${page.name}`}
+                          disabled={pending}
+                          onclick={() => (deleteTarget = set.id)}
+                        >
+                          <Trash2 size={17} aria-hidden="true" />
+                        </button>
+                      </div>
+                    {/if}
+                  {/each}
+                {/if}
+                {#if deleteError}
+                  <p class="error focus-set-error" role="alert">
+                    {deleteError}
+                  </p>
+                {/if}
+              </div>
+            {/if}
 
             <div class="grow"></div>
 
@@ -808,63 +872,6 @@
     >
       {finishing ? "Finishing…" : "Finish workout"}
     </button>
-  </SessionSheet>
-
-  <SessionSheet
-    open={showSets}
-    title={current ? `${current.name} sets` : "Sets"}
-    onClose={() => (showSets = false)}
-  >
-    {#if current && current.sets.length > 0}
-      <div class="sheet-sets">
-        {#each current.sets as set (set.id)}
-          {#if deleteTarget === set.id}
-            <div class="set-confirm">
-              <span>Delete set {set.setNumber}?</span>
-              <div class="set-confirm-actions">
-                <button
-                  type="button"
-                  class="btn btn-ghost btn-compact"
-                  disabled={pending}
-                  onclick={() => (deleteTarget = null)}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  class="btn btn-primary btn-compact"
-                  disabled={pending}
-                  onclick={() => void removeSet(set)}
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          {:else}
-            <div class="set-row sheet-set-row">
-              <span class="badge">Set {set.setNumber}</span>
-              <span class="grow set-value">
-                {set.reps} × {formatWeight(set.weightKg)} kg
-              </span>
-              <button
-                type="button"
-                class="icon-btn danger"
-                aria-label={`Delete set ${set.setNumber} for ${set.exerciseName}`}
-                disabled={pending}
-                onclick={() => (deleteTarget = set.id)}
-              >
-                <Trash2 size={17} aria-hidden="true" />
-              </button>
-            </div>
-          {/if}
-        {/each}
-      </div>
-    {:else}
-      <p class="muted">No sets logged yet.</p>
-    {/if}
-    {#if deleteError}
-      <p class="error" role="alert">{deleteError}</p>
-    {/if}
   </SessionSheet>
 
   <SessionSheet
