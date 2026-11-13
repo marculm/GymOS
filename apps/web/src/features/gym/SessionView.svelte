@@ -564,7 +564,16 @@
             <div class="focus-metrics">
               <div class="focus-metric">
                 <span class="focus-metric-label">Reps</span>
-                <div class="focus-metric-value">
+                <div class="focus-metric-row">
+                  <button
+                    type="button"
+                    class="step-btn"
+                    aria-label="Decrease reps"
+                    disabled={!active || pending}
+                    onclick={() => adjustReps(-1)}
+                  >
+                    <Minus size={16} aria-hidden="true" />
+                  </button>
                   {#if active && editing === "reps"}
                     <input
                       bind:this={editInput}
@@ -589,17 +598,6 @@
                       {pageDraft.reps}
                     </button>
                   {/if}
-                </div>
-                <div class="focus-metric-steps">
-                  <button
-                    type="button"
-                    class="step-btn"
-                    aria-label="Decrease reps"
-                    disabled={!active || pending}
-                    onclick={() => adjustReps(-1)}
-                  >
-                    <Minus size={18} aria-hidden="true" />
-                  </button>
                   <button
                     type="button"
                     class="step-btn"
@@ -607,14 +605,23 @@
                     disabled={!active || pending}
                     onclick={() => adjustReps(1)}
                   >
-                    <Plus size={18} aria-hidden="true" />
+                    <Plus size={16} aria-hidden="true" />
                   </button>
                 </div>
               </div>
 
               <div class="focus-metric">
                 <span class="focus-metric-label">Weight</span>
-                <div class="focus-metric-value">
+                <div class="focus-metric-row">
+                  <button
+                    type="button"
+                    class="step-btn"
+                    aria-label="Decrease weight"
+                    disabled={!active || pending}
+                    onclick={() => adjustWeight(-2.5)}
+                  >
+                    <Minus size={16} aria-hidden="true" />
+                  </button>
                   {#if active && editing === "weight"}
                     <input
                       bind:this={editInput}
@@ -639,17 +646,6 @@
                       {formatWeight(pageDraft.weightKg)}
                     </button>
                   {/if}
-                </div>
-                <div class="focus-metric-steps">
-                  <button
-                    type="button"
-                    class="step-btn"
-                    aria-label="Decrease weight"
-                    disabled={!active || pending}
-                    onclick={() => adjustWeight(-2.5)}
-                  >
-                    <Minus size={18} aria-hidden="true" />
-                  </button>
                   <button
                     type="button"
                     class="step-btn"
@@ -657,7 +653,7 @@
                     disabled={!active || pending}
                     onclick={() => adjustWeight(2.5)}
                   >
-                    <Plus size={18} aria-hidden="true" />
+                    <Plus size={16} aria-hidden="true" />
                   </button>
                 </div>
               </div>
