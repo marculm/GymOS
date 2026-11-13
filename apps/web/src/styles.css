@@ -519,7 +519,8 @@ textarea.input {
   align-items: center;
   gap: 8px;
   min-height: 44px;
-  padding: 0;
+  margin-left: -8px;
+  padding: 0 8px;
   border: 0;
   background: none;
   color: var(--muted);
@@ -562,7 +563,8 @@ textarea.input {
   align-items: center;
   gap: 6px;
   min-height: 44px;
-  padding: 0 2px;
+  margin-right: -8px;
+  padding: 0 8px;
   border: 0;
   background: none;
   color: var(--muted);
