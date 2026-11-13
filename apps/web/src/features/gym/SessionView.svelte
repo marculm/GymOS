@@ -572,7 +572,7 @@
                     disabled={!active || pending}
                     onclick={() => adjustReps(-1)}
                   >
-                    <Minus size={16} aria-hidden="true" />
+                    <Minus size={14} aria-hidden="true" />
                   </button>
                   {#if active && editing === "reps"}
                     <input
@@ -605,7 +605,7 @@
                     disabled={!active || pending}
                     onclick={() => adjustReps(1)}
                   >
-                    <Plus size={16} aria-hidden="true" />
+                    <Plus size={14} aria-hidden="true" />
                   </button>
                 </div>
               </div>
@@ -620,7 +620,7 @@
                     disabled={!active || pending}
                     onclick={() => adjustWeight(-2.5)}
                   >
-                    <Minus size={16} aria-hidden="true" />
+                    <Minus size={14} aria-hidden="true" />
                   </button>
                   {#if active && editing === "weight"}
                     <input
@@ -653,7 +653,7 @@
                     disabled={!active || pending}
                     onclick={() => adjustWeight(2.5)}
                   >
-                    <Plus size={16} aria-hidden="true" />
+                    <Plus size={14} aria-hidden="true" />
                   </button>
                 </div>
               </div>
