@@ -70,38 +70,39 @@
   aria-label={exercise ? "Edit exercise" : "New exercise"}
   onsubmit={handleSubmit}
 >
-  <h3 class="card-title">
+  <h3 class="card-title form-title">
     {exercise ? "Edit exercise" : "New exercise"}
   </h3>
 
-  <label class="field">
-    <span class="label">Name</span>
-    <input
-      class="input"
-      required
-      maxlength={100}
-      bind:this={nameInput}
-      bind:value={name}
-    />
-  </label>
+  <div class="form-rows">
+    <label class="field">
+      <span class="label">Name</span>
+      <input
+        class="input"
+        required
+        maxlength={100}
+        placeholder="Exercise name"
+        bind:this={nameInput}
+        bind:value={name}
+      />
+    </label>
 
-  <label class="field">
-    <span class="label">Muscle group</span>
-    <select
-      class="input"
-      value={muscleGroup}
-      onchange={(event) =>
-        (muscleGroup = event.currentTarget.value as Exercise["muscleGroup"])}
-    >
-      {#each MUSCLE_GROUPS as group (group)}
-        <option value={group}>{group}</option>
-      {/each}
-    </select>
-  </label>
+    <label class="field">
+      <span class="label">Muscle group</span>
+      <select
+        class="input"
+        value={muscleGroup}
+        onchange={(event) =>
+          (muscleGroup = event.currentTarget.value as Exercise["muscleGroup"])}
+      >
+        {#each MUSCLE_GROUPS as group (group)}
+          <option value={group}>{group}</option>
+        {/each}
+      </select>
+    </label>
 
-  <div class="row">
-    <label class="field grow">
-      <span class="label">Default sets</span>
+    <label class="field">
+      <span class="label">Sets</span>
       <input
         class="input"
         type="number"
@@ -111,8 +112,9 @@
         bind:value={defaultSets}
       />
     </label>
-    <label class="field grow">
-      <span class="label">Default reps</span>
+
+    <label class="field">
+      <span class="label">Reps</span>
       <input
         class="input"
         type="number"
@@ -122,14 +124,16 @@
         bind:value={defaultReps}
       />
     </label>
-    <label class="field grow">
-      <span class="label">Default weight (kg, optional)</span>
+
+    <label class="field">
+      <span class="label">Weight (kg)</span>
       <input
         class="input"
         type="number"
         min={0}
         max={MAX_SET_WEIGHT_KG}
         step={0.01}
+        placeholder="Optional"
         value={defaultWeightKg}
         oninput={(event) =>
           (defaultWeightKg =
@@ -138,18 +142,31 @@
               : Number(event.currentTarget.value))}
       />
     </label>
-  </div>
 
-  <label class="field">
-    <span class="label">Description (optional)</span>
-    <input class="input" maxlength={500} bind:value={description} />
-  </label>
+    <label class="field field-block">
+      <span class="label">Description</span>
+      <textarea
+        class="input"
+        rows="2"
+        maxlength={500}
+        placeholder="Optional"
+        bind:value={description}
+      ></textarea>
+    </label>
+  </div>
 
   {#if error}
     <p class="error" role="alert">{error}</p>
   {/if}
 
-  <div class="row">
+  <div class="form-actions">
+    <button
+      type="submit"
+      class="btn btn-primary"
+      disabled={pending || name.trim().length === 0}
+    >
+      Save exercise
+    </button>
     <button
       type="button"
       class="btn btn-ghost"
@@ -157,13 +174,6 @@
       onclick={onCancel}
     >
       Cancel
-    </button>
-    <button
-      type="submit"
-      class="btn btn-primary"
-      disabled={pending || name.trim().length === 0}
-    >
-      Save exercise
     </button>
   </div>
 </form>
