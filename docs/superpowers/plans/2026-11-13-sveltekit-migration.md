@@ -36,6 +36,7 @@
 - Modify: `package.json` (root `test` and `test:watch` scripts)
 - Delete: `vitest.config.ts` (root project aggregator)
 - Modify: `apps/web/package.json`
+- Move: `apps/web/public` to `apps/web/static`
 - Create: `apps/web/svelte.config.js`
 - Create: `apps/web/src/app.html`
 - Create: `apps/web/src/routes/+layout.ts`
@@ -160,6 +161,7 @@ Create `apps/web/src/app.html` with the old document tags:
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#faf7f2" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
     <title>GymOS</title>
     %sveltekit.head%
   </head>
@@ -256,7 +258,7 @@ export default defineConfig({
 });
 ```
 
-Update `apps/web/tsconfig.json`:
+Update `apps/web/tsconfig.json`; the generated include does not match `.mts` files, so re-add `src/**/*`:
 
 ```json
 {
@@ -267,20 +269,35 @@ Update `apps/web/tsconfig.json`:
     "checkJs": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
     "noUncheckedIndexedAccess": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "sourceMap": true,
     "strict": true,
-    "types": ["vite/client"]
-  }
+    "types": ["vite/client", "vite-plugin-pwa/client"]
+  },
+  "include": [
+    ".svelte-kit/ambient.d.ts",
+    ".svelte-kit/non-ambient.d.ts",
+    ".svelte-kit/types/**/$types.d.ts",
+    "src/**/*",
+    "vite.config.ts",
+    "svelte.config.js"
+  ]
 }
 ```
 
-Update `apps/web/src/pwa.test.mts` to read `app.html` instead of `index.html`:
+Update `apps/web/src/pwa.test.mts` to read `app.html` instead of `index.html`, and move the icons directory:
+
+```bash
+git mv apps/web/public apps/web/static
+```
 
 ```ts
 const html = readFileSync(resolve(srcDir, "app.html"), "utf8");
+const publicDir = resolve(srcDir, "../static");
 ```
 
 Delete the old `index.html` in Task 2, after this test no longer reads it.
@@ -693,18 +710,89 @@ git commit -m "#126: Hide the tab bar during a session"
 ---
 
 
-### Task 4: Keep deep links working offline
+### Task 4: Restore PWA registration and offline deep links
 
 **Files:**
 - Modify: `apps/web/package.json`
+- Modify: `apps/web/vite.config.ts`
+- Modify: `apps/web/src/vite-env.d.ts`
+- Modify: `apps/web/src/routes/+layout.svelte`
 - Modify: `apps/web/src/sw.ts`
 - Modify: `apps/web/src/pwa-manifest.mts`
 - Modify: `apps/web/src/sw.test.mts`
 - Modify: `apps/web/src/pwa.test.mts`
+- Modify: `apps/web/src/routes/session-shell.test.mts`
+- Create: `apps/web/src/routes/pwa-registration.test.mts`
+- Create: `apps/web/scripts/check-build.mts`
 
 **Interfaces:**
 - Consumes: the existing Workbox precache manifest and the service worker listeners.
-- Produces: a `NavigationRoute` with a network-first shell handler (`shellResponse`) and a denylist for `/api/`, `/health`, `/sw.js`, and `/manifest.webmanifest`; manifest `start_url: "/gym"` and `scope: "/"`; default notification URL `/gym`.
+- Produces: manual `registerSW({ immediate: true })` from `virtual:pwa-register`; a `NavigationRoute` with a network-first shell handler (`shellResponse`) and a denylist for `/api/`, `/health`, `/sw.js`, and `/manifest.webmanifest`; manifest `start_url: "/gym"` and `scope: "/"`; default notification URL `/gym`; a build check that fails when the PWA artifacts are missing.
+
+- [ ] **Step 0: Restore manual service-worker registration**
+
+SvelteKit generates the SPA fallback from `src/app.html` at adapter time, so
+`vite-plugin-pwa`'s automatic `registerSW.js` injection never reaches the built HTML.
+Write `apps/web/src/routes/pwa-registration.test.mts`:
+
+```ts
+import { describe, expect, it, vi } from "vitest";
+import { render, waitFor } from "@testing-library/svelte";
+import { registerSW } from "virtual:pwa-register";
+import Harness from "../test/SessionShellHarness.svelte";
+
+vi.mock("$app/state", () => ({
+  page: { url: { pathname: "/gym" } },
+}));
+
+vi.mock("virtual:pwa-register", () => ({
+  registerSW: vi.fn(),
+}));
+
+vi.mock("../api/gym.mts", () => ({
+  listAllExercises: vi.fn().mockResolvedValue([]),
+  listAllPlans: vi.fn().mockResolvedValue([]),
+  getRotation: vi.fn().mockResolvedValue({ plans: [], nextPlanId: null }),
+  getActiveSession: vi.fn().mockResolvedValue(null),
+  createPlan: vi.fn(),
+  setRotation: vi.fn(),
+  startSession: vi.fn(),
+  addSet: vi.fn(),
+  deleteSet: vi.fn(),
+  completeSession: vi.fn(),
+}));
+
+describe("PWA registration", () => {
+  it("registers the service worker once", async () => {
+    render(Harness);
+    await waitFor(() =>
+      expect(registerSW).toHaveBeenCalledWith({ immediate: true }),
+    );
+    expect(registerSW).toHaveBeenCalledOnce();
+  });
+});
+```
+
+Run it and expect FAIL. Then set `injectRegister: null` in `VitePWA`, add the
+`vite-plugin-pwa/client` reference to `src/vite-env.d.ts`, add `workbox-window` to the
+web dev dependencies, and register from the root layout:
+
+```svelte
+<script lang="ts">
+  import { onMount } from "svelte";
+  // ...existing imports
+  import { registerSW } from "virtual:pwa-register";
+
+  let { children } = $props();
+
+  onMount(() => {
+    registerSW({ immediate: true });
+  });
+</script>
+```
+
+Add the `virtual:pwa-register` mock to `session-shell.test.mts` so its layout rendering
+keeps passing. Run the registration and shell tests and expect PASS.
 
 - [ ] **Step 1: Write the failing service-worker and manifest tests**
 
@@ -890,12 +978,72 @@ scope: "/",
 Run: `bun run --cwd apps/web test src/sw.test.mts apps/web/src/pwa.test.mts`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 5: Add the build artifact check**
+
+Create `apps/web/scripts/check-build.mts`:
+
+```ts
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { join, resolve } from "node:path";
+
+const build = resolve(process.cwd(), "build");
+const immutable = join(build, "_app", "immutable");
+const failures: string[] = [];
+
+const html = readFileSync(join(build, "index.html"), "utf8");
+if (!html.includes('rel="manifest"')) {
+  failures.push("index.html has no manifest link");
+}
+
+for (const icon of [
+  "apple-touch-icon.png",
+  "pwa-192x192.png",
+  "pwa-512x512.png",
+  "pwa-maskable-512x512.png",
+]) {
+  if (!existsSync(join(build, icon))) {
+    failures.push(`missing ${icon}`);
+  }
+}
+
+const sw = readFileSync(join(build, "sw.js"), "utf8");
+if (!sw.includes("gymos-shell")) {
+  failures.push("sw.js has no shell cache");
+}
+
+const registers = readdirSync(immutable, { recursive: true })
+  .filter((file): file is string => typeof file === "string" && file.endsWith(".js"))
+  .some((file) =>
+    readFileSync(join(immutable, file), "utf8").includes("serviceWorker.register"),
+  );
+if (!registers) {
+  failures.push("no service worker registration in the client bundle");
+}
+
+if (failures.length > 0) {
+  console.error(`Build checks failed:\n- ${failures.join("\n- ")}`);
+  process.exit(1);
+}
+
+console.log("PWA build checks passed");
+```
+
+Wire it into the web `build` script:
+
+```json
+"build": "vite build && bun scripts/check-build.mts"
+```
+
+Run `bun run build` and expect `PWA build checks passed`.
+
+- [ ] **Step 6: Commit**
 
 ```bash
-git add apps/web/package.json apps/web/src/sw.ts apps/web/src/pwa-manifest.mts \
-  apps/web/src/sw.test.mts apps/web/src/pwa.test.mts bun.lock
-git commit -m "#126: Keep deep links working offline"
+git add apps/web/package.json apps/web/vite.config.ts apps/web/src/vite-env.d.ts \
+  apps/web/src/routes/+layout.svelte apps/web/src/sw.ts apps/web/src/pwa-manifest.mts \
+  apps/web/src/sw.test.mts apps/web/src/pwa.test.mts apps/web/src/routes/session-shell.test.mts \
+  apps/web/src/routes/pwa-registration.test.mts apps/web/scripts/check-build.mts bun.lock
+git commit -m "#126: Keep the PWA working with SvelteKit"
 ```
 
 ---
@@ -903,6 +1051,7 @@ git commit -m "#126: Keep deep links working offline"
 ### Task 5: Update the static deployment and architecture docs
 
 **Files:**
+- Modify: `.dockerignore`
 - Modify: `apps/web/Dockerfile`
 - Modify: `apps/web/nginx.conf`
 - Modify: `docs/architecture.md`
@@ -914,7 +1063,7 @@ git commit -m "#126: Keep deep links working offline"
 - [ ] **Step 1: Verify the build output**
 
 Run: `bun run build`
-Expected: `apps/web/build/index.html`, `apps/web/build/_app/immutable/`, `apps/web/build/sw.js`, and `apps/web/build/manifest.webmanifest` exist.
+Expected: `apps/web/build/index.html`, `_app/immutable/`, `sw.js`, `manifest.webmanifest`, and the four PNG icons exist.
 
 - [ ] **Step 2: Update the Dockerfile**
 
@@ -929,11 +1078,25 @@ location /_app/immutable/ {
     add_header Cache-Control "public, max-age=31536000, immutable";
     try_files $uri =404;
 }
+
+location = /_app/version.json {
+    add_header Cache-Control "no-cache";
+    try_files $uri =404;
+}
 ```
 
 Keep `location /` with `try_files $uri $uri/ /index.html;` and the no-cache rules for `/index.html`, `/sw.js`, and `/manifest.webmanifest`.
 
-- [ ] **Step 4: Update the architecture doc**
+- [ ] **Step 4: Keep generated output out of the Docker context**
+
+Add to `.dockerignore`:
+
+```
+**/build
+**/.svelte-kit
+```
+
+- [ ] **Step 5: Update the architecture doc**
 
 In `docs/architecture.md`:
 
@@ -941,10 +1104,10 @@ In `docs/architecture.md`:
 - Section 4.2: replace `index.html`, `main.mts`, `App.svelte`, and `App.test.mts` with `src/app.html`, `src/routes/+layout.svelte`, `src/routes/+layout.ts`, `src/routes/+page.ts`, `src/routes/gym/+page.svelte`, `src/routes/nutrition/+page.svelte`, `src/routes/extractor/+page.svelte`, and `src/lib/`.
 - Section 4.3: keep the session-bar bullet, but state that the layout hides the tab bar while a session is active and that SessionView keeps its fixed session bar.
 
-- [ ] **Step 5: Commit code and docs separately**
+- [ ] **Step 6: Commit code and docs separately**
 
 ```bash
-git add apps/web/Dockerfile apps/web/nginx.conf
+git add .dockerignore apps/web/Dockerfile apps/web/nginx.conf
 git commit -m "#126: Update the web deployment for SvelteKit"
 
 git add docs/architecture.md
@@ -967,19 +1130,19 @@ DATABASE_URL='postgresql://gymos:gymos@localhost:55432/gymos?schema=public' \
   bun run --cwd apps/api db:seed
 ```
 
-`NODE_OPTIONS=--localstorage-file` is needed on this macOS machine because Node's experimental `localStorage` shadows happy-dom's; CI does not need it.
+`DATABASE_URL` is needed only for the API tests. The web tests fall back to
+`sessionStorage` where `localStorage` is unavailable.
 
 - [ ] **Step 1: Run the project checks**
 
 ```bash
 bun run typecheck
 bun run lint:all
-DATABASE_URL='postgresql://gymos:gymos@localhost:55432/gymos?schema=public' \
-  NODE_OPTIONS='--localstorage-file=/tmp/gymos-test-localstorage' bun run test
+DATABASE_URL='postgresql://gymos:gymos@localhost:55432/gymos?schema=public' bun run test
 bun run build
 ```
 
-Expected: all pass. The `DATABASE_URL` and `NODE_OPTIONS` values are for the disposable local Postgres and Node's experimental localStorage on this machine; CI uses its own Postgres and does not need `NODE_OPTIONS`.
+Expected: all pass. `bun run build` also runs the PWA artifact check.
 
 - [ ] **Step 2: Verify the built app**
 

@@ -28,8 +28,9 @@ supports that toolchain.
 - Top-level areas become routes: `/gym`, `/nutrition`, and `/extractor`; `/` redirects
   to `/gym`. The layout owns the header, content area, and tab bar. Gym's internal
   gallery tabs stay component state.
-- The Hono API, `packages/shared`, database, styles, and PWA layer remain unchanged. The
-  web app still makes no server-side requests of its own.
+- The Hono API, `packages/shared`, database, styles, and PWA manifest remain unchanged.
+  The web app still makes no server-side requests of its own; the PWA registration and
+  service worker change as described below.
 - The static nginx/Kubernetes deployment stays; only the build output directory and the
   immutable asset cache path change.
 - The explicit service worker gains a network-first `NavigationRoute` shell handler that

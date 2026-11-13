@@ -96,8 +96,13 @@ src/lib/shell.svelte.ts        module-level sessionActive state
 
 - Keep `vite-plugin-pwa` with `injectManifest`, `srcDir: 'src'`, `filename: 'sw.ts'`,
   `registerType: 'autoUpdate'`, and the existing precache globs.
-- Keep the plugin's automatic registration. The build emits `registerSW.js` and injects
-  it into the generated HTML; no manual registration code is added.
+- Set `injectRegister: null`. SvelteKit generates the SPA fallback from `src/app.html`
+  at adapter time, so Vite's HTML injection does not run. The root layout imports
+  `virtual:pwa-register` and calls `registerSW({ immediate: true })` in `onMount`.
+  `src/app.html` links the manifest directly, and `src/vite-env.d.ts` adds the
+  `vite-plugin-pwa/client` types.
+- Move the PWA icons from `apps/web/public` to `apps/web/static`, SvelteKit's asset
+  directory, so the adapter copies them into `build/`. `pwa.test.mts` reads `static/`.
 - Add `workbox-routing` to the web dev dependencies. `src/sw.ts` registers a
   `NavigationRoute` with a network-first shell handler: it fetches `/index.html`,
   caches it, and serves that cache when offline. The service worker's `install` event
@@ -106,7 +111,10 @@ src/lib/shell.svelte.ts        module-level sessionActive state
   `/health`, `/sw.js`, and `/manifest.webmanifest`; this keeps deep links such as
   `/nutrition` working offline.
 - Manifest: add `start_url: '/gym'` and `scope: '/'`; keep icons, colors, display, and
-  copy. `src/vite-env.d.ts` adds the `vite-plugin-pwa/client` types.
+  copy.
+- The web build runs `scripts/check-build.mts` after `vite build`. It fails when the
+  built HTML has no manifest link, an icon is missing from `build/`, `sw.js` has no
+  shell cache, or no client chunk registers the service worker.
 
 ## Styling
 
@@ -125,11 +133,15 @@ after this migration.
   importing components directly and stay unchanged.
 - `App.test.mts` is replaced by route-level tests: the layout renders three navigation
   links with the correct `href` and `aria-current`; `/nutrition` and `/extractor` render
-  their placeholder cards; `/gym` renders `GymView` with the mocked API. Mock
-  `$app/state` where needed.
+  their placeholder cards; `/gym` renders `GymView` with the mocked API; `/` redirects
+  to `/gym`; the layout registers the service worker; ending a session shows the tab
+  bar again. Mock `$app/state` and `virtual:pwa-register` where needed.
 - Add `svelte-kit sync` before `svelte-check` and Vitest (`typecheck` and `test`
   scripts) so `.svelte-kit/` exists in CI.
-- `tsconfig.json` extends `.svelte-kit/tsconfig.json`; the root strictness stays.
+- `tsconfig.json` extends `.svelte-kit/tsconfig.json` and re-adds `src/**/*` to
+  `include`, because the generated include does not match `.mts` test files; the root
+  strictness stays. The web build's `check-build.mts` verifies the PWA artifacts in
+  `build/`.
 
 ## Deployment
 
