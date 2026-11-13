@@ -2,10 +2,9 @@
   import { onMount, tick } from "svelte";
   import {
     Check,
+    ChevronLeft,
     ChevronRight,
     LayoutGrid,
-    Minus,
-    Plus,
     Trash2,
   } from "lucide-svelte";
   import type {
@@ -70,7 +69,7 @@
   let freeExercises = $state<Exercise[]>([]);
   let exerciseToAdd = $state("");
   let showSwitcher = $state(false);
-  let showSets = $state(false);
+  let setsOpen = $state(false);
   let showTimer = $state(false);
   let showEditExercise = $state(false);
   let deleteTarget = $state<string | null>(null);
@@ -273,15 +272,6 @@
     };
   }
 
-  function adjustReps(delta: number) {
-    setDraft("reps", clamp(Math.round(draft.reps + delta), 1, MAX_SET_REPS));
-  }
-
-  function adjustWeight(delta: number) {
-    const next = Math.round((draft.weightKg + delta) * 100) / 100;
-    setDraft("weightKg", clamp(next, 0, MAX_SET_WEIGHT_KG));
-  }
-
   async function beginEdit(kind: "reps" | "weight") {
     editing = kind;
     editValue = String(draft[kind === "weight" ? "weightKg" : "reps"]);
@@ -350,6 +340,9 @@
     if (nextIndex < 0 || nextIndex >= pages.length) return;
     index = nextIndex;
     editing = null;
+    setsOpen = false;
+    deleteTarget = null;
+    deleteError = null;
     if (focus) {
       await tick();
       document.getElementById("session-focus")?.focus();
@@ -357,6 +350,7 @@
   }
 
   function startSwipe(event: PointerEvent) {
+    if (!event.isPrimary) return;
     if (event.pointerType === "mouse" && event.button !== 0) return;
     swipeStart = {
       x: event.clientX,
@@ -370,7 +364,7 @@
     const dx = event.clientX - swipeStart.x;
     const dy = event.clientY - swipeStart.y;
     swipeStart = null;
-    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.4) return;
+    if (Math.abs(dx) < 48 || Math.abs(dx) < Math.abs(dy) * 1.4) return;
     if (dx < 0) void goToPage(index + 1);
     else void goToPage(index - 1);
   }
@@ -379,10 +373,10 @@
     swipeStart = null;
   }
 
-  function openSets() {
+  function toggleSets() {
+    setsOpen = !setsOpen;
     deleteTarget = null;
     deleteError = null;
-    showSets = true;
   }
 
   async function removeSet(set: LoggedSet) {
@@ -475,11 +469,11 @@
       </button>
       <button
         type="button"
-        class="icon-btn muted"
-        aria-label="Choose exercise"
+        class="focus-exercises"
         onclick={() => (showSwitcher = true)}
       >
-        <LayoutGrid size={20} aria-hidden="true" />
+        <LayoutGrid size={16} aria-hidden="true" />
+        <span>Exercises</span>
       </button>
     </div>
   </header>
@@ -559,16 +553,7 @@
             <div class="focus-metrics">
               <div class="focus-metric">
                 <span class="focus-metric-label">Reps</span>
-                <div class="focus-metric-row">
-                  <button
-                    type="button"
-                    class="step-btn"
-                    aria-label="Decrease reps"
-                    disabled={!active || pending}
-                    onclick={() => adjustReps(-1)}
-                  >
-                    <Minus size={18} aria-hidden="true" />
-                  </button>
+                <div class="focus-metric-value">
                   {#if active && editing === "reps"}
                     <input
                       bind:this={editInput}
@@ -593,30 +578,12 @@
                       {pageDraft.reps}
                     </button>
                   {/if}
-                  <button
-                    type="button"
-                    class="step-btn"
-                    aria-label="Increase reps"
-                    disabled={!active || pending}
-                    onclick={() => adjustReps(1)}
-                  >
-                    <Plus size={18} aria-hidden="true" />
-                  </button>
                 </div>
               </div>
 
               <div class="focus-metric">
                 <span class="focus-metric-label">Weight</span>
-                <div class="focus-metric-row">
-                  <button
-                    type="button"
-                    class="step-btn"
-                    aria-label="Decrease weight"
-                    disabled={!active || pending}
-                    onclick={() => adjustWeight(-2.5)}
-                  >
-                    <Minus size={18} aria-hidden="true" />
-                  </button>
+                <div class="focus-metric-value">
                   {#if active && editing === "weight"}
                     <input
                       bind:this={editInput}
@@ -641,15 +608,6 @@
                       {formatWeight(pageDraft.weightKg)}
                     </button>
                   {/if}
-                  <button
-                    type="button"
-                    class="step-btn"
-                    aria-label="Increase weight"
-                    disabled={!active || pending}
-                    onclick={() => adjustWeight(2.5)}
-                  >
-                    <Plus size={18} aria-hidden="true" />
-                  </button>
                 </div>
               </div>
             </div>
@@ -658,8 +616,10 @@
               type="button"
               class="focus-sets"
               disabled={!active}
-              aria-label={`${page.sets.length} of ${Math.max(page.targetSets, page.sets.length)} sets. Open sets`}
-              onclick={openSets}
+              aria-expanded={active ? setsOpen : false}
+              aria-controls={active ? "focus-sets-panel" : undefined}
+              aria-label={`${page.sets.length} of ${Math.max(page.targetSets, page.sets.length)} sets. ${setsOpen ? "Hide" : "Show"} sets`}
+              onclick={toggleSets}
             >
               <span class="set-dots" aria-hidden="true">
                 {#each dotIndices(
@@ -680,8 +640,67 @@
                   Done
                 </span>
               {/if}
-              <ChevronRight size={15} class="sets-chevron" aria-hidden="true" />
+              <ChevronRight
+                size={15}
+                class={`sets-chevron ${active && setsOpen ? "open" : ""}`}
+                aria-hidden="true"
+              />
             </button>
+
+            {#if active && setsOpen}
+              <div class="focus-set-panel" id="focus-sets-panel">
+                {#if page.sets.length === 0}
+                  <p class="focus-set-empty">No sets logged yet.</p>
+                {:else}
+                  {#each page.sets as set (set.id)}
+                    {#if deleteTarget === set.id}
+                      <div class="set-confirm">
+                        <span>Delete set {set.setNumber}?</span>
+                        <div class="set-confirm-actions">
+                          <button
+                            type="button"
+                            class="btn btn-ghost btn-compact"
+                            disabled={pending}
+                            onclick={() => (deleteTarget = null)}
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            class="btn btn-danger btn-compact"
+                            disabled={pending}
+                            onclick={() => void removeSet(set)}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    {:else}
+                      <div class="focus-set-row">
+                        <span class="focus-set-number">Set {set.setNumber}</span>
+                        <span class="focus-set-value">
+                          {set.reps} × {formatWeight(set.weightKg)} kg
+                        </span>
+                        <button
+                          type="button"
+                          class="icon-btn muted"
+                          aria-label={`Delete set ${set.setNumber} for ${page.name}`}
+                          disabled={pending}
+                          onclick={() => (deleteTarget = set.id)}
+                        >
+                          <Trash2 size={17} aria-hidden="true" />
+                        </button>
+                      </div>
+                    {/if}
+                  {/each}
+                {/if}
+                {#if deleteError}
+                  <p class="error focus-set-error" role="alert">
+                    {deleteError}
+                  </p>
+                {/if}
+              </div>
+            {/if}
 
             <div class="grow"></div>
 
@@ -695,26 +714,40 @@
                 {pending ? "Saving…" : "Log set"}
               </button>
               <div class="focus-foot">
-                <span class="focus-foot-label">{session.title}</span>
-                {#if pageIndex < pages.length - 1}
+                <div class="focus-foot-nav">
                   <button
                     type="button"
-                    class="focus-next"
-                    onclick={() => void goToPage(pageIndex + 1)}
+                    class="focus-back"
+                    disabled={pageIndex === 0}
+                    onclick={() => void goToPage(pageIndex - 1)}
                   >
-                    <span>Next · {pages[pageIndex + 1]?.name}</span>
-                    <ChevronRight size={14} aria-hidden="true" />
+                    <ChevronLeft size={14} aria-hidden="true" />
+                    <span>
+                      Back{pageIndex > 0
+                        ? ` · ${pages[pageIndex - 1]?.name}`
+                        : ""}
+                    </span>
                   </button>
-                {:else}
-                  <button
-                    type="button"
-                    class="focus-next"
-                    disabled={finishing}
-                    onclick={() => void finish()}
-                  >
-                    Finish workout
-                  </button>
-                {/if}
+                  {#if pageIndex < pages.length - 1}
+                    <button
+                      type="button"
+                      class="focus-next"
+                      onclick={() => void goToPage(pageIndex + 1)}
+                    >
+                      <span>Next · {pages[pageIndex + 1]?.name}</span>
+                      <ChevronRight size={14} aria-hidden="true" />
+                    </button>
+                  {:else}
+                    <button
+                      type="button"
+                      class="focus-next"
+                      disabled={finishing}
+                      onclick={() => void finish()}
+                    >
+                      Finish workout
+                    </button>
+                  {/if}
+                </div>
               </div>
             </div>
           </section>
@@ -795,63 +828,6 @@
     >
       {finishing ? "Finishing…" : "Finish workout"}
     </button>
-  </SessionSheet>
-
-  <SessionSheet
-    open={showSets}
-    title={current ? `${current.name} sets` : "Sets"}
-    onClose={() => (showSets = false)}
-  >
-    {#if current && current.sets.length > 0}
-      <div class="sheet-sets">
-        {#each current.sets as set (set.id)}
-          {#if deleteTarget === set.id}
-            <div class="set-confirm">
-              <span>Delete set {set.setNumber}?</span>
-              <div class="set-confirm-actions">
-                <button
-                  type="button"
-                  class="btn btn-ghost btn-compact"
-                  disabled={pending}
-                  onclick={() => (deleteTarget = null)}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  class="btn btn-primary btn-compact"
-                  disabled={pending}
-                  onclick={() => void removeSet(set)}
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          {:else}
-            <div class="set-row sheet-set-row">
-              <span class="badge">Set {set.setNumber}</span>
-              <span class="grow set-value">
-                {set.reps} × {formatWeight(set.weightKg)} kg
-              </span>
-              <button
-                type="button"
-                class="icon-btn danger"
-                aria-label={`Delete set ${set.setNumber} for ${set.exerciseName}`}
-                disabled={pending}
-                onclick={() => (deleteTarget = set.id)}
-              >
-                <Trash2 size={17} aria-hidden="true" />
-              </button>
-            </div>
-          {/if}
-        {/each}
-      </div>
-    {:else}
-      <p class="muted">No sets logged yet.</p>
-    {/if}
-    {#if deleteError}
-      <p class="error" role="alert">{deleteError}</p>
-    {/if}
   </SessionSheet>
 
   <SessionSheet

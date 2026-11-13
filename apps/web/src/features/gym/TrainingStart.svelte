@@ -19,7 +19,7 @@
   import WorkoutPicker from "./WorkoutPicker.svelte";
   import SettingsButton from "$lib/SettingsButton.svelte";
   import { settings } from "$lib/settings.svelte.ts";
-  import { goToSpace, spaceSwipe } from "$lib/space.ts";
+  import { goToSpace, prefetchSpace, spaceSwipe } from "$lib/space.ts";
 
   let activeSession = $state<WorkoutSessionDetail | null>(null);
   let loading = $state(true);
@@ -35,6 +35,7 @@
   );
 
   onMount(() => {
+    prefetchSpace("nutrition");
     void loadStart();
   });
 

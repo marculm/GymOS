@@ -20,6 +20,7 @@ import TrainingStart from "./TrainingStart.svelte";
 
 vi.mock("$app/navigation", () => ({
   goto: vi.fn(),
+  preloadData: vi.fn(async () => ({})),
 }));
 
 vi.mock("../../api/gym.mts", () => ({

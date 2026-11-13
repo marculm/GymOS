@@ -4,6 +4,7 @@ import { goToSpace, spaceSwipe } from "./space.ts";
 
 vi.mock("$app/navigation", () => ({
   goto: vi.fn(),
+  preloadData: vi.fn(async () => ({})),
 }));
 
 afterEach(() => {

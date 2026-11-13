@@ -90,6 +90,14 @@ function renderSession(
   return { onLogSet, onDeleteSet, onUpdateExercise, onComplete };
 }
 
+function activePage(): HTMLElement {
+  const page = document.querySelector<HTMLElement>(
+    '.focus-page[aria-hidden="false"]'
+  );
+  if (!page) throw new Error("active focus page is missing");
+  return page;
+}
+
 beforeEach(() => {
   try {
     window.localStorage?.clear();
@@ -136,24 +144,6 @@ describe("SessionView", () => {
     ).toBeInTheDocument();
   });
 
-  it("changes reps and weight with the steppers", async () => {
-    renderSession();
-
-    await fireEvent.click(
-      screen.getByRole("button", { name: "Increase reps" })
-    );
-    expect(
-      screen.getByRole("button", { name: "Edit reps, current 9" })
-    ).toBeInTheDocument();
-
-    await fireEvent.click(
-      screen.getByRole("button", { name: "Increase weight" })
-    );
-    expect(
-      screen.getByRole("button", { name: "Edit weight, current 82.5 kg" })
-    ).toBeInTheDocument();
-  });
-
   it("accepts a typed value", async () => {
     renderSession();
 
@@ -170,6 +160,22 @@ describe("SessionView", () => {
     ).toBeInTheDocument();
   });
 
+  it("accepts a typed weight", async () => {
+    renderSession();
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Edit weight, current 80 kg" })
+    );
+    const input = document.querySelector<HTMLInputElement>(".metric-input");
+    if (!input) throw new Error("metric input is missing");
+    await fireEvent.input(input, { target: { value: "82.5" } });
+    await fireEvent.blur(input);
+
+    expect(
+      screen.getByRole("button", { name: "Edit weight, current 82.5 kg" })
+    ).toBeInTheDocument();
+  });
+
   it("moves to the next exercise", async () => {
     renderSession();
 
@@ -183,6 +189,30 @@ describe("SessionView", () => {
     expect(screen.getByText("Exercise 2 of 3")).toBeInTheDocument();
   });
 
+  it("moves back to the previous exercise", async () => {
+    renderSession();
+
+    expect(
+      within(activePage()).getByRole("button", { name: /^Back/ })
+    ).toBeDisabled();
+    await fireEvent.click(
+      screen.getByRole("button", { name: /Next · Overhead Shoulder Press/ })
+    );
+    expect(
+      within(activePage()).getByRole("button", {
+        name: /Back · Barbell Bench Press/,
+      })
+    ).toBeInTheDocument();
+    await fireEvent.click(
+      within(activePage()).getByRole("button", { name: /^Back/ })
+    );
+
+    expect(
+      await screen.findByRole("heading", { name: "Barbell Bench Press" })
+    ).toBeInTheDocument();
+    expect(screen.getByText("Exercise 1 of 3")).toBeInTheDocument();
+  });
+
   it("swipes between exercises", async () => {
     renderSession();
 
@@ -191,11 +221,13 @@ describe("SessionView", () => {
       clientX: 300,
       clientY: 200,
       pointerId: 1,
+      isPrimary: true,
     });
     await fireEvent.pointerUp(pager, {
       clientX: 200,
       clientY: 200,
       pointerId: 1,
+      isPrimary: true,
     });
 
     expect(
@@ -207,7 +239,7 @@ describe("SessionView", () => {
     renderSession();
 
     await fireEvent.click(
-      screen.getByRole("button", { name: "Choose exercise" })
+      screen.getByRole("button", { name: "Exercises" })
     );
     const dialog = await screen.findByRole("dialog", { name: "Exercises" });
     await fireEvent.click(
@@ -219,7 +251,7 @@ describe("SessionView", () => {
     ).toBeInTheDocument();
   });
 
-  it("deletes a logged set from the sets sheet", async () => {
+  it("deletes a logged set from the inline list", async () => {
     const withSet: WorkoutSessionDetail = {
       ...session,
       sets: [
@@ -239,17 +271,15 @@ describe("SessionView", () => {
     await fireEvent.click(
       screen.getByRole("button", { name: /1 of 3 sets/ })
     );
-    const dialog = await screen.findByRole("dialog", {
-      name: "Barbell Bench Press sets",
-    });
+    const panel = document.querySelector<HTMLElement>(".focus-set-panel");
+    if (!panel) throw new Error("inline set list is missing");
+    expect(within(panel).getByText("Set 1")).toBeInTheDocument();
     await fireEvent.click(
-      within(dialog).getByRole("button", {
+      within(panel).getByRole("button", {
         name: "Delete set 1 for Barbell Bench Press",
       })
     );
-    await fireEvent.click(
-      within(dialog).getByRole("button", { name: "Delete" })
-    );
+    await fireEvent.click(within(panel).getByRole("button", { name: "Delete" }));
 
     await waitFor(() => expect(onDeleteSet).toHaveBeenCalledWith("set-1"));
   });

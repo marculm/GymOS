@@ -1,4 +1,4 @@
-import { goto } from "$app/navigation";
+import { goto, preloadData } from "$app/navigation";
 import type { Action } from "svelte/action";
 
 export type Space = "training" | "nutrition";
@@ -9,8 +9,18 @@ type ViewTransitionDocument = Document & {
   };
 };
 
+const prefetched = new Set<string>();
+
+export function prefetchSpace(space: Space): void {
+  const path = space === "nutrition" ? "/nutrition" : "/gym";
+  if (prefetched.has(path)) return;
+  prefetched.add(path);
+  void preloadData(path).catch(() => prefetched.delete(path));
+}
+
 export function goToSpace(space: Space): void {
   const path = space === "nutrition" ? "/nutrition" : "/gym";
+  prefetchSpace(space);
   const doc = document as ViewTransitionDocument;
 
   if (!doc.startViewTransition) {
