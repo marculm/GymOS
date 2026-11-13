@@ -1,12 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/svelte";
+import { fireEvent, render, screen } from "@testing-library/svelte";
 import type { WorkoutSessionDetail } from "@gymos/shared";
-import { getActiveSession } from "../api/gym.mts";
+import { completeSession, getActiveSession } from "../api/gym.mts";
 import { shell } from "../lib/shell.svelte.ts";
 import Harness from "../test/SessionShellHarness.svelte";
 
 vi.mock("$app/state", () => ({
   page: { url: { pathname: "/gym" } },
+}));
+
+vi.mock("virtual:pwa-register", () => ({
+  registerSW: vi.fn(),
 }));
 
 vi.mock("../api/gym.mts", () => ({
@@ -56,5 +60,22 @@ describe("session shell", () => {
     expect(
       screen.queryByRole("navigation", { name: /main navigation/i }),
     ).not.toBeInTheDocument();
+  });
+
+  it("shows the tab bar after the session ends", async () => {
+    vi.mocked(getActiveSession).mockResolvedValue(activeSession);
+    vi.mocked(completeSession).mockResolvedValue({
+      ...activeSession,
+      completedAt: "2026-11-13T19:00:00.000Z",
+    });
+    render(Harness);
+
+    await fireEvent.click(
+      await screen.findByRole("button", { name: /finish workout/i }),
+    );
+
+    expect(
+      await screen.findByRole("navigation", { name: /main navigation/i }),
+    ).toBeInTheDocument();
   });
 });
