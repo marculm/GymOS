@@ -1807,29 +1807,15 @@ button.list-row {
 
 /* View transitions */
 
-@keyframes space-out-left {
-  to {
-    transform: translateX(-10%);
-    opacity: 0.6;
-  }
-}
-
 @keyframes space-in-right {
   from {
-    transform: translateX(14%);
-  }
-}
-
-@keyframes space-out-right {
-  to {
-    transform: translateX(10%);
-    opacity: 0.6;
+    transform: translateX(100%);
   }
 }
 
 @keyframes space-in-left {
   from {
-    transform: translateX(-14%);
+    transform: translateX(-100%);
   }
 }
 
@@ -1841,15 +1827,11 @@ button.list-row {
 }
 
 ::view-transition-old(root) {
-  animation: space-out-left 280ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation: none;
 }
 
 ::view-transition-new(root) {
-  animation: space-in-right 280ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
-}
-
-html[data-space="to-training"]::view-transition-old(root) {
-  animation-name: space-out-right;
+  animation: space-in-right 360ms cubic-bezier(0.32, 0.72, 0, 1) both;
 }
 
 html[data-space="to-training"]::view-transition-new(root) {

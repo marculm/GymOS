@@ -2,13 +2,16 @@
   import { onDestroy, onMount } from "svelte";
   import { ChevronLeft, Utensils } from "lucide-svelte";
   import SettingsButton from "$lib/SettingsButton.svelte";
-  import { goToSpace, spaceSwipe } from "$lib/space.ts";
+  import { goToSpace, prefetchSpace, spaceSwipe } from "$lib/space.ts";
   import {
     lightThemeColor,
     trainingThemeColor,
   } from "$lib/theme-color.ts";
 
-  onMount(lightThemeColor);
+  onMount(() => {
+    lightThemeColor();
+    prefetchSpace("training");
+  });
   onDestroy(trainingThemeColor);
 </script>
 
