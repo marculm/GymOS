@@ -6,11 +6,19 @@ import ExtractorPage from "./extractor/+page.svelte";
 describe("placeholder routes", () => {
   it("renders the Nutrition placeholder", () => {
     render(NutritionPage);
-    expect(screen.getByText("Nutrition & Mealprep")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Nutrition" })
+    ).toBeInTheDocument();
+    expect(screen.getByText("Coming soon")).toBeInTheDocument();
   });
 
   it("renders the AI Extractor placeholder", () => {
     render(ExtractorPage);
-    expect(screen.getByText("TikTok / Reels AI Extractor")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "AI Extractor" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("TikTok / Reels AI Extractor")
+    ).toBeInTheDocument();
   });
 });
