@@ -3,7 +3,7 @@ import { goto } from "$app/navigation";
 import { goToSpace, spaceSwipe } from "./space.ts";
 
 vi.mock("$app/navigation", () => ({
-  goto: vi.fn(),
+  goto: vi.fn(async () => undefined),
   preloadData: vi.fn(async () => ({})),
 }));
 
@@ -11,77 +11,119 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
+function swipe(
+  node: Element,
+  fromX: number,
+  toX: number,
+  fromY = 120,
+  toY = 120,
+  pointerId = 1
+) {
+  node.dispatchEvent(
+    new PointerEvent("pointerdown", {
+      clientX: fromX,
+      clientY: fromY,
+      pointerId,
+      isPrimary: true,
+      bubbles: true,
+    })
+  );
+  node.dispatchEvent(
+    new PointerEvent("pointerup", {
+      clientX: toX,
+      clientY: toY,
+      pointerId,
+      isPrimary: true,
+      bubbles: true,
+    })
+  );
+}
+
 describe("space gestures", () => {
-  it("navigates to the other space", () => {
+  it("navigates to the other space", async () => {
     goToSpace("nutrition");
-    expect(goto).toHaveBeenCalledWith("/nutrition");
+    expect(goto).toHaveBeenCalledWith("/nutrition", { replaceState: true });
+    await new Promise((resolve) => setTimeout(resolve, 0));
 
     goToSpace("training");
-    expect(goto).toHaveBeenCalledWith("/gym");
+    expect(goto).toHaveBeenCalledWith("/gym", { replaceState: true });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  });
+
+  it("ignores a second switch while one is running", async () => {
+    goToSpace("nutrition");
+    goToSpace("training");
+
+    expect(goto).toHaveBeenCalledTimes(1);
+    expect(goto).toHaveBeenCalledWith("/nutrition", { replaceState: true });
+    await new Promise((resolve) => setTimeout(resolve, 0));
   });
 
   it("swipes left to advance and right to go back", () => {
     const node = document.createElement("div");
+    document.body.appendChild(node);
     const onSwipeLeft = vi.fn();
     const onSwipeRight = vi.fn();
     const action = spaceSwipe(node, { onSwipeLeft, onSwipeRight }) as {
       destroy: () => void;
     };
 
-    node.dispatchEvent(
-      new PointerEvent("pointerdown", {
-        clientX: 300,
-        clientY: 120,
-        pointerId: 1,
-        bubbles: true,
-      })
-    );
-    node.dispatchEvent(
-      new PointerEvent("pointerup", {
-        clientX: 200,
-        clientY: 120,
-        pointerId: 1,
-        bubbles: true,
-      })
-    );
+    swipe(node, 300, 200);
     expect(onSwipeLeft).toHaveBeenCalledOnce();
 
-    node.dispatchEvent(
-      new PointerEvent("pointerdown", {
-        clientX: 100,
-        clientY: 120,
-        pointerId: 2,
-        bubbles: true,
-      })
-    );
-    node.dispatchEvent(
-      new PointerEvent("pointerup", {
-        clientX: 220,
-        clientY: 120,
-        pointerId: 2,
-        bubbles: true,
-      })
-    );
+    swipe(node, 100, 220, 120, 120, 2);
     expect(onSwipeRight).toHaveBeenCalledOnce();
 
-    node.dispatchEvent(
-      new PointerEvent("pointerdown", {
-        clientX: 200,
-        clientY: 100,
-        pointerId: 3,
-        bubbles: true,
-      })
-    );
-    node.dispatchEvent(
-      new PointerEvent("pointerup", {
-        clientX: 180,
-        clientY: 220,
-        pointerId: 3,
-        bubbles: true,
-      })
-    );
+    swipe(node, 200, 180, 100, 220, 3);
     expect(onSwipeLeft).toHaveBeenCalledOnce();
 
     action.destroy();
+    node.remove();
+  });
+
+  it("suppresses the click after a swipe", () => {
+    const node = document.createElement("div");
+    const button = document.createElement("button");
+    node.appendChild(button);
+    document.body.appendChild(node);
+
+    const onClick = vi.fn();
+    button.addEventListener("click", onClick);
+    const action = spaceSwipe(node, { onSwipeLeft: vi.fn() }) as {
+      destroy: () => void;
+    };
+
+    swipe(button, 300, 200);
+
+    const click = new MouseEvent("click", { bubbles: true, cancelable: true });
+    button.dispatchEvent(click);
+
+    expect(onClick).not.toHaveBeenCalled();
+    expect(click.defaultPrevented).toBe(true);
+    action.destroy();
+    node.remove();
+  });
+
+  it("keeps a normal click", () => {
+    const node = document.createElement("div");
+    const button = document.createElement("button");
+    node.appendChild(button);
+    document.body.appendChild(node);
+
+    const onClick = vi.fn();
+    button.addEventListener("click", onClick);
+    const action = spaceSwipe(node, { onSwipeLeft: vi.fn() }) as {
+      destroy: () => void;
+    };
+
+    swipe(button, 200, 200);
+
+    const click = new MouseEvent("click", { bubbles: true, cancelable: true });
+    button.dispatchEvent(click);
+
+    expect(onClick).toHaveBeenCalledOnce();
+    expect(click.defaultPrevented).toBe(false);
+    action.destroy();
+    node.remove();
   });
 });
