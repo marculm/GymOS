@@ -71,7 +71,7 @@ src/routes/+page.ts             redirect to /gym
 src/routes/gym/+page.svelte     GymView
 src/routes/nutrition/+page.svelte
 src/routes/extractor/+page.svelte
-src/lib/shell-state.svelte.ts   sessionActive context
+src/lib/shell.svelte.ts        module-level sessionActive state
 ```
 
 - The layout renders the existing header (`🏋️ GymOS`, subtitle) and the tab bar. Tabs are
@@ -81,9 +81,9 @@ src/lib/shell-state.svelte.ts   sessionActive context
 - `/gym` is the start route. `/` redirects to `/gym` with `redirect(307, '/gym')` in
   `+page.ts`. The manifest `start_url` becomes `/gym`, and the service worker's default
   notification URL becomes `/gym`.
-- `GymView` keeps its `onSessionActiveChange` prop. `/gym/+page.svelte` reads the shell
-  context and sets `sessionActive`; the layout hides the tab bar while a session is
-  active, as today.
+- `GymView` keeps its `onSessionActiveChange` prop and notifies only when the active
+  state changes. `/gym/+page.svelte` sets the module-level shell state; the layout hides
+  the tab bar while a session is active, as today.
 - The session remains server-side. Navigating away from `/gym` while a session is
   active hides the tab bar (as today), but the browser back button can still leave the
   page. Returning to `/gym` recovers the active session through `getActiveSession`, as
@@ -148,7 +148,7 @@ after this migration.
 2. Verify the PWA integration early: build, serve, confirm `sw.js` is emitted,
    registration works, and the app loads offline. This is the riskiest part.
 3. Move the header and tab bar into the layout, create the three route pages, add the
-   `/` redirect, and wire the shell context. Delete `App.svelte`, `App.test.mts`,
+   `/` redirect, and wire the shell state. Delete `App.svelte`, `App.test.mts`,
    `main.mts`, and `index.html`.
 4. Add the service-worker navigation fallback and the manifest changes.
 5. Update tests, tsconfig, scripts, Dockerfile, and nginx.

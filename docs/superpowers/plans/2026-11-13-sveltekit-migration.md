@@ -262,6 +262,7 @@ Update `apps/web/tsconfig.json`:
 {
   "extends": "./.svelte-kit/tsconfig.json",
   "compilerOptions": {
+    "allowImportingTsExtensions": true,
     "allowJs": true,
     "checkJs": true,
     "esModuleInterop": true,
@@ -523,12 +524,13 @@ git commit -m "#126: Add the app shell and routes"
 - Create: `apps/web/src/lib/shell.svelte.ts`
 - Modify: `apps/web/src/routes/+layout.svelte`
 - Modify: `apps/web/src/routes/gym/+page.svelte`
+- Modify: `apps/web/src/features/gym/GymView.svelte`
 - Create: `apps/web/src/test/SessionShellHarness.svelte`
 - Test: `apps/web/src/routes/session-shell.test.mts`
 
 **Interfaces:**
 - Consumes: `TabBar` from Task 2; `GymView`'s `onSessionActiveChange?: (active: boolean) => void` prop.
-- Produces: `ShellState` class with `sessionActive = $state(false)`; `getShellState()` and `setShellState(state)` from `$lib/shell.svelte`; the layout hides `<TabBar>` when `shell.sessionActive` is true.
+- Produces: a module-level `shell` singleton with `sessionActive = $state(false)` from `$lib/shell.svelte.ts`; the layout hides `<TabBar>` when `shell.sessionActive` is true; `GymView` notifies only when its active state changes.
 
 - [ ] **Step 1: Write the failing session-shell test**
 
@@ -550,6 +552,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/svelte";
 import type { WorkoutSessionDetail } from "@gymos/shared";
 import { getActiveSession, getRotation, listAllExercises, listAllPlans } from "../api/gym.mts";
+import { shell } from "../lib/shell.svelte.ts";
 import Harness from "../test/SessionShellHarness.svelte";
 
 vi.mock("$app/state", () => ({
@@ -579,6 +582,7 @@ const activeSession: WorkoutSessionDetail = {
 };
 
 beforeEach(() => {
+  shell.sessionActive = false;
   vi.mocked(getActiveSession).mockResolvedValue(null);
 });
 
@@ -609,13 +613,11 @@ Expected: FAIL because the page does not pass a session callback and the layout 
 Create `apps/web/src/lib/shell.svelte.ts`:
 
 ```ts
-import { createContext } from "svelte";
-
-export class ShellState {
+class ShellState {
   sessionActive = $state(false);
 }
 
-export const [getShellState, setShellState] = createContext<ShellState>();
+export const shell = new ShellState();
 ```
 
 Update `apps/web/src/routes/+layout.svelte`:
@@ -624,13 +626,10 @@ Update `apps/web/src/routes/+layout.svelte`:
 <script lang="ts">
   import { page } from "$app/state";
   import TabBar from "$lib/TabBar.svelte";
-  import { ShellState, setShellState } from "$lib/shell.svelte";
+  import { shell } from "$lib/shell.svelte.ts";
   import "../styles.css";
 
   let { children } = $props();
-
-  const shell = new ShellState();
-  setShellState(shell);
 </script>
 
 <div class="app">
@@ -654,12 +653,27 @@ Update `apps/web/src/routes/gym/+page.svelte`:
 ```svelte
 <script lang="ts">
   import GymView from "$features/gym/GymView.svelte";
-  import { getShellState } from "$lib/shell.svelte";
+  import { shell } from "$lib/shell.svelte.ts";
 
-  const shell = getShellState();
+  function handleSessionActive(active: boolean) {
+    shell.sessionActive = active;
+  }
 </script>
 
-<GymView onSessionActiveChange={(active) => (shell.sessionActive = active)} />
+<GymView onSessionActiveChange={handleSessionActive} />
+```
+
+Update the effect in `apps/web/src/features/gym/GymView.svelte` so it notifies only when the active state changes; calling the callback on every effect run re-triggers the shell state and exceeds Svelte's update depth:
+
+```ts
+let sessionActive = $derived(activeSession !== null);
+let lastSessionActive: boolean | undefined;
+
+$effect(() => {
+  if (sessionActive === lastSessionActive) return;
+  lastSessionActive = sessionActive;
+  onSessionActiveChange?.(sessionActive);
+});
 ```
 
 - [ ] **Step 4: Run the test to verify it passes**
@@ -671,8 +685,8 @@ Expected: PASS, two tests.
 
 ```bash
 git add apps/web/src/lib/shell.svelte.ts apps/web/src/routes/+layout.svelte \
-  apps/web/src/routes/gym/+page.svelte apps/web/src/test/SessionShellHarness.svelte \
-  apps/web/src/routes/session-shell.test.mts
+  apps/web/src/routes/gym/+page.svelte apps/web/src/features/gym/GymView.svelte \
+  apps/web/src/test/SessionShellHarness.svelte apps/web/src/routes/session-shell.test.mts
 git commit -m "#126: Hide the tab bar during a session"
 ```
 
