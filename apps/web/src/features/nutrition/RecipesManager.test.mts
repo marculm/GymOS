@@ -117,6 +117,17 @@ describe("RecipesManager", () => {
     ).toBeInTheDocument();
   });
 
+  it("reports whether a recipe form is open", async () => {
+    const onEditingChange = vi.fn();
+    render(RecipesManager, { props: { onEditingChange } });
+
+    await fireEvent.click(screen.getByRole("button", { name: "Add recipe" }));
+    await waitFor(() => expect(onEditingChange).toHaveBeenLastCalledWith(true));
+
+    await fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    await waitFor(() => expect(onEditingChange).toHaveBeenLastCalledWith(false));
+  });
+
   it("keeps the edit form open when the list is clicked", async () => {
     nutritionApi.listRecipes.mockResolvedValue([recipe]);
     render(RecipesManager);

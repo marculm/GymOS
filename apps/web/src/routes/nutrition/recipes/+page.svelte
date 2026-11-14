@@ -10,6 +10,8 @@
   } from "$lib/theme-color.ts";
   import RecipesManager from "../../../features/nutrition/RecipesManager.svelte";
 
+  let editing = $state(false);
+
   onMount(() => {
     lightThemeColor();
     prefetchSpace("training");
@@ -19,7 +21,9 @@
 
 <div
   class="space-screen light-space nutrition-space"
-  use:spaceSwipe={{ onSwipeRight: () => void goto("/nutrition") }}
+  use:spaceSwipe={{
+    onSwipeRight: editing ? undefined : () => void goto("/nutrition"),
+  }}
 >
   <SettingsButton />
   <div class="space-column nutrition-body">
@@ -38,6 +42,6 @@
       <p class="nutrition-meta">Saved recipes with macros per serving.</p>
     </div>
 
-    <RecipesManager />
+    <RecipesManager onEditingChange={(value) => (editing = value)} />
   </div>
 </div>

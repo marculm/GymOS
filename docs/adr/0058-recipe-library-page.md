@@ -35,3 +35,6 @@ manual; AI-assisted adding is a later slice.
   library.
 - The recipe routes stay under `/nutrition`, so the nutrition space keeps ownership
   of its features and the existing API and data model are unchanged.
+- The page's right swipe returns to the nutrition home, matching its visible back
+  control; it is paused while a recipe form is open so a gesture cannot discard a
+  draft.

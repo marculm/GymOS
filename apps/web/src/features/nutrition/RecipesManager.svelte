@@ -6,6 +6,12 @@ import RecipeDetail from "./RecipeDetail.svelte";
 import RecipeForm from "./RecipeForm.svelte";
 import { nutritionData } from "./nutrition-data.svelte.ts";
 
+let {
+  onEditingChange,
+}: {
+  onEditingChange?: (editing: boolean) => void;
+} = $props();
+
 let error = $state<string | null>(null);
 let formOpen = $state(false);
 let editing = $state<Recipe | null>(null);
@@ -14,6 +20,10 @@ let listScrollTop = 0;
 
 onMount(() => {
   void load();
+});
+
+$effect(() => {
+  onEditingChange?.(formOpen);
 });
 
 function messageOf(value: unknown): string {
