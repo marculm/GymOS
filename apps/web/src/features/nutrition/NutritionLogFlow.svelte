@@ -211,9 +211,6 @@ function handleClose() {
       <div class="sheet-grabber"></div>
       <div class="sheet-head">
         <h2>Log food</h2>
-        <button type="button" class="icon-btn muted" aria-label="Close" onclick={close}>
-          <X size={22} aria-hidden="true" />
-        </button>
       </div>
       <div class="group nutrition-choice-group">
         <button type="button" class="list-row nutrition-option" onclick={() => (view = "saved")}>
