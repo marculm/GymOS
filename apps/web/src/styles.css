@@ -540,9 +540,9 @@ textarea.input {
 
 .nutrition-gauge-wrap {
   position: relative;
-  width: 190px;
-  height: 190px;
-  margin: 14px auto 0;
+  width: 210px;
+  height: 210px;
+  margin: 76px auto 0;
 }
 
 .nutrition-gauge {
@@ -602,7 +602,7 @@ textarea.input {
 .nutrition-macro-strip {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  margin-top: 16px;
+  margin-top: 52px;
   border-radius: 16px;
   overflow: hidden;
   background: var(--surface);
