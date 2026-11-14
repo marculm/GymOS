@@ -28,6 +28,7 @@ import {
 } from "./modules/gym/service/errors.mts";
 import { gymModule } from "./modules/gym/index.mts";
 import { nutritionModule } from "./modules/nutrition/index.mts";
+import { NutritionNotFoundError } from "./modules/nutrition/service/errors.mts";
 import { PushNotConfiguredError } from "./modules/push/errors.mts";
 import { pushModule } from "./modules/push/index.mts";
 import { createProblemDetails } from "./problem-details.mts";
@@ -65,6 +66,9 @@ app.onError((err, c) => {
     return createProblemDetails(c, 400, "Invalid JSON body");
   }
   if (err instanceof NotFoundError) {
+    return createProblemDetails(c, 404, err.message);
+  }
+  if (err instanceof NutritionNotFoundError) {
     return createProblemDetails(c, 404, err.message);
   }
   if (err instanceof ActiveSessionExistsError) {
