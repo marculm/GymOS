@@ -98,6 +98,23 @@ describe("RecipesManager", () => {
     expect(await screen.findByText("Chicken rice bowl")).toBeInTheDocument();
   });
 
+  it("opens the recipe detail", async () => {
+    nutritionApi.listRecipes.mockResolvedValue([recipe]);
+    render(RecipesManager);
+
+    await fireEvent.click(await screen.findByRole("button", { name: /^Chicken rice bowl/ }));
+
+    expect(
+      screen.getByRole("heading", { name: "Chicken rice bowl" })
+    ).toBeInTheDocument();
+    expect(screen.getByText("Chicken breast")).toBeInTheDocument();
+    expect(screen.getByText("Cook the rice.")).toBeInTheDocument();
+
+    await fireEvent.click(screen.getByRole("button", { name: "Recipes" }));
+
+    expect(await screen.findByRole("button", { name: "Add recipe" })).toBeInTheDocument();
+  });
+
   it("deletes a recipe after confirmation", async () => {
     nutritionApi.listRecipes.mockResolvedValue([recipe]);
     nutritionApi.deleteRecipe.mockResolvedValue(undefined);
