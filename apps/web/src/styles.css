@@ -447,6 +447,10 @@ textarea.input {
   margin-top: 16px;
 }
 
+.recipes-page .settings-button {
+  position: absolute;
+}
+
 .recipes-hero + * {
   margin-top: 24px;
 }

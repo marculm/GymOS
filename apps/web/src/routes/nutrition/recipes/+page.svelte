@@ -30,7 +30,7 @@
 </script>
 
 <div
-  class="space-screen light-space nutrition-space"
+  class="space-screen light-space nutrition-space recipes-page"
   use:spaceSwipe={{
     onSwipeRight: editing
       ? undefined
