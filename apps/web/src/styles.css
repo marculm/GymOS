@@ -1077,6 +1077,47 @@ textarea.input {
   font-size: 0.875rem;
 }
 
+/* Recipe form */
+
+.group-form .recipe-ingredients {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 16px;
+  border-top: 0.5px solid var(--separator);
+}
+
+.group-form .recipe-ingredient {
+  overflow: hidden;
+  border: 0.5px solid var(--separator);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.group-form .recipe-ingredient .form-rows {
+  border-top: 0;
+}
+
+.group-form .recipe-ingredient .form-rows .field {
+  padding: 0 12px;
+}
+
+.remove-ingredient {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  border: 0;
+  border-top: 0.5px solid var(--separator);
+  background: none;
+  color: var(--danger);
+  font-size: 0.9375rem;
+  font-weight: 500;
+}
+
+.remove-ingredient:disabled {
+  opacity: 0.4;
+}
+
 /* Session focus mode */
 
 .session-screen {
