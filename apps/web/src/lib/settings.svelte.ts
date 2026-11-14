@@ -4,6 +4,8 @@ export type SettingsSection =
   | "exercises"
   | "history"
   | "timer"
+  | "targets"
+  | "recipes"
   | "extractor";
 
 class SettingsState {

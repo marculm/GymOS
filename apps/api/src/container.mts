@@ -9,6 +9,8 @@ import { createWebPushNotifier } from "./modules/push/notifier/web-push-notifier
 import { RestTimerRepository } from "./modules/push/repository/rest-timer-repository.mts";
 import { PushSubscriptionRepository } from "./modules/push/repository/subscription-repository.mts";
 import { PushService } from "./modules/push/service/push-service.mts";
+import { NutritionRepository } from "./modules/nutrition/repository/nutrition-repository.mts";
+import { NutritionService } from "./modules/nutrition/service/nutrition-service.mts";
 import { CurrentUserService } from "./security/current-user.mts";
 
 const exerciseRepository = new ExerciseRepository();
@@ -30,6 +32,9 @@ const writeService = new GymWriteService(
   readService
 );
 
+const nutritionRepository = new NutritionRepository();
+const nutritionService = new NutritionService(nutritionRepository);
+
 const restTimerRepository = new RestTimerRepository();
 const vapid = vapidConfig();
 const pushService = new PushService(
@@ -42,6 +47,7 @@ const pushService = new PushService(
 export const container = {
   readService,
   writeService,
+  nutritionService,
   pushService,
   restTimerRepository,
   currentUserService: new CurrentUserService(),
