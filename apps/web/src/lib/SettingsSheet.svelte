@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import {
     Bell,
+    BookOpen,
     ChevronLeft,
     ChevronRight,
     Dumbbell,
@@ -22,6 +23,7 @@
   import { gymData } from "../features/gym/gym-data.svelte.ts";
   import Library from "../features/gym/Library.svelte";
   import NutritionTargetsForm from "../features/nutrition/NutritionTargetsForm.svelte";
+  import RecipesManager from "../features/nutrition/RecipesManager.svelte";
   import {
     formatRestTime,
     loadRestSeconds,
@@ -50,6 +52,7 @@
     history: "History",
     timer: "Rest timer",
     targets: "Daily targets",
+    recipes: "Recipes",
     extractor: "AI Extractor",
   };
 
@@ -247,6 +250,15 @@
             <span class="settings-label">Daily targets</span>
             <ChevronRight class="settings-chevron" size={17} aria-hidden="true" />
           </button>
+          <button
+            type="button"
+            class="settings-row"
+            onclick={() => (settings.section = "recipes")}
+          >
+            <span class="settings-icon"><BookOpen size={17} aria-hidden="true" /></span>
+            <span class="settings-label">Recipes</span>
+            <ChevronRight class="settings-chevron" size={17} aria-hidden="true" />
+          </button>
         </div>
       </section>
 
@@ -303,6 +315,8 @@
           Used for the daily gauge and the remaining calories and macros.
         </p>
       </section>
+    {:else if settings.section === "recipes"}
+      <RecipesManager />
     {:else if settings.section === "extractor"}
       <section class="section">
         <div class="settings-placeholder">
