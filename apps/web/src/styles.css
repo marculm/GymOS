@@ -764,6 +764,23 @@ textarea.input {
   font-weight: 500;
 }
 
+.nutrition-recipes-icon {
+  position: fixed;
+  z-index: 30;
+  top: calc(env(safe-area-inset-top) + 16px);
+  right: calc(max(20px, calc((100vw - 560px) / 2 + 20px)) + 50px);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+
 .nutrition-secondary-row {
   display: flex;
   gap: 8px;

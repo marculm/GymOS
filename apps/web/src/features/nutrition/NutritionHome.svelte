@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Beef, Droplet, Wheat } from "lucide-svelte";
+import { Beef, BookOpen, Droplet, Wheat } from "lucide-svelte";
 import { onMount } from "svelte";
 import type { Macros } from "@gymos/shared";
 import { settings } from "$lib/settings.svelte.ts";
@@ -138,6 +138,15 @@ function retry() {
 </script>
 
 <div class="space-column nutrition-home">
+  <button
+    type="button"
+    class="nutrition-recipes-icon"
+    aria-label="Recipes"
+    onclick={onRecipes}
+  >
+    <BookOpen size={22} strokeWidth={1.8} aria-hidden="true" />
+  </button>
+
   <div class="start-top">
     <p class="start-eyebrow">Today</p>
   </div>
@@ -238,9 +247,6 @@ function retry() {
     <div class="nutrition-secondary-row">
       <button type="button" class="nutrition-secondary" onclick={onToday}>
         Today's log
-      </button>
-      <button type="button" class="nutrition-secondary" onclick={onRecipes}>
-        Recipes
       </button>
     </div>
   </div>
