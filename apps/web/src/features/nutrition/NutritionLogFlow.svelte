@@ -35,6 +35,7 @@ $effect(() => {
     view = initialView;
     resetDraft();
     dialog.showModal();
+    dialog.focus();
   } else if (!open && dialog.open) {
     dialog.close();
   }
@@ -203,6 +204,7 @@ function handleClose() {
 <dialog
   bind:this={dialog}
   class={`nutrition-log-dialog light-space ${view === "choice" ? "choice" : "full"}`}
+  tabindex="-1"
   onclose={handleClose}
   aria-label="Log food"
 >
