@@ -1,13 +1,13 @@
 <script lang="ts">
-import { ChevronLeft, ExternalLink } from "lucide-svelte";
+import { ExternalLink, Pencil } from "lucide-svelte";
 import type { Recipe } from "@gymos/shared";
 
 let {
   recipe,
-  onBack,
+  onEdit,
 }: {
   recipe: Recipe;
-  onBack: () => void;
+  onEdit: () => void;
 } = $props();
 
 function format(value: number): string {
@@ -18,17 +18,23 @@ function format(value: number): string {
 </script>
 
 <div class="recipe-detail">
-  <button type="button" class="recipe-back" id="recipe-back" onclick={onBack}>
-    <ChevronLeft size={18} aria-hidden="true" />
-    Recipes
-  </button>
-
-  <div>
-    <h2 class="recipe-title">{recipe.title}</h2>
-    <p class="recipe-meta">
-      {recipe.servings}
-      {recipe.servings === 1 ? "serving" : "servings"}
-    </p>
+  <div class="recipe-detail-head">
+    <div>
+      <h2 class="recipe-title">{recipe.title}</h2>
+      <p class="recipe-meta">
+        {recipe.servings}
+        {recipe.servings === 1 ? "serving" : "servings"}
+      </p>
+    </div>
+    <button
+      type="button"
+      class="icon-btn muted"
+      id="edit-recipe-detail"
+      aria-label={`Edit ${recipe.title}`}
+      onclick={onEdit}
+    >
+      <Pencil size={18} aria-hidden="true" />
+    </button>
   </div>
 
   <div class="recipe-macros">

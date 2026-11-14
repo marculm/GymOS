@@ -22,9 +22,9 @@ const recipe: Recipe = {
 };
 
 describe("RecipeDetail", () => {
-  it("renders the recipe for cooking and goes back", async () => {
-    const onBack = vi.fn();
-    render(RecipeDetail, { props: { recipe, onBack } });
+  it("renders the recipe and opens the editor", async () => {
+    const onEdit = vi.fn();
+    render(RecipeDetail, { props: { recipe, onEdit } });
 
     expect(
       screen.getByRole("heading", { name: "Chicken rice bowl" })
@@ -40,16 +40,18 @@ describe("RecipeDetail", () => {
       recipe.sourceUrl
     );
 
-    await fireEvent.click(screen.getByRole("button", { name: "Recipes" }));
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Edit Chicken rice bowl" })
+    );
 
-    expect(onBack).toHaveBeenCalledOnce();
+    expect(onEdit).toHaveBeenCalledOnce();
   });
 
   it("handles a recipe without ingredients, steps or source", () => {
     render(RecipeDetail, {
       props: {
         recipe: { ...recipe, sourceUrl: undefined, ingredients: [], instructions: [] },
-        onBack: vi.fn(),
+        onEdit: vi.fn(),
       },
     });
 
