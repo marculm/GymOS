@@ -280,7 +280,7 @@ function handleClose() {
         {/if}
       </div>
       <div class="nutrition-full-actions">
-        <button type="button" class="btn btn-ghost" onclick={manageRecipes}>
+        <button type="button" class="nutrition-secondary" onclick={manageRecipes}>
           Manage recipes
         </button>
       </div>
