@@ -542,7 +542,56 @@ textarea.input {
   position: relative;
   width: 210px;
   height: 210px;
-  margin: 76px auto 0;
+  margin: auto auto 0;
+}
+
+@media (max-height: 800px) {
+  .nutrition-title-block {
+    margin-top: 18px;
+  }
+
+  .nutrition-macro-strip {
+    margin-top: 46px;
+  }
+
+  .nutrition-home .space-hint {
+    margin-top: 8px;
+  }
+}
+
+@media (max-height: 720px) {
+  .nutrition-title-block {
+    margin-top: 14px;
+  }
+
+  .nutrition-gauge-wrap {
+    width: 155px;
+    height: 155px;
+  }
+
+  .nutrition-macro-strip {
+    margin-top: 36px;
+  }
+}
+
+@media (max-height: 690px) {
+  .nutrition-title-block {
+    margin-top: 14px;
+  }
+
+  .nutrition-gauge-wrap {
+    width: 140px;
+    height: 140px;
+  }
+
+  .nutrition-macro-strip {
+    margin-top: 30px;
+  }
+
+  .nutrition-home .space-hint {
+    min-height: 36px;
+    margin-top: 6px;
+  }
 }
 
 .nutrition-gauge {
@@ -679,8 +728,13 @@ textarea.input {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  margin-top: auto;
+  margin-top: 22px;
   padding-top: 14px;
+}
+
+.nutrition-home > .nutrition-state,
+.nutrition-home > .nutrition-setup {
+  margin-bottom: auto;
 }
 
 .nutrition-primary {
@@ -724,6 +778,7 @@ textarea.input {
 .nutrition-log-dialog {
   position: fixed;
   width: min(100%, 560px);
+  max-width: min(100%, 560px);
   margin: 0 auto;
   padding: 0;
   overflow: hidden;
