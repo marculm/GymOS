@@ -35,6 +35,11 @@
 
   onMount(() => nameInput?.focus());
 
+  function handleMuscleGroupChange(event: Event) {
+    const select = event.currentTarget as HTMLSelectElement;
+    muscleGroup = select.value as Exercise["muscleGroup"];
+  }
+
   async function handleSubmit(event: SubmitEvent) {
     event.preventDefault();
     if (pending) return;
@@ -92,8 +97,7 @@
       <select
         class="input"
         value={muscleGroup}
-        onchange={(event) =>
-          (muscleGroup = event.currentTarget.value as Exercise["muscleGroup"])}
+        onchange={handleMuscleGroupChange}
       >
         {#each MUSCLE_GROUPS as group (group)}
           <option value={group}>{group}</option>
