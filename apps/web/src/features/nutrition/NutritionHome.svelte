@@ -217,12 +217,9 @@ function retry() {
             </span>
             {macro.name}
           </span>
-          <span class="nutrition-macro-value">
+          <span class="nutrition-macro-value" class:over={isOver(macro.key)}>
             {format(Math.abs(remainingValue(macro.key)))}
-            <small>{remainingValue(macro.key) < 0 ? "g over" : "g left"}</small>
-          </span>
-          <span class="nutrition-macro-of">
-            {format(eatenValue(macro.key))} of {format(targetValue(summary.targets, macro.key))} g
+            <small>/ {format(targetValue(summary.targets, macro.key))} g</small>
           </span>
           <span class="nutrition-macro-bar">
             <i
