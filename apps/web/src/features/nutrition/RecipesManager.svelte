@@ -6,6 +6,12 @@ import RecipeDetail from "./RecipeDetail.svelte";
 import RecipeForm from "./RecipeForm.svelte";
 import { nutritionData } from "./nutrition-data.svelte.ts";
 
+let {
+  onEditingChange,
+}: {
+  onEditingChange?: (editing: boolean) => void;
+} = $props();
+
 let error = $state<string | null>(null);
 let formOpen = $state(false);
 let editing = $state<Recipe | null>(null);
@@ -14,6 +20,10 @@ let listScrollTop = 0;
 
 onMount(() => {
   void load();
+});
+
+$effect(() => {
+  onEditingChange?.(formOpen);
 });
 
 function messageOf(value: unknown): string {
@@ -42,7 +52,7 @@ function openEdit(recipe: Recipe) {
 }
 
 async function openDetail(recipe: Recipe) {
-  const scroller = document.querySelector<HTMLElement>(".settings-body");
+  const scroller = document.querySelector<HTMLElement>(".space-screen");
   listScrollTop = scroller?.scrollTop ?? 0;
   viewing = recipe;
   await tick();
@@ -54,7 +64,7 @@ async function closeDetail() {
   const id = viewing?.id;
   viewing = null;
   await tick();
-  document.querySelector<HTMLElement>(".settings-body")?.scrollTo({ top: listScrollTop });
+  document.querySelector<HTMLElement>(".space-screen")?.scrollTo({ top: listScrollTop });
   if (id) document.getElementById(`open-recipe-${id}`)?.focus();
 }
 

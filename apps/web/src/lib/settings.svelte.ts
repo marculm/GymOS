@@ -5,7 +5,6 @@ export type SettingsSection =
   | "history"
   | "timer"
   | "targets"
-  | "recipes"
   | "extractor";
 
 class SettingsState {

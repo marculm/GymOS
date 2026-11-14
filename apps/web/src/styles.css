@@ -443,6 +443,14 @@ textarea.input {
   margin-top: 52px;
 }
 
+.recipes-hero {
+  margin-top: 16px;
+}
+
+.recipes-hero + * {
+  margin-top: 24px;
+}
+
 .nutrition-title {
   margin: 8px 0 0;
   font-size: clamp(2.375rem, 11vw, 2.75rem);
@@ -532,9 +540,9 @@ textarea.input {
 
 .nutrition-gauge-wrap {
   position: relative;
-  width: 190px;
-  height: 190px;
-  margin: 14px auto 0;
+  width: 210px;
+  height: 210px;
+  margin: 76px auto 0;
 }
 
 .nutrition-gauge {
@@ -546,12 +554,12 @@ textarea.input {
 .nutrition-gauge-track {
   fill: none;
   stroke: var(--surface-2);
-  stroke-width: 14;
+  stroke-width: 18;
 }
 
 .nutrition-gauge-seg {
   fill: none;
-  stroke-width: 14;
+  stroke-width: 18;
   stroke-linecap: butt;
 }
 
@@ -594,7 +602,7 @@ textarea.input {
 .nutrition-macro-strip {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  margin-top: 16px;
+  margin-top: 64px;
   border-radius: 16px;
   overflow: hidden;
   background: var(--surface);
@@ -628,25 +636,21 @@ textarea.input {
   display: block;
   margin-top: 3px;
   font-family: var(--font-rounded);
-  font-size: 1.125rem;
-  font-weight: 700;
+  font-size: 1.25rem;
+  font-weight: 800;
   letter-spacing: -0.03em;
   font-variant-numeric: tabular-nums;
 }
 
 .nutrition-macro-value small {
   color: var(--muted);
-  font-size: 0.5625rem;
+  font-size: 0.625rem;
   font-weight: 500;
   letter-spacing: 0;
 }
 
-.nutrition-macro-of {
-  display: block;
-  margin-top: 1px;
-  color: var(--muted);
-  font-size: 0.5625rem;
-  font-variant-numeric: tabular-nums;
+.nutrition-macro-value.over {
+  color: var(--danger);
 }
 
 .nutrition-macro-bar {
@@ -704,6 +708,15 @@ textarea.input {
   font-family: var(--font);
   font-size: 0.875rem;
   font-weight: 500;
+}
+
+.nutrition-secondary-row {
+  display: flex;
+  gap: 8px;
+}
+
+.nutrition-secondary-row .nutrition-secondary {
+  flex: 1;
 }
 
 /* Nutrition log flow */

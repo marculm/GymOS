@@ -1,4 +1,5 @@
 <script lang="ts">
+import { tick } from "svelte";
 import type { Recipe, RecipeInput } from "@gymos/shared";
 
 type IngredientRow = { name: string; amount: string; unit: string };
@@ -42,9 +43,18 @@ let instructions = $state(recipe?.instructions.join("\n") ?? "");
 
 let pending = $state(false);
 let error = $state<string | null>(null);
+let ingredientList = $state<HTMLElement | null>(null);
 
-function addIngredient() {
+async function addIngredient() {
   ingredients = [...ingredients, { name: "", amount: "", unit: "" }];
+  await tick();
+  const inputs = ingredientList?.querySelectorAll<HTMLInputElement>(
+    'input[placeholder="Chicken breast"]'
+  );
+  const input = inputs?.[inputs.length - 1];
+  if (!input) return;
+  input.scrollIntoView?.({ block: "center", behavior: "smooth" });
+  input.focus({ preventScroll: true });
 }
 
 function removeIngredient(index: number) {
@@ -173,7 +183,7 @@ async function handleSubmit(event: SubmitEvent) {
     </label>
   </div>
 
-  <div class="recipe-ingredients">
+  <div class="recipe-ingredients" bind:this={ingredientList}>
     {#each ingredients as row, index (index)}
       <div class="recipe-ingredient">
         <div class="form-rows">

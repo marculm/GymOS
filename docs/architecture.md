@@ -416,9 +416,10 @@ those slices are built. See ADR-0017.
   app has no bottom tab bar, a gear in the corner, and a horizontal space swipe outside
   workouts (ADR-0056, superseding ADR-0055 and ADR-0020).
 - No server-side rendering: `ssr = false`, `adapter-static` with an `index.html`
-  fallback. Top-level routes are `/gym`, `/nutrition`, and `/extractor`; the root
-  layout renders the current full-screen space plus the Settings sheet, and `/`
-  redirects to `/gym` (ADR-0054, ADR-0056).
+  fallback. Top-level routes are `/gym`, `/nutrition`, and `/extractor`, with
+  `/nutrition/recipes` as the recipe library page; the root layout renders the
+  current full-screen space plus the Settings sheet, and `/` redirects to `/gym`
+  (ADR-0054, ADR-0056, ADR-0058).
 - `lucide-svelte` for icons.
 - `@testing-library/svelte`, Vitest, and happy-dom for tests.
 - `svelte-check` for type checking.
@@ -444,6 +445,7 @@ apps/web/
     │   ├── +page.ts
     │   ├── gym/+page.svelte
     │   ├── nutrition/+page.svelte
+    │   ├── nutrition/recipes/+page.svelte
     │   └── extractor/+page.svelte
     ├── lib/
     │   ├── SettingsButton.svelte
@@ -476,8 +478,10 @@ apps/web/
 - State uses Svelte 5 runes: `$state`, `$derived`, `$effect`, `$props`.
 - Events use attributes (`onclick`, `onsubmit`), not `on:click`.
 - Top-level routes are `/gym` (Training), `/nutrition` (Nutrition), and `/extractor`
-  (deep link only). The root layout renders the current space and the Settings sheet;
-  `/` redirects to `/gym`. There is no bottom tab bar.
+  (deep link only). `/nutrition/recipes` hosts the recipe library, opened from the
+  Nutrition home; recipes are not managed in Settings (ADR-0058). The root layout
+  renders the current space and the Settings sheet; `/` redirects to `/gym`. There
+  is no bottom tab bar.
 - Training is full-screen and dark; Nutrition is the light counter-space. Outside a
   workout, a horizontal swipe moves between the spaces with a route change and a view
   transition; each has a tappable hint as a fallback. Inside a workout the space swipe is
