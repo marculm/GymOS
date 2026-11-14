@@ -18,7 +18,7 @@ function format(value: number): string {
 </script>
 
 <div class="recipe-detail">
-  <button type="button" class="recipe-back" onclick={onBack}>
+  <button type="button" class="recipe-back" id="recipe-back" onclick={onBack}>
     <ChevronLeft size={18} aria-hidden="true" />
     Recipes
   </button>

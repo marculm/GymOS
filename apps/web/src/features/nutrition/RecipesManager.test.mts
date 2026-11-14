@@ -112,7 +112,9 @@ describe("RecipesManager", () => {
 
     await fireEvent.click(screen.getByRole("button", { name: "Recipes" }));
 
-    expect(await screen.findByRole("button", { name: "Add recipe" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: /^Chicken rice bowl/ })
+    ).toBeInTheDocument();
   });
 
   it("keeps the edit form open when the list is clicked", async () => {

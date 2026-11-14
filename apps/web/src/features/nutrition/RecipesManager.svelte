@@ -10,6 +10,7 @@ let error = $state<string | null>(null);
 let formOpen = $state(false);
 let editing = $state<Recipe | null>(null);
 let viewing = $state<Recipe | null>(null);
+let listScrollTop = 0;
 
 onMount(() => {
   void load();
@@ -38,6 +39,23 @@ function openEdit(recipe: Recipe) {
   editing = recipe;
   error = null;
   formOpen = true;
+}
+
+async function openDetail(recipe: Recipe) {
+  const scroller = document.querySelector<HTMLElement>(".settings-body");
+  listScrollTop = scroller?.scrollTop ?? 0;
+  viewing = recipe;
+  await tick();
+  scroller?.scrollTo({ top: 0 });
+  document.getElementById("recipe-back")?.focus();
+}
+
+async function closeDetail() {
+  const id = viewing?.id;
+  viewing = null;
+  await tick();
+  document.querySelector<HTMLElement>(".settings-body")?.scrollTo({ top: listScrollTop });
+  if (id) document.getElementById(`open-recipe-${id}`)?.focus();
 }
 
 async function close(focusId: string) {
@@ -80,7 +98,7 @@ function format(value: number): string {
 </script>
 
 {#if viewing}
-  <RecipeDetail recipe={viewing} onBack={() => (viewing = null)} />
+  <RecipeDetail recipe={viewing} onBack={() => void closeDetail()} />
 {:else}
   <div class="group">
     {#if formOpen}
@@ -106,7 +124,8 @@ function format(value: number): string {
             <button
               type="button"
               class="list-main recipe-open"
-              onclick={() => (viewing = recipe)}
+              id={`open-recipe-${recipe.id}`}
+              onclick={() => void openDetail(recipe)}
             >
               <span class="list-title">{recipe.title}</span>
               <span class="list-subtitle">
