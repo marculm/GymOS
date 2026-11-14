@@ -9,6 +9,7 @@
     ListChecks,
     Sparkles,
     Timer,
+    Utensils,
     X,
   } from "lucide-svelte";
   import {
@@ -20,6 +21,7 @@
   import History from "../features/gym/History.svelte";
   import { gymData } from "../features/gym/gym-data.svelte.ts";
   import Library from "../features/gym/Library.svelte";
+  import NutritionTargetsForm from "../features/nutrition/NutritionTargetsForm.svelte";
   import {
     formatRestTime,
     loadRestSeconds,
@@ -47,6 +49,7 @@
     exercises: "Exercises",
     history: "History",
     timer: "Rest timer",
+    targets: "Daily targets",
     extractor: "AI Extractor",
   };
 
@@ -233,6 +236,21 @@
       </section>
 
       <section class="section">
+        <h2 class="section-header">Nutrition</h2>
+        <div class="group">
+          <button
+            type="button"
+            class="settings-row"
+            onclick={() => (settings.section = "targets")}
+          >
+            <span class="settings-icon"><Utensils size={17} aria-hidden="true" /></span>
+            <span class="settings-label">Daily targets</span>
+            <ChevronRight class="settings-chevron" size={17} aria-hidden="true" />
+          </button>
+        </div>
+      </section>
+
+      <section class="section">
         <h2 class="section-header">More</h2>
         <div class="group">
           <button
@@ -272,6 +290,17 @@
         <p class="settings-note">
           Starts automatically after each logged set. You can change it during
           a workout too.
+        </p>
+      </section>
+    {:else if settings.section === "targets"}
+      <section class="section">
+        <div class="group">
+          <div class="group-form">
+            <NutritionTargetsForm />
+          </div>
+        </div>
+        <p class="settings-note">
+          Used for the daily gauge and the remaining calories and macros.
         </p>
       </section>
     {:else if settings.section === "extractor"}
