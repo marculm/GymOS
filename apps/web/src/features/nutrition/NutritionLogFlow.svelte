@@ -1,6 +1,7 @@
 <script lang="ts">
 import { ChevronLeft, ChevronRight, X } from "lucide-svelte";
 import type { NutritionLogEntry, Recipe } from "@gymos/shared";
+import { settings } from "$lib/settings.svelte.ts";
 import { nutritionData } from "./nutrition-data.svelte.ts";
 
 type View = "choice" | "saved" | "focus" | "today";
@@ -54,6 +55,11 @@ function resetDraft() {
 
 function close() {
   open = false;
+}
+
+function manageRecipes() {
+  settings.show("recipes");
+  close();
 }
 
 function back() {
@@ -273,6 +279,11 @@ function handleClose() {
             {/each}
           </div>
         {/if}
+      </div>
+      <div class="nutrition-full-actions">
+        <button type="button" class="btn btn-ghost" onclick={manageRecipes}>
+          Manage recipes
+        </button>
       </div>
     </div>
   {:else if view === "focus"}
