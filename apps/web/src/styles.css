@@ -714,6 +714,15 @@ textarea.input {
   font-weight: 500;
 }
 
+.nutrition-secondary-row {
+  display: flex;
+  gap: 8px;
+}
+
+.nutrition-secondary-row .nutrition-secondary {
+  flex: 1;
+}
+
 /* Nutrition log flow */
 
 .nutrition-log-dialog {
