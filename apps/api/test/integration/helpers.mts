@@ -28,10 +28,16 @@ export async function clearTestUserData() {
   if (!testUserId) return;
   await prisma.workoutSession.deleteMany({ where: { userId: testUserId } });
   await prisma.workoutPlan.deleteMany({ where: { userId: testUserId } });
+  await prisma.nutritionLog.deleteMany({ where: { userId: testUserId } });
+  await prisma.nutritionTarget.deleteMany({ where: { userId: testUserId } });
+  await prisma.recipe.deleteMany({ where: { userId: testUserId } });
 }
 
 export async function cleanupTestUser() {
   if (testUserId) {
+    await prisma.nutritionLog.deleteMany({ where: { userId: testUserId } });
+    await prisma.nutritionTarget.deleteMany({ where: { userId: testUserId } });
+    await prisma.recipe.deleteMany({ where: { userId: testUserId } });
     await prisma.user.deleteMany({ where: { id: testUserId } });
   }
   if (fallbackExerciseId) {

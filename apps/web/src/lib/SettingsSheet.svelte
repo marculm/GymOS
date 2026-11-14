@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import {
     Bell,
+    BookOpen,
     ChevronLeft,
     ChevronRight,
     Dumbbell,
@@ -9,6 +10,7 @@
     ListChecks,
     Sparkles,
     Timer,
+    Utensils,
     X,
   } from "lucide-svelte";
   import {
@@ -20,6 +22,8 @@
   import History from "../features/gym/History.svelte";
   import { gymData } from "../features/gym/gym-data.svelte.ts";
   import Library from "../features/gym/Library.svelte";
+  import NutritionTargetsForm from "../features/nutrition/NutritionTargetsForm.svelte";
+  import RecipesManager from "../features/nutrition/RecipesManager.svelte";
   import {
     formatRestTime,
     loadRestSeconds,
@@ -47,6 +51,8 @@
     exercises: "Exercises",
     history: "History",
     timer: "Rest timer",
+    targets: "Daily targets",
+    recipes: "Recipes",
     extractor: "AI Extractor",
   };
 
@@ -233,6 +239,30 @@
       </section>
 
       <section class="section">
+        <h2 class="section-header">Nutrition</h2>
+        <div class="group">
+          <button
+            type="button"
+            class="settings-row"
+            onclick={() => (settings.section = "targets")}
+          >
+            <span class="settings-icon"><Utensils size={17} aria-hidden="true" /></span>
+            <span class="settings-label">Daily targets</span>
+            <ChevronRight class="settings-chevron" size={17} aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            class="settings-row"
+            onclick={() => (settings.section = "recipes")}
+          >
+            <span class="settings-icon"><BookOpen size={17} aria-hidden="true" /></span>
+            <span class="settings-label">Recipes</span>
+            <ChevronRight class="settings-chevron" size={17} aria-hidden="true" />
+          </button>
+        </div>
+      </section>
+
+      <section class="section">
         <h2 class="section-header">More</h2>
         <div class="group">
           <button
@@ -274,6 +304,19 @@
           a workout too.
         </p>
       </section>
+    {:else if settings.section === "targets"}
+      <section class="section">
+        <div class="group">
+          <div class="group-form">
+            <NutritionTargetsForm />
+          </div>
+        </div>
+        <p class="settings-note">
+          Used for the daily gauge and the remaining calories and macros.
+        </p>
+      </section>
+    {:else if settings.section === "recipes"}
+      <RecipesManager />
     {:else if settings.section === "extractor"}
       <section class="section">
         <div class="settings-placeholder">

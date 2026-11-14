@@ -35,9 +35,9 @@ describe("GymOS API Server", () => {
     expect(data.page.size).toBe(20);
   });
 
-  it("returns 501 for unimplemented nutrition", async () => {
+  it("validates the nutrition summary range", async () => {
     const res = await app.request("/api/nutrition/summary");
-    expect(res.status).toBe(501);
+    expect(res.status).toBe(422);
     expect(res.headers.get("content-type")).toContain("application/problem+json");
   });
 

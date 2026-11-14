@@ -15,6 +15,7 @@ model User {
   updatedAt       DateTime         @updatedAt
   workoutSessions WorkoutSession[]
   nutritionLogs   NutritionLog[]
+  nutritionTarget NutritionTarget?
   recipes         Recipe[]
   plans           WorkoutPlan[]
   rotationItems   WorkoutRotationItem[]
@@ -106,6 +107,19 @@ model NutritionLog {
   createdAt    DateTime @default(now())
 
   @@map("nutrition_logs")
+}
+
+model NutritionTarget {
+  id           String   @id @default(uuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  calories     Float
+  proteinGrams Float
+  carbsGrams   Float
+  fatGrams     Float
+  updatedAt    DateTime @updatedAt
+
+  @@map("nutrition_targets")
 }
 
 model WorkoutPlan {

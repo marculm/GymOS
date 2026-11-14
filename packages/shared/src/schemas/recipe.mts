@@ -17,5 +17,18 @@ export const RecipeSchema = z.object({
   instructions: z.array(z.string()),
 });
 
+export const RecipeInputSchema = RecipeSchema.omit({ id: true });
+
+export const RecipeUpdateSchema = z.object({
+  title: z.string().min(1).optional(),
+  sourceUrl: z.string().url().optional(),
+  servings: z.number().int().positive().optional(),
+  macrosPerServing: MacrosSchema.optional(),
+  ingredients: z.array(RecipeIngredientSchema).optional(),
+  instructions: z.array(z.string()).optional(),
+});
+
 export type RecipeIngredient = z.infer<typeof RecipeIngredientSchema>;
 export type Recipe = z.infer<typeof RecipeSchema>;
+export type RecipeInput = z.infer<typeof RecipeInputSchema>;
+export type RecipeUpdate = z.infer<typeof RecipeUpdateSchema>;
