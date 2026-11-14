@@ -62,6 +62,18 @@ describe("RecipeForm", () => {
     );
   });
 
+  it("adds an ingredient row and focuses it", async () => {
+    render(RecipeForm, { props: { onSubmit: vi.fn(), onCancel: vi.fn() } });
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Add ingredient" })
+    );
+
+    const inputs = screen.getAllByLabelText("Ingredient");
+    expect(inputs).toHaveLength(2);
+    expect(inputs[1]).toHaveFocus();
+  });
+
   it("rejects an incomplete ingredient row", async () => {
     const onSubmit = vi.fn().mockResolvedValue(undefined);
     render(RecipeForm, { props: { onSubmit, onCancel: vi.fn() } });
