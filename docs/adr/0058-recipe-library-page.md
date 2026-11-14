@@ -37,4 +37,5 @@ manual; AI-assisted adding is a later slice.
   of its features and the existing API and data model are unchanged.
 - The page's right swipe returns to the nutrition home, matching its visible back
   control; it is paused while a recipe form is open so a gesture cannot discard a
-  draft.
+  draft. Navigation back to the home replaces the history entry, as every space
+  change does.

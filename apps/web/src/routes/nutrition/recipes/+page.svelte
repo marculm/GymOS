@@ -22,7 +22,9 @@
 <div
   class="space-screen light-space nutrition-space"
   use:spaceSwipe={{
-    onSwipeRight: editing ? undefined : () => void goto("/nutrition"),
+    onSwipeRight: editing
+      ? undefined
+      : () => void goto("/nutrition", { replaceState: true }),
   }}
 >
   <SettingsButton />
@@ -30,7 +32,7 @@
     <button
       type="button"
       class="recipe-back"
-      onclick={() => void goto("/nutrition")}
+      onclick={() => void goto("/nutrition", { replaceState: true })}
     >
       <ChevronLeft size={18} aria-hidden="true" />
       Nutrition
