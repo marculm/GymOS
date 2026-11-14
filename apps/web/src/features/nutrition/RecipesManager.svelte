@@ -94,17 +94,27 @@ function format(value: number): string {
     {:else}
       {#each nutritionData.recipes as recipe (recipe.id)}
         <div class="list-row">
-          <button
-            type="button"
-            class="list-main recipe-open"
-            onclick={() => (viewing = recipe)}
-          >
-            <span class="list-title">{recipe.title}</span>
-            <span class="list-subtitle">
-              {format(recipe.macrosPerServing.calories)} kcal per serving,
-              {recipe.servings} {recipe.servings === 1 ? "serving" : "servings"}
-            </span>
-          </button>
+          {#if formOpen}
+            <div class="list-main">
+              <span class="list-title">{recipe.title}</span>
+              <span class="list-subtitle">
+                {format(recipe.macrosPerServing.calories)} kcal per serving,
+                {recipe.servings} {recipe.servings === 1 ? "serving" : "servings"}
+              </span>
+            </div>
+          {:else}
+            <button
+              type="button"
+              class="list-main recipe-open"
+              onclick={() => (viewing = recipe)}
+            >
+              <span class="list-title">{recipe.title}</span>
+              <span class="list-subtitle">
+                {format(recipe.macrosPerServing.calories)} kcal per serving,
+                {recipe.servings} {recipe.servings === 1 ? "serving" : "servings"}
+              </span>
+            </button>
+          {/if}
           <div class="list-actions">
             <button
               type="button"

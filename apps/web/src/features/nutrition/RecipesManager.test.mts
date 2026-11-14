@@ -115,6 +115,18 @@ describe("RecipesManager", () => {
     expect(await screen.findByRole("button", { name: "Add recipe" })).toBeInTheDocument();
   });
 
+  it("keeps the edit form open when the list is clicked", async () => {
+    nutritionApi.listRecipes.mockResolvedValue([recipe]);
+    render(RecipesManager);
+
+    await fireEvent.click(
+      await screen.findByRole("button", { name: "Edit Chicken rice bowl" })
+    );
+
+    expect(screen.queryByRole("button", { name: /^Chicken rice bowl/ })).toBeNull();
+    expect(screen.getByLabelText("Name")).toBeInTheDocument();
+  });
+
   it("deletes a recipe after confirmation", async () => {
     nutritionApi.listRecipes.mockResolvedValue([recipe]);
     nutritionApi.deleteRecipe.mockResolvedValue(undefined);
