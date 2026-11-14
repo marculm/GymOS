@@ -17,8 +17,9 @@ is deterministic and works without an LLM; estimations and the recipe extractor 
    - Manual daily targets in Settings.
    - Log a saved recipe portion, or enter a meal's macros manually.
    - Today's log with edit and delete.
-   - Minimal recipe management in Settings (title, servings, per-serving macros,
-     ingredients, instructions, source URL).
+   - Recipe management on its own page at `/nutrition/recipes`, opened from the
+    nutrition home (ADR-0058): title, servings, per-serving macros, ingredients,
+    instructions, source URL.
    - Home gauge and macro strip from real data.
 2. **AI estimation:** Describe and Photo paths fill the same focus logger with estimated
    values; every value stays editable before logging.
