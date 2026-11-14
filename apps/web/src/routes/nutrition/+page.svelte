@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onDestroy, onMount } from "svelte";
+  import { goto } from "$app/navigation";
   import SettingsButton from "$lib/SettingsButton.svelte";
   import { goToSpace, prefetchSpace, spaceSwipe } from "$lib/space.ts";
   import {
@@ -34,6 +35,10 @@
   use:spaceSwipe={{ onSwipeRight: () => goToSpace("training") }}
 >
   <SettingsButton />
-  <NutritionHome onLogFood={openLog} onToday={openToday} />
+  <NutritionHome
+    onLogFood={openLog}
+    onToday={openToday}
+    onRecipes={() => void goto("/nutrition/recipes")}
+  />
   <NutritionLogFlow bind:open={logOpen} initialView={logView} />
 </div>

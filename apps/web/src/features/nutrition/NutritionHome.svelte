@@ -9,9 +9,11 @@ import { nutritionData } from "./nutrition-data.svelte.ts";
 let {
   onLogFood,
   onToday,
+  onRecipes,
 }: {
   onLogFood: () => void;
   onToday: () => void;
+  onRecipes: () => void;
 } = $props();
 
 const CIRCUMFERENCE = 2 * Math.PI * 84;
@@ -236,6 +238,7 @@ function retry() {
     <div class="nutrition-actions">
       <button type="button" class="nutrition-primary" onclick={onLogFood}>Log food</button>
       <button type="button" class="nutrition-secondary" onclick={onToday}>Today's log</button>
+      <button type="button" class="nutrition-secondary" onclick={onRecipes}>Recipes</button>
     </div>
   {/if}
 

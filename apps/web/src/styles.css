@@ -443,6 +443,14 @@ textarea.input {
   margin-top: 52px;
 }
 
+.recipes-hero {
+  margin-top: 16px;
+}
+
+.recipes-hero + * {
+  margin-top: 24px;
+}
+
 .nutrition-title {
   margin: 8px 0 0;
   font-size: clamp(2.375rem, 11vw, 2.75rem);
