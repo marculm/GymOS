@@ -44,6 +44,7 @@ beforeEach(() => {
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
+  document.querySelectorAll(".space-screen").forEach((node) => node.remove());
 });
 
 async function fillRecipeFields() {
@@ -138,6 +139,32 @@ describe("RecipesManager", () => {
 
     expect(screen.queryByRole("button", { name: /^Chicken rice bowl/ })).toBeNull();
     expect(screen.getByLabelText("Name")).toBeInTheDocument();
+  });
+
+  it("resets and restores the page scroll around the detail", async () => {
+    nutritionApi.listRecipes.mockResolvedValue([recipe]);
+    const scroller = document.createElement("div");
+    scroller.className = "space-screen";
+    let scrollTop = 240;
+    Object.defineProperty(scroller, "scrollTop", {
+      get: () => scrollTop,
+      set: (value: number) => (scrollTop = value),
+    });
+    const scrollTo = vi.fn(({ top }: { top: number }) => {
+      scrollTop = top;
+    });
+    scroller.scrollTo = scrollTo as unknown as typeof scroller.scrollTo;
+    document.body.appendChild(scroller);
+
+    render(RecipesManager);
+
+    await fireEvent.click(
+      await screen.findByRole("button", { name: /^Chicken rice bowl/ })
+    );
+    await waitFor(() => expect(scrollTo).toHaveBeenCalledWith({ top: 0 }));
+
+    await fireEvent.click(screen.getByRole("button", { name: "Recipes" }));
+    await waitFor(() => expect(scrollTo).toHaveBeenCalledWith({ top: 240 }));
   });
 
   it("deletes a recipe after confirmation", async () => {
