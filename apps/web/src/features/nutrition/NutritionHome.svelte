@@ -234,19 +234,19 @@ function retry() {
         </div>
       {/each}
     </div>
-
-    <div class="nutrition-actions">
-      <button type="button" class="nutrition-primary" onclick={onLogFood}>Log food</button>
-      <div class="nutrition-secondary-row">
-        <button type="button" class="nutrition-secondary" onclick={onToday}>
-          Today's log
-        </button>
-        <button type="button" class="nutrition-secondary" onclick={onRecipes}>
-          Recipes
-        </button>
-      </div>
-    </div>
   {/if}
+
+  <div class="nutrition-actions">
+    <button type="button" class="nutrition-primary" onclick={onLogFood}>Log food</button>
+    <div class="nutrition-secondary-row">
+      <button type="button" class="nutrition-secondary" onclick={onToday}>
+        Today's log
+      </button>
+      <button type="button" class="nutrition-secondary" onclick={onRecipes}>
+        Recipes
+      </button>
+    </div>
+  </div>
 
   <button
     type="button"
