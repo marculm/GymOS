@@ -148,7 +148,9 @@ describe("RecipesManager", () => {
     let scrollTop = 240;
     Object.defineProperty(scroller, "scrollTop", {
       get: () => scrollTop,
-      set: (value: number) => (scrollTop = value),
+      set: (value: number) => {
+        scrollTop = value;
+      },
     });
     const scrollTo = vi.fn(({ top }: { top: number }) => {
       scrollTop = top;
