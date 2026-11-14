@@ -554,12 +554,12 @@ textarea.input {
 .nutrition-gauge-track {
   fill: none;
   stroke: var(--surface-2);
-  stroke-width: 14;
+  stroke-width: 18;
 }
 
 .nutrition-gauge-seg {
   fill: none;
-  stroke-width: 14;
+  stroke-width: 18;
   stroke-linecap: butt;
 }
 
