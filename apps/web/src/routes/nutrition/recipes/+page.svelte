@@ -11,6 +11,16 @@
   import RecipesManager from "../../../features/nutrition/RecipesManager.svelte";
 
   let editing = $state(false);
+  let viewing = $state(false);
+  let closeDetail: (() => void) | null = null;
+
+  function back() {
+    if (viewing) {
+      closeDetail?.();
+      return;
+    }
+    void goto("/nutrition", { replaceState: true });
+  }
 
   onMount(() => {
     lightThemeColor();
@@ -29,13 +39,9 @@
 >
   <SettingsButton />
   <div class="space-column nutrition-body">
-    <button
-      type="button"
-      class="recipe-back"
-      onclick={() => void goto("/nutrition", { replaceState: true })}
-    >
+    <button type="button" class="recipe-back" onclick={back}>
       <ChevronLeft size={18} aria-hidden="true" />
-      Nutrition
+      {viewing ? "Recipes" : "Nutrition"}
     </button>
 
     <div class="nutrition-hero recipes-hero">
@@ -44,6 +50,10 @@
       <p class="nutrition-meta">Saved recipes with macros per serving.</p>
     </div>
 
-    <RecipesManager onEditingChange={(value) => (editing = value)} />
+    <RecipesManager
+      onEditingChange={(value) => (editing = value)}
+      onViewingChange={(value) => (viewing = value)}
+      onBackReady={(close) => (closeDetail = close)}
+    />
   </div>
 </div>

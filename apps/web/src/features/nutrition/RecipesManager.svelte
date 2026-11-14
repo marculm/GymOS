@@ -8,8 +8,12 @@ import { nutritionData } from "./nutrition-data.svelte.ts";
 
 let {
   onEditingChange,
+  onViewingChange,
+  onBackReady,
 }: {
   onEditingChange?: (editing: boolean) => void;
+  onViewingChange?: (viewing: boolean) => void;
+  onBackReady?: (close: () => void) => void;
 } = $props();
 
 let error = $state<string | null>(null);
@@ -24,6 +28,14 @@ onMount(() => {
 
 $effect(() => {
   onEditingChange?.(formOpen);
+});
+
+$effect(() => {
+  onViewingChange?.(viewing !== null);
+});
+
+$effect(() => {
+  onBackReady?.(closeDetail);
 });
 
 function messageOf(value: unknown): string {
@@ -57,7 +69,16 @@ async function openDetail(recipe: Recipe) {
   viewing = recipe;
   await tick();
   scroller?.scrollTo({ top: 0 });
-  document.getElementById("recipe-back")?.focus();
+  document.getElementById("edit-recipe-detail")?.focus();
+}
+
+async function editViewed() {
+  if (!viewing) return;
+  const recipe = viewing;
+  viewing = null;
+  openEdit(recipe);
+  await tick();
+  document.querySelector<HTMLElement>(".space-screen")?.scrollTo({ top: 0 });
 }
 
 async function closeDetail() {
@@ -108,7 +129,7 @@ function format(value: number): string {
 </script>
 
 {#if viewing}
-  <RecipeDetail recipe={viewing} onBack={() => void closeDetail()} />
+  <RecipeDetail recipe={viewing} onEdit={() => void editViewed()} />
 {:else}
   <div class="group">
     {#if formOpen}

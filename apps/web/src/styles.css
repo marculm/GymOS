@@ -1241,6 +1241,17 @@ textarea.input {
   font-weight: 500;
 }
 
+.recipe-detail-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.recipe-detail-head > div {
+  min-width: 0;
+}
+
 .recipe-title {
   margin: 0;
   font-size: 2rem;

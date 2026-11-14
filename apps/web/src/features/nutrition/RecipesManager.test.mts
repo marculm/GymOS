@@ -101,7 +101,10 @@ describe("RecipesManager", () => {
 
   it("opens the recipe detail", async () => {
     nutritionApi.listRecipes.mockResolvedValue([recipe]);
-    render(RecipesManager);
+    let close: (() => void) | null = null;
+    render(RecipesManager, {
+      props: { onBackReady: (fn: () => void) => (close = fn) },
+    });
 
     await fireEvent.click(await screen.findByRole("button", { name: /^Chicken rice bowl/ }));
 
@@ -111,11 +114,25 @@ describe("RecipesManager", () => {
     expect(screen.getByText("Chicken breast")).toBeInTheDocument();
     expect(screen.getByText("Cook the rice.")).toBeInTheDocument();
 
-    await fireEvent.click(screen.getByRole("button", { name: "Recipes" }));
+    (close as (() => void) | null)?.();
 
     expect(
       await screen.findByRole("button", { name: /^Chicken rice bowl/ })
     ).toBeInTheDocument();
+  });
+
+  it("edits the recipe from the detail", async () => {
+    nutritionApi.listRecipes.mockResolvedValue([recipe]);
+    render(RecipesManager);
+
+    await fireEvent.click(
+      await screen.findByRole("button", { name: /^Chicken rice bowl/ })
+    );
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Edit Chicken rice bowl" })
+    );
+
+    expect(screen.getByLabelText("Name")).toHaveValue("Chicken rice bowl");
   });
 
   it("reports whether a recipe form is open", async () => {
@@ -158,14 +175,17 @@ describe("RecipesManager", () => {
     scroller.scrollTo = scrollTo as unknown as typeof scroller.scrollTo;
     document.body.appendChild(scroller);
 
-    render(RecipesManager);
+    let close: (() => void) | null = null;
+    render(RecipesManager, {
+      props: { onBackReady: (fn: () => void) => (close = fn) },
+    });
 
     await fireEvent.click(
       await screen.findByRole("button", { name: /^Chicken rice bowl/ })
     );
     await waitFor(() => expect(scrollTo).toHaveBeenCalledWith({ top: 0 }));
 
-    await fireEvent.click(screen.getByRole("button", { name: "Recipes" }));
+    (close as (() => void) | null)?.();
     await waitFor(() => expect(scrollTo).toHaveBeenCalledWith({ top: 240 }));
   });
 
