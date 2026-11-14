@@ -30,7 +30,7 @@
 </script>
 
 <div
-  class="space-screen light-space nutrition-space"
+  class="space-screen light-space nutrition-space recipes-page"
   use:spaceSwipe={{
     onSwipeRight: editing
       ? undefined
@@ -46,8 +46,10 @@
 
     <div class="nutrition-hero recipes-hero">
       <p class="start-eyebrow">Nutrition</p>
-      <h1 class="nutrition-title">Recipes</h1>
-      <p class="nutrition-meta">Saved recipes with macros per serving.</p>
+      {#if !viewing}
+        <h1 class="nutrition-title">Recipes</h1>
+        <p class="nutrition-meta">Saved recipes with macros per serving.</p>
+      {/if}
     </div>
 
     <RecipesManager

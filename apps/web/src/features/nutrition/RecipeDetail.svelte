@@ -20,7 +20,7 @@ function format(value: number): string {
 <div class="recipe-detail">
   <div class="recipe-detail-head">
     <div>
-      <h2 class="recipe-title">{recipe.title}</h2>
+      <h1 class="recipe-title">{recipe.title}</h1>
       <p class="recipe-meta">
         {recipe.servings}
         {recipe.servings === 1 ? "serving" : "servings"}
