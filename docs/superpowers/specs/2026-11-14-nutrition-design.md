@@ -57,10 +57,10 @@ The app has three layers. Reuse them instead of inventing a fourth.
 
 ### Log flow
 
-1. `Log food` opens the Log sheet: Saved meal, Describe, Photo.
-2. Each option opens a full-screen Settings step: saved recipe list, meal description,
-   or photo capture. Describe estimates the macros and pre-fills the logger; `Enter
-   manually` skips the estimate. Photo stays hidden until its slice.
+1. `Log food` opens the Log sheet: Saved meal, Describe, Manual, Photo.
+2. Saved meal, Describe, and Photo open a full-screen Settings step; Manual opens the
+   focus logger directly. Describe estimates the macros and pre-fills the logger;
+   `Enter manually` skips the estimate. Photo stays hidden until its slice.
 3. The final step is the focus logger: meal name, source, portion stepper for a saved
    recipe, 2x2 metrics (calories, protein, carbs, fat), tap-to-edit, `Log meal`.
 4. Today's log lists the entries. Tapping one reopens the focus logger with
