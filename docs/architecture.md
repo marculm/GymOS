@@ -363,7 +363,8 @@ once with a Zod schema and fails fast on invalid values:
   push is disabled unless both keys are set (ADR-0044)
 - `DEEPSEEK_API_KEY`: optional; enables AI meal estimation
 - `DEEPSEEK_BASE_URL`: DeepSeek API base URL, default `https://api.deepseek.com`
-- `DEEPSEEK_TEXT_MODEL`: text model, default `deepseek-chat` (ADR-0059, ADR-0060)
+- `DEEPSEEK_TEXT_MODEL`: text model, default `deepseek-flash`; `deepseek-v4-pro` is the
+  higher-quality alternative (ADR-0059, ADR-0060)
 
 Other configuration modules:
 

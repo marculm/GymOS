@@ -89,7 +89,7 @@ describe("env", () => {
     expect(defaults.deepSeekConfig()).toEqual({
       apiKey: "test-key",
       baseUrl: "https://api.deepseek.com",
-      model: "deepseek-chat",
+      model: "deepseek-flash",
     });
 
     process.env.DEEPSEEK_BASE_URL = "https://ai.test";
@@ -114,7 +114,7 @@ describe("env", () => {
     expect(deepSeekConfig()).toEqual({
       apiKey: "test-key",
       baseUrl: "https://api.deepseek.com",
-      model: "deepseek-chat",
+      model: "deepseek-flash",
     });
   });
 });

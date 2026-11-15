@@ -44,6 +44,7 @@ export class DeepSeekClient implements JsonCompletionClient {
           { role: "user", content: user },
         ],
         response_format: { type: "json_object" },
+        thinking: { type: "disabled" },
         max_tokens: MAX_OUTPUT_TOKENS,
       }),
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),

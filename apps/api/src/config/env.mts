@@ -29,7 +29,7 @@ const EnvSchema = z.object({
   ),
   DEEPSEEK_TEXT_MODEL: z.preprocess(
     emptyToUndefined,
-    z.string().min(1).default("deepseek-chat")
+    z.string().min(1).default("deepseek-flash")
   ),
 });
 

@@ -5,7 +5,7 @@ import { DeepSeekClient } from "./deepseek-client.mts";
 const config = {
   apiKey: "test-key",
   baseUrl: "https://deepseek.test",
-  model: "deepseek-chat",
+  model: "deepseek-flash",
 };
 
 function completion(content: string) {
@@ -50,12 +50,13 @@ describe("DeepSeekClient.completeJson", () => {
       Authorization: "Bearer test-key",
     });
     expect(JSON.parse(String(init.body))).toEqual({
-      model: "deepseek-chat",
+      model: "deepseek-flash",
       messages: [
         { role: "system", content: "system prompt" },
         { role: "user", content: "meal text" },
       ],
       response_format: { type: "json_object" },
+      thinking: { type: "disabled" },
       max_tokens: 300,
     });
     expect(init.signal).toBeInstanceOf(AbortSignal);

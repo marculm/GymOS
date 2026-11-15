@@ -13,16 +13,19 @@ and asked that the same mechanism cover recipe AI — the extractor (#3) and lat
 recipe macro estimation — so the app has one AI integration instead of one per
 feature.
 
-DeepSeek exposes an OpenAI-compatible Chat Completions API. `deepseek-chat` handles
-text; image input requires the multimodal `deepseek-flash`. JSON output is available
-via `response_format: { type: "json_object" }`, with two caveats: the prompt must
-mention `json` and show an example of the expected structure, and output that cannot
-be parsed may come back as spaces-only content.
+DeepSeek exposes an OpenAI-compatible Chat Completions API. The current model IDs are
+`deepseek-flash` (text and vision, lower cost) and `deepseek-v4-pro` (text, higher
+cost); the older `deepseek-chat` alias was retired on 2026-07-24. JSON output is
+available via `response_format: { type: "json_object" }`, with two caveats: the prompt
+must mention `json` and show an example of the expected structure, and output that
+cannot be parsed may come back as spaces-only content.
 
 ## Decision
 
-- The provider is DeepSeek at `https://api.deepseek.com`. Text tasks use
-  `deepseek-chat`; image tasks use `deepseek-flash`.
+- The provider is DeepSeek at `https://api.deepseek.com`. Text tasks default to
+  `deepseek-flash`; `DEEPSEEK_TEXT_MODEL` can select `deepseek-v4-pro` for
+  higher-quality text. Image tasks use the multimodal `deepseek-flash`. Estimation
+  disables thinking (`thinking: { "type": "disabled" }`) to keep latency and cost low.
 - The harness is a plain `fetch` wrapper in `apps/api/src/modules/ai` behind a
   provider-agnostic `AiService`. No vendor SDK is added.
 - Every task — meal text, meal photo, recipe extraction, recipe macro estimation —
@@ -37,7 +40,7 @@ be parsed may come back as spaces-only content.
 - Images are compressed in the browser (JPEG, about 1536px) and sent as `data:` URLs
   in `image_url` content blocks. The API stores no images and only passes them on.
 - Configuration is server-side only: `DEEPSEEK_API_KEY`, optional
-  `DEEPSEEK_BASE_URL`, `DEEPSEEK_TEXT_MODEL=deepseek-chat`; the photo slice adds
+  `DEEPSEEK_BASE_URL`, `DEEPSEEK_TEXT_MODEL=deepseek-flash`; the photo slice adds
   `DEEPSEEK_VISION_MODEL=deepseek-flash` (#150). Prompt content — meal text and image
   data — is never logged.
 
