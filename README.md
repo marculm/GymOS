@@ -74,7 +74,8 @@ Photo-based meal estimation, the AI recipe extractor, authentication, and offlin
 
    AI meal estimation is optional. Set `DEEPSEEK_API_KEY` in `.env` (see
    `.env.example`); without it, Describe reports that estimation is not configured and
-   manual entry still works.
+   manual entry still works. Thinking mode is on by default; set
+   `DEEPSEEK_THINKING=false` for faster, cheaper estimates.
 
 3. **Start local database & seed data:**
    ```bash

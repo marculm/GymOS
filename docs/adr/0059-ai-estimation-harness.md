@@ -25,7 +25,10 @@ cannot be parsed may come back as spaces-only content.
 - The provider is DeepSeek at `https://api.deepseek.com`. Text tasks default to
   `deepseek-flash`; `DEEPSEEK_TEXT_MODEL` can select `deepseek-v4-pro` for
   higher-quality text. Image tasks use the multimodal `deepseek-flash`. Estimation
-  disables thinking (`thinking: { "type": "disabled" }`) to keep latency and cost low.
+  enables thinking by default (`thinking: { "type": "enabled" }`) so vague descriptions
+  get a more careful estimate; `DEEPSEEK_THINKING=false` trades accuracy for lower
+  latency and cost. Thinking output is capped at 4096 tokens, non-thinking output at
+  300.
 - The harness is a plain `fetch` wrapper in `apps/api/src/modules/ai` behind a
   provider-agnostic `AiService`. No vendor SDK is added.
 - Every task — meal text, meal photo, recipe extraction, recipe macro estimation —
@@ -40,9 +43,9 @@ cannot be parsed may come back as spaces-only content.
 - Images are compressed in the browser (JPEG, about 1536px) and sent as `data:` URLs
   in `image_url` content blocks. The API stores no images and only passes them on.
 - Configuration is server-side only: `DEEPSEEK_API_KEY`, optional
-  `DEEPSEEK_BASE_URL`, `DEEPSEEK_TEXT_MODEL=deepseek-flash`; the photo slice adds
-  `DEEPSEEK_VISION_MODEL=deepseek-flash` (#150). Prompt content — meal text and image
-  data — is never logged.
+  `DEEPSEEK_BASE_URL`, `DEEPSEEK_TEXT_MODEL=deepseek-flash`, `DEEPSEEK_THINKING=true`;
+  the photo slice adds `DEEPSEEK_VISION_MODEL=deepseek-flash` (#150). Prompt content —
+  meal text and image data — is never logged.
 
 ## Consequences
 

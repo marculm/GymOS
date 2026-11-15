@@ -6,6 +6,7 @@ const config = {
   apiKey: "test-key",
   baseUrl: "https://deepseek.test",
   model: "deepseek-flash",
+  thinking: true,
 };
 
 function completion(content: string) {
@@ -56,10 +57,26 @@ describe("DeepSeekClient.completeJson", () => {
         { role: "user", content: "meal text" },
       ],
       response_format: { type: "json_object" },
+      thinking: { type: "enabled" },
+      max_tokens: 4096,
+    });
+    expect(init.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it("uses the small cap when thinking is disabled", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(completion('{"ok":true}'));
+    const client = new DeepSeekClient(
+      { ...config, thinking: false },
+      fetchMock as unknown as typeof fetch
+    );
+
+    await client.completeJson({ system: "s", user: "u" });
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(JSON.parse(String(init.body))).toMatchObject({
       thinking: { type: "disabled" },
       max_tokens: 300,
     });
-    expect(init.signal).toBeInstanceOf(AbortSignal);
   });
 
   it("reports a server error without retrying", async () => {

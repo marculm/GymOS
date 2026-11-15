@@ -9,6 +9,15 @@ const OptionalString = z.preprocess(
   z.string().min(1).optional()
 );
 
+const BooleanString = z.preprocess(
+  (value) => {
+    if (typeof value !== "string") return value;
+    const normalized = value.trim().toLowerCase();
+    return normalized === "" ? undefined : normalized;
+  },
+  z.enum(["true", "false"]).default("true").transform((value) => value === "true")
+);
+
 const EnvSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("production"),
   PORT: z.coerce.number().int().min(1).max(65_535).default(3000),
@@ -31,6 +40,7 @@ const EnvSchema = z.object({
     emptyToUndefined,
     z.string().min(1).default("deepseek-flash")
   ),
+  DEEPSEEK_THINKING: BooleanString,
 });
 
 export const env = EnvSchema.parse(process.env);
@@ -54,6 +64,7 @@ export type DeepSeekConfig = {
   apiKey: string;
   baseUrl: string;
   model: string;
+  thinking: boolean;
 };
 
 export function deepSeekConfig(): DeepSeekConfig | null {
@@ -62,6 +73,7 @@ export function deepSeekConfig(): DeepSeekConfig | null {
     apiKey: env.DEEPSEEK_API_KEY,
     baseUrl: env.DEEPSEEK_BASE_URL,
     model: env.DEEPSEEK_TEXT_MODEL,
+    thinking: env.DEEPSEEK_THINKING,
   };
 }
 
