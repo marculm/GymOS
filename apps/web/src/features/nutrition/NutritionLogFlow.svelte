@@ -137,12 +137,6 @@ async function estimate() {
   }
 }
 
-function startManual() {
-  backTarget = "choice";
-  resetDraft();
-  view = "focus";
-}
-
 function startRecipe(recipe: Recipe) {
   backTarget = "saved";
   resetDraft();
