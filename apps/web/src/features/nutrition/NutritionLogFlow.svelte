@@ -1,6 +1,6 @@
 <script lang="ts">
 import { tick } from "svelte";
-import { ChevronLeft, ChevronRight, X } from "lucide-svelte";
+import { ChevronLeft, ChevronRight, Pencil, X } from "lucide-svelte";
 import type { NutritionLogEntry, Recipe } from "@gymos/shared";
 import { goto } from "$app/navigation";
 import { nutritionData } from "./nutrition-data.svelte.ts";
@@ -135,6 +135,12 @@ async function estimate() {
   } finally {
     if (run === estimateRun) pending = false;
   }
+}
+
+function startManual() {
+  backTarget = "choice";
+  resetDraft();
+  view = "focus";
 }
 
 function startRecipe(recipe: Recipe) {
@@ -300,6 +306,16 @@ function handleClose() {
           <span class="list-main">
             <span class="list-title">Describe</span>
             <span class="list-subtitle">Let AI estimate the meal from a description.</span>
+          </span>
+          <ChevronRight size={17} class="settings-chevron" aria-hidden="true" />
+        </button>
+        <button type="button" class="list-row nutrition-option" onclick={startManual}>
+          <span class="nutrition-option-icon">
+            <Pencil size={19} aria-hidden="true" />
+          </span>
+          <span class="list-main">
+            <span class="list-title">Manual</span>
+            <span class="list-subtitle">Enter the meal and macros yourself.</span>
           </span>
           <ChevronRight size={17} class="settings-chevron" aria-hidden="true" />
         </button>

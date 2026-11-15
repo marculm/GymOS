@@ -105,11 +105,9 @@ describe("NutritionLogFlow", () => {
     render(NutritionLogFlow, { props: { open: true } });
 
     await fireEvent.click(
-      await screen.findByRole("button", { name: /^Describe/ })
+      await screen.findByRole("button", { name: /^Manual/ })
     );
-    await fireEvent.click(
-      screen.getByRole("button", { name: "Enter manually" })
-    );
+    expect(screen.getByText("Manual entry")).toBeInTheDocument();
     await fireEvent.input(screen.getByLabelText("Meal name"), {
       target: { value: "Skyr & berries" },
     });
