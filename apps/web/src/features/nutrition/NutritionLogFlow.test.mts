@@ -238,6 +238,40 @@ describe("NutritionLogFlow", () => {
     expect(await screen.findByLabelText("Meal name")).toHaveValue("Skyr bowl");
   });
 
+  it("ignores an estimate that arrives after leaving the step", async () => {
+    let resolveEstimate!: (value: MealEstimate) => void;
+    nutritionApi.estimateMeal.mockReturnValueOnce(
+      new Promise<MealEstimate>((resolve) => {
+        resolveEstimate = resolve;
+      })
+    );
+    render(NutritionLogFlow, { props: { open: true } });
+
+    await fireEvent.click(
+      await screen.findByRole("button", { name: /^Describe/ })
+    );
+    await fireEvent.input(screen.getByLabelText("Meal description"), {
+      target: { value: "toast" },
+    });
+    await fireEvent.click(screen.getByRole("button", { name: "Estimate" }));
+    await fireEvent.click(screen.getByRole("button", { name: "Back" }));
+
+    resolveEstimate(mealEstimate);
+
+    await waitFor(() =>
+      expect(screen.queryByLabelText("Meal name")).not.toBeInTheDocument()
+    );
+    expect(
+      screen.getByRole("button", { name: /^Saved meal/ })
+    ).toBeInTheDocument();
+
+    await fireEvent.click(screen.getByRole("button", { name: /^Describe/ }));
+    await fireEvent.input(screen.getByLabelText("Meal description"), {
+      target: { value: "a new meal" },
+    });
+    expect(screen.getByRole("button", { name: "Estimate" })).toBeEnabled();
+  });
+
   it("multiplies a saved recipe by the portion", async () => {
     render(NutritionLogFlow, { props: { open: true } });
 

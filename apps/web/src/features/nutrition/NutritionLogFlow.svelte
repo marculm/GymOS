@@ -32,6 +32,7 @@ let fatGrams = $state<number | null>(0);
 let pending = $state(false);
 let error = $state<string | null>(null);
 let confirmDelete = $state(false);
+let estimateRun = 0;
 
 $effect(() => {
   if (!dialog) return;
@@ -46,6 +47,8 @@ $effect(() => {
 });
 
 function resetDraft() {
+  estimateRun += 1;
+  pending = false;
   editing = null;
   recipeId = null;
   portion = 1;
@@ -61,7 +64,7 @@ function resetDraft() {
 }
 
 function close() {
-  open = false;
+  handleClose();
 }
 
 function manageRecipes() {
@@ -73,6 +76,10 @@ function back() {
   if (view === "focus") {
     view = backTarget;
   } else if (view === "saved" || view === "describe") {
+    if (view === "describe") {
+      estimateRun += 1;
+      pending = false;
+    }
     view = "choice";
   }
 }
@@ -102,10 +109,13 @@ async function estimate() {
     return;
   }
 
+  const run = estimateRun + 1;
+  estimateRun = run;
   pending = true;
   error = null;
   try {
     const result = await nutritionData.estimate({ description: text });
+    if (run !== estimateRun) return;
     editing = null;
     recipeId = null;
     name = result.name ?? text.slice(0, 120);
@@ -117,12 +127,13 @@ async function estimate() {
     backTarget = "describe";
     view = "focus";
   } catch (estimateError) {
+    if (run !== estimateRun) return;
     error =
       estimateError instanceof Error
         ? estimateError.message
         : "Could not estimate the meal";
   } finally {
-    pending = false;
+    if (run === estimateRun) pending = false;
   }
 }
 
@@ -254,6 +265,8 @@ async function handleDelete() {
 }
 
 function handleClose() {
+  estimateRun += 1;
+  pending = false;
   open = false;
 }
 </script>
