@@ -22,7 +22,8 @@ is deterministic and works without an LLM; estimations and the recipe extractor 
     instructions, source URL.
    - Home gauge and macro strip from real data.
 2. **AI estimation:** Describe and Photo paths fill the same focus logger with estimated
-   values; every value stays editable before logging.
+   values; every value stays editable before logging. Describe accepts 1-2000 characters
+   and keeps manual entry as a fallback (ADR-0059, ADR-0060).
 3. **Recipe extractor:** import a recipe from a link into the editable recipe form.
 4. **Cooking view:** recipe detail with ingredients and instructions for inspiration.
 
@@ -57,9 +58,9 @@ The app has three layers. Reuse them instead of inventing a fourth.
 ### Log flow
 
 1. `Log food` opens the Log sheet: Saved meal, Describe, Photo.
-2. Each option opens a full-screen Settings step (saved recipe list, describe input,
-   photo capture). In slice 1, Describe opens the manual entry path; Photo is hidden
-   until slice 2.
+2. Each option opens a full-screen Settings step: saved recipe list, meal description,
+   or photo capture. Describe estimates the macros and pre-fills the logger; `Enter
+   manually` skips the estimate. Photo stays hidden until its slice.
 3. The final step is the focus logger: meal name, source, portion stepper for a saved
    recipe, 2x2 metrics (calories, protein, carbs, fat), tap-to-edit, `Log meal`.
 4. Today's log lists the entries. Tapping one reopens the focus logger with
@@ -113,6 +114,8 @@ data.
 - `PATCH /api/nutrition/recipes/:id`; `DELETE /api/nutrition/recipes/:id`.
 - `GET /api/nutrition/targets` → targets or null.
 - `PUT /api/nutrition/targets` `{ calories, proteinGrams, carbsGrams, fatGrams }`.
+- `POST /api/nutrition/estimate` `{ description }` → `{ name?, macros }`; persists
+  nothing (ADR-0060).
 
 The client sends the local day boundaries as `from`/`to`, so the day does not depend on
 the server timezone.

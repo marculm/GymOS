@@ -32,7 +32,18 @@ The **Gym Tracker** slice is implemented:
   outside a workout; open Settings from the gear for plans, exercises, history, the rest
   timer, notifications, and the AI Extractor (ADR-0056)
 
-Nutrition, the AI recipe extractor, authentication, and offline logging are not implemented yet. The API is single-user (no login) and must be protected before public deployment. See [`docs/known-issues.md`](docs/known-issues.md) for known limitations.
+The **Nutrition** slice is implemented:
+
+- Set daily calorie and macro targets, then follow today's remaining calories in the
+  home gauge and macro strip
+- Log a saved recipe portion or enter a meal's macros manually, and correct or delete
+  entries from Today's log
+- Manage recipes on their own page with per-serving macros, ingredients, steps, and a
+  cooking view (ADR-0058)
+- Describe a meal and let AI estimate calories and macros; every value stays editable
+  before logging (ADR-0060)
+
+Photo-based meal estimation, the AI recipe extractor, authentication, and offline logging are not implemented yet. The API is single-user (no login) and must be protected before public deployment. See [`docs/known-issues.md`](docs/known-issues.md) for known limitations.
 
 ---
 
@@ -60,6 +71,10 @@ Nutrition, the AI recipe extractor, authentication, and offline logging are not 
    `bunx web-push generate-vapid-keys` and set `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`,
    and `VAPID_SUBJECT` in `.env` (see `.env.example`). Without them the API keeps push
    disabled and the in-app timer is used.
+
+   AI meal estimation is optional. Set `DEEPSEEK_API_KEY` in `.env` (see
+   `.env.example`); without it, Describe reports that estimation is not configured and
+   manual entry still works.
 
 3. **Start local database & seed data:**
    ```bash

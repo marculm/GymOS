@@ -162,6 +162,12 @@ apps/api/
         │   ├── router/write-router.mts
         │   ├── scheduler/rest-timer-scheduler.mts
         │   └── service/push-service.mts
+        ├── ai/
+        │   ├── client/deepseek-client.mts
+        │   ├── prompt/meal-estimation.mts
+        │   └── service/
+        │       ├── ai-service.mts
+        │       └── errors.mts
         ├── nutrition/
         │   ├── index.mts
         │   └── router/read-router.mts
@@ -241,6 +247,10 @@ Services are classes with constructor injection:
   sends the rest-over notification to each subscription. `RestTimerScheduler` polls due
   timers once per second from `index.mts`, deletes each after sending, and prunes
   subscriptions the push service reports as gone (ADR-0044).
+- `AiService` runs AI tasks through a provider-agnostic JSON completion client.
+  `DeepSeekClient` is the current client; the service owns each task's prompt and
+  response schema. The nutrition module calls it for meal estimation (ADR-0059,
+  ADR-0060).
 - Dependencies, includes, and the logger are `readonly #private` fields.
 - Each class uses `getLogger(ClassName.name)`.
 - Services are stateless. The container creates one instance each.
@@ -300,6 +310,9 @@ All client errors use RFC 9457 Problem Details with
 | `ZodError` | `422` |
 | `CurrentUserNotFoundError` | `500` |
 | `PushNotConfiguredError` | `503` |
+| `AiNotConfiguredError` | `503` |
+| `AiProviderError` | `503` |
+| `AiInvalidResponseError` | `502` |
 | anything else | `500`, logged with the error object |
 
 The gym and push write routers return `415 Unsupported Media Type` for `POST` and `PUT`
@@ -348,6 +361,9 @@ once with a Zod schema and fails fast on invalid values:
 - `CORS_ORIGINS`: comma-separated origins
 - `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`: optional web push key pair;
   push is disabled unless both keys are set (ADR-0044)
+- `DEEPSEEK_API_KEY`: optional; enables AI meal estimation
+- `DEEPSEEK_BASE_URL`: DeepSeek API base URL, default `https://api.deepseek.com`
+- `DEEPSEEK_TEXT_MODEL`: text model, default `deepseek-chat` (ADR-0059, ADR-0060)
 
 Other configuration modules:
 
@@ -397,10 +413,9 @@ service without changing service signatures (ADR-0009).
 
 ### 3.13 Unimplemented Feature Endpoints
 
-The nutrition and extractor modules keep their module boundaries but return
-`501 Not Implemented` problem details until the features are implemented. They do not
-return fabricated data. The nutrition and recipe schemas and tables stay in place until
-those slices are built. See ADR-0017.
+The extractor module keeps its module boundary but returns `501 Not Implemented` problem
+details until the feature is implemented. It does not return fabricated data. The
+nutrition module is implemented (ADR-0057, ADR-0058, ADR-0060). See ADR-0017.
 
 ---
 
@@ -543,6 +558,10 @@ apps/web/
   rotation and defaults as a successful finish would (ADR-0050).
 - Errors render in `role="alert"` live regions. Starting or finishing a session moves
   focus to the session exercise heading or the next-workout heading (ADR-0034).
+- Nutrition loads the day's summary, logs, and recipes through `nutritionData`. The Log
+  food sheet logs a saved recipe portion, estimates a described meal with AI into the
+  editable logger, or opens manual entry; nothing is logged before the user confirms
+  (ADR-0057, ADR-0060).
 - The PWA theme color and background are black; the light spaces are scoped by the
   `.light-space` token block. The theme test checks WCAG AA in both scopes.
 
@@ -556,7 +575,8 @@ mutations are never retried (ADR-0015).
 
 `src/api/gym.mts` exposes typed functions for the gym endpoints. It maps the HTTP
 contract to UI types and returns `Page<T>` for list endpoints. `getActiveSession`
-returns `null` for a `404`.
+returns `null` for a `404`. `src/api/nutrition.mts` exposes the nutrition endpoints;
+`estimateMeal` allows 45 seconds for the AI provider (ADR-0060).
 
 ### 4.5 PWA
 

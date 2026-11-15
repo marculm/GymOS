@@ -1,6 +1,6 @@
 # Known Issues and Deferred Work
 
-Last updated: 2026-11-11
+Last updated: 2026-11-15
 Scope: Gym Tracker MVP on `refactor/ponytail`.
 
 These are known, non-blocking issues. They do not affect the core flow: create a plan, start a workout, log sets, finish, and review history.
@@ -25,8 +25,8 @@ These are known, non-blocking issues. They do not affect the core flow: create a
 ## Deferred features
 
 - A single root `.env` instead of the root/API duplication.
-- Nutrition/mealprep slice.
-- Text-first recipe extractor (needs its own ADR).
+- Mealprep slice.
+- AI photo meal estimation and the text/URL recipe extractor (needs its own ADR).
 
 ## Security and operations
 
