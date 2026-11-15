@@ -58,6 +58,7 @@ describe("DeepSeekClient.completeJson", () => {
       ],
       response_format: { type: "json_object" },
       thinking: { type: "enabled" },
+      reasoning_effort: "high",
       max_tokens: 4096,
     });
     expect(init.signal).toBeInstanceOf(AbortSignal);
@@ -73,10 +74,12 @@ describe("DeepSeekClient.completeJson", () => {
     await client.completeJson({ system: "s", user: "u" });
 
     const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(JSON.parse(String(init.body))).toMatchObject({
+    const body = JSON.parse(String(init.body));
+    expect(body).toMatchObject({
       thinking: { type: "disabled" },
       max_tokens: 300,
     });
+    expect(body.reasoning_effort).toBeUndefined();
   });
 
   it("reports a server error without retrying", async () => {

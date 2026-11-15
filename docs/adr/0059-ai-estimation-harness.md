@@ -25,10 +25,10 @@ cannot be parsed may come back as spaces-only content.
 - The provider is DeepSeek at `https://api.deepseek.com`. Text tasks default to
   `deepseek-flash`; `DEEPSEEK_TEXT_MODEL` can select `deepseek-v4-pro` for
   higher-quality text. Image tasks use the multimodal `deepseek-flash`. Estimation
-  enables thinking by default (`thinking: { "type": "enabled" }`) so vague descriptions
-  get a more careful estimate; `DEEPSEEK_THINKING=false` trades accuracy for lower
-  latency and cost. Thinking output is capped at 4096 tokens, non-thinking output at
-  300.
+  enables thinking by default (`thinking: { "type": "enabled" }`) with
+  `reasoning_effort: "high"` so vague descriptions get a more careful estimate;
+  `DEEPSEEK_THINKING=false` trades accuracy for lower latency and cost. Thinking output
+  is capped at 4096 tokens, non-thinking output at 300.
 - The harness is a plain `fetch` wrapper in `apps/api/src/modules/ai` behind a
   provider-agnostic `AiService`. No vendor SDK is added.
 - Every task — meal text, meal photo, recipe extraction, recipe macro estimation —

@@ -22,8 +22,8 @@ to zero values.
 - The service makes at most two provider calls per estimate: one retry covers both a
   retryable provider error (429, 5xx, network failure, or timeout) and an unreadable or
   spaces-only completion. Each call times out after 30 seconds. Output is capped at
-  4096 tokens with thinking enabled (the default, ADR-0059) and at 300 tokens without
-  it. Prompt text and meal descriptions are never logged.
+  4096 tokens with thinking at high effort (the default, ADR-0059) and at 300 tokens
+  without it. Prompt text and meal descriptions are never logged.
 - The Describe choice opens a full-screen text step. `Estimate` pre-fills the existing
   focus logger and labels the source `AI estimate`; every value stays editable and
   `Log meal` remains the only write. `Enter manually` reaches the same logger without

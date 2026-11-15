@@ -8,6 +8,7 @@ import { AiProviderError } from "../service/errors.mts";
 const REQUEST_TIMEOUT_MS = 30_000;
 const MAX_OUTPUT_TOKENS = 300;
 const MAX_THINKING_OUTPUT_TOKENS = 4096;
+const REASONING_EFFORT = "high";
 
 type ChatCompletionResponse = {
   choices?: { message?: { content?: unknown } }[];
@@ -47,6 +48,7 @@ export class DeepSeekClient implements JsonCompletionClient {
         ],
         response_format: { type: "json_object" },
         thinking: { type: thinking ? "enabled" : "disabled" },
+        ...(thinking ? { reasoning_effort: REASONING_EFFORT } : {}),
         max_tokens: thinking ? MAX_THINKING_OUTPUT_TOKENS : MAX_OUTPUT_TOKENS,
       }),
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),

@@ -365,8 +365,8 @@ once with a Zod schema and fails fast on invalid values:
 - `DEEPSEEK_BASE_URL`: DeepSeek API base URL, default `https://api.deepseek.com`
 - `DEEPSEEK_TEXT_MODEL`: text model, default `deepseek-flash`; `deepseek-v4-pro` is the
   higher-quality alternative (ADR-0059, ADR-0060)
-- `DEEPSEEK_THINKING`: enable the model's thinking mode, default `true`; `false` trades
-  accuracy for lower latency and cost (ADR-0059)
+- `DEEPSEEK_THINKING`: enable the model's thinking mode at high reasoning effort, default
+  `true`; `false` trades accuracy for lower latency and cost (ADR-0059)
 
 Other configuration modules:
 
