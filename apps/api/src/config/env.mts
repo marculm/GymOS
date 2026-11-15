@@ -1,7 +1,11 @@
 import { z } from "zod";
 
+function emptyToUndefined(value: unknown) {
+  return value === "" ? undefined : value;
+}
+
 const OptionalString = z.preprocess(
-  (value) => (value === "" ? undefined : value),
+  emptyToUndefined,
   z.string().min(1).optional()
 );
 
@@ -19,8 +23,14 @@ const EnvSchema = z.object({
     z.string().min(1).default("mailto:admin@gymos.app")
   ),
   DEEPSEEK_API_KEY: OptionalString,
-  DEEPSEEK_BASE_URL: z.url().default("https://api.deepseek.com"),
-  DEEPSEEK_TEXT_MODEL: z.string().min(1).default("deepseek-chat"),
+  DEEPSEEK_BASE_URL: z.preprocess(
+    emptyToUndefined,
+    z.url().default("https://api.deepseek.com")
+  ),
+  DEEPSEEK_TEXT_MODEL: z.preprocess(
+    emptyToUndefined,
+    z.string().min(1).default("deepseek-chat")
+  ),
 });
 
 export const env = EnvSchema.parse(process.env);

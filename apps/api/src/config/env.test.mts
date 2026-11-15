@@ -102,4 +102,19 @@ describe("env", () => {
       model: "custom-text",
     });
   });
+
+  it("treats empty DeepSeek overrides as defaults", async () => {
+    process.env.DEEPSEEK_API_KEY = "test-key";
+    process.env.DEEPSEEK_BASE_URL = "";
+    process.env.DEEPSEEK_TEXT_MODEL = "";
+    vi.resetModules();
+
+    const { deepSeekConfig } = await import("./env.mts");
+
+    expect(deepSeekConfig()).toEqual({
+      apiKey: "test-key",
+      baseUrl: "https://api.deepseek.com",
+      model: "deepseek-chat",
+    });
+  });
 });
