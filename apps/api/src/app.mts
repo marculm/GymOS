@@ -13,6 +13,11 @@ import { requestLogger } from "./logger/request-logger.mts";
 import { responseTime } from "./logger/response-time.mts";
 import { trackMetrics } from "./monitoring/prometheus-metrics.mts";
 import { prometheusRouter } from "./monitoring/prometheus-router.mts";
+import {
+  AiInvalidResponseError,
+  AiNotConfiguredError,
+  AiProviderError,
+} from "./modules/ai/service/errors.mts";
 import { extractorModule } from "./modules/extractor/index.mts";
 import {
   ActiveSessionExistsError,
@@ -103,6 +108,15 @@ app.onError((err, c) => {
   }
   if (err instanceof PushNotConfiguredError) {
     return createProblemDetails(c, 503, err.message);
+  }
+  if (err instanceof AiNotConfiguredError) {
+    return createProblemDetails(c, 503, err.message);
+  }
+  if (err instanceof AiProviderError) {
+    return createProblemDetails(c, 503, err.message);
+  }
+  if (err instanceof AiInvalidResponseError) {
+    return createProblemDetails(c, 502, err.message);
   }
 
   logger.error({ err }, "Unhandled error");

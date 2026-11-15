@@ -7,6 +7,11 @@ const originalVapid = {
   privateKey: process.env.VAPID_PRIVATE_KEY,
   subject: process.env.VAPID_SUBJECT,
 };
+const originalDeepSeek = {
+  apiKey: process.env.DEEPSEEK_API_KEY,
+  baseUrl: process.env.DEEPSEEK_BASE_URL,
+  model: process.env.DEEPSEEK_TEXT_MODEL,
+};
 
 function restore(name: string, value: string | undefined) {
   if (value === undefined) delete process.env[name];
@@ -19,6 +24,9 @@ afterEach(() => {
   restore("VAPID_PUBLIC_KEY", originalVapid.publicKey);
   restore("VAPID_PRIVATE_KEY", originalVapid.privateKey);
   restore("VAPID_SUBJECT", originalVapid.subject);
+  restore("DEEPSEEK_API_KEY", originalDeepSeek.apiKey);
+  restore("DEEPSEEK_BASE_URL", originalDeepSeek.baseUrl);
+  restore("DEEPSEEK_TEXT_MODEL", originalDeepSeek.model);
   vi.resetModules();
 });
 
@@ -63,5 +71,35 @@ describe("env", () => {
 
     process.env.GYMOS_USER_EMAIL = "";
     expect(currentUserEmail()).toBe(env.GYMOS_USER_EMAIL);
+  });
+
+  it("leaves DeepSeek unconfigured without a key", async () => {
+    delete process.env.DEEPSEEK_API_KEY;
+    vi.resetModules();
+
+    const { deepSeekConfig } = await import("./env.mts");
+
+    expect(deepSeekConfig()).toBeNull();
+  });
+
+  it("builds DeepSeek config with defaults and overrides", async () => {
+    process.env.DEEPSEEK_API_KEY = "test-key";
+    vi.resetModules();
+    const defaults = await import("./env.mts");
+    expect(defaults.deepSeekConfig()).toEqual({
+      apiKey: "test-key",
+      baseUrl: "https://api.deepseek.com",
+      model: "deepseek-chat",
+    });
+
+    process.env.DEEPSEEK_BASE_URL = "https://ai.test";
+    process.env.DEEPSEEK_TEXT_MODEL = "custom-text";
+    vi.resetModules();
+    const overrides = await import("./env.mts");
+    expect(overrides.deepSeekConfig()).toEqual({
+      apiKey: "test-key",
+      baseUrl: "https://ai.test",
+      model: "custom-text",
+    });
   });
 });

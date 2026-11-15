@@ -1,5 +1,6 @@
 import {
   MacrosSchema,
+  MealEstimateInputSchema,
   NutritionLogInputSchema,
   NutritionLogUpdateSchema,
   NutritionRangeQuerySchema,
@@ -56,6 +57,11 @@ nutritionModule.get("/targets", async (c) =>
 nutritionModule.put("/targets", async (c) => {
   const input = MacrosSchema.parse(await c.req.json());
   return c.json(await nutritionService.setTargets(c.get("user").id, input));
+});
+
+nutritionModule.post("/estimate", async (c) => {
+  const input = MealEstimateInputSchema.parse(await c.req.json());
+  return c.json(await container.aiService.estimateMeal(input.description));
 });
 
 nutritionModule.get("/recipes", async (c) =>
