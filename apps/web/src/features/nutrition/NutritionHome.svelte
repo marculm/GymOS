@@ -173,7 +173,7 @@ function retry() {
     <div class="nutrition-setup">
       <p class="nutrition-setup-title">Set your daily targets</p>
       <p class="nutrition-copy">
-        Add calories and macros once. Today's gauge and remaining values are built from
+        Add calories and macros once. Today's gauge and macro values are built from
         them.
       </p>
       <button
@@ -227,7 +227,7 @@ function retry() {
             {macro.name}
           </span>
           <span class="nutrition-macro-value" class:over={isOver(macro.key)}>
-            {format(Math.abs(remainingValue(macro.key)))}
+            {format(eatenValue(macro.key))}
             <small>/ {format(targetValue(summary.targets, macro.key))} g</small>
           </span>
           <span class="nutrition-macro-bar">
