@@ -1,10 +1,11 @@
 <script lang="ts">
+import { tick } from "svelte";
 import { ChevronLeft, ChevronRight, X } from "lucide-svelte";
 import type { NutritionLogEntry, Recipe } from "@gymos/shared";
 import { goto } from "$app/navigation";
 import { nutritionData } from "./nutrition-data.svelte.ts";
 
-type View = "choice" | "saved" | "focus" | "today";
+type View = "choice" | "describe" | "saved" | "focus" | "today";
 
 let {
   open = $bindable(false),
@@ -21,6 +22,9 @@ let editing = $state<NutritionLogEntry | null>(null);
 let recipeId = $state<string | null>(null);
 let portion = $state(1);
 let name = $state("");
+let description = $state("");
+let estimated = $state(false);
+let descriptionInput = $state<HTMLTextAreaElement | null>(null);
 let calories = $state<number | null>(0);
 let proteinGrams = $state<number | null>(0);
 let carbsGrams = $state<number | null>(0);
@@ -28,6 +32,7 @@ let fatGrams = $state<number | null>(0);
 let pending = $state(false);
 let error = $state<string | null>(null);
 let confirmDelete = $state(false);
+let estimateRun = 0;
 
 $effect(() => {
   if (!dialog) return;
@@ -42,10 +47,14 @@ $effect(() => {
 });
 
 function resetDraft() {
+  estimateRun += 1;
+  pending = false;
   editing = null;
   recipeId = null;
   portion = 1;
   name = "";
+  description = "";
+  estimated = false;
   calories = 0;
   proteinGrams = 0;
   carbsGrams = 0;
@@ -55,7 +64,7 @@ function resetDraft() {
 }
 
 function close() {
-  open = false;
+  handleClose();
 }
 
 function manageRecipes() {
@@ -66,15 +75,66 @@ function manageRecipes() {
 function back() {
   if (view === "focus") {
     view = backTarget;
-  } else if (view === "saved") {
+  } else if (view === "saved" || view === "describe") {
+    if (view === "describe") {
+      estimateRun += 1;
+      pending = false;
+    }
     view = "choice";
   }
 }
 
-function startManual() {
+async function startDescribe() {
   backTarget = "choice";
   resetDraft();
+  view = "describe";
+  await tick();
+  descriptionInput?.focus();
+}
+
+function startManualFromDescribe() {
+  const text = description;
+  backTarget = "describe";
+  resetDraft();
+  description = text;
+  name = text.trim().slice(0, 120);
   view = "focus";
+}
+
+async function estimate() {
+  if (pending) return;
+  const text = description.trim();
+  if (!text) {
+    error = "Describe the meal first.";
+    return;
+  }
+
+  const run = estimateRun + 1;
+  estimateRun = run;
+  pending = true;
+  error = null;
+  try {
+    const result = await nutritionData.estimate({ description: text });
+    if (run !== estimateRun) return;
+    editing = null;
+    recipeId = null;
+    name = result.name ?? text.slice(0, 120);
+    calories = result.macros.calories;
+    proteinGrams = result.macros.proteinGrams;
+    carbsGrams = result.macros.carbsGrams;
+    fatGrams = result.macros.fatGrams;
+    estimated = true;
+    backTarget = "describe";
+    view = "focus";
+  } catch (estimateError) {
+    if (run !== estimateRun) return;
+    error =
+      estimateError instanceof Error
+        ? estimateError.message
+        : "Could not estimate the meal";
+  } finally {
+    if (run === estimateRun) pending = false;
+  }
 }
 
 function startRecipe(recipe: Recipe) {
@@ -137,7 +197,9 @@ const source = $derived(
     ? "Edit meal"
     : recipeId
       ? "Saved meal"
-      : "Manual entry"
+      : estimated
+        ? "AI estimate"
+        : "Manual entry"
 );
 
 async function handleSave() {
@@ -197,6 +259,8 @@ async function handleDelete() {
 }
 
 function handleClose() {
+  estimateRun += 1;
+  pending = false;
   open = false;
 }
 </script>
@@ -227,7 +291,7 @@ function handleClose() {
           </span>
           <ChevronRight size={17} class="settings-chevron" aria-hidden="true" />
         </button>
-        <button type="button" class="list-row nutrition-option" onclick={startManual}>
+        <button type="button" class="list-row nutrition-option" onclick={startDescribe}>
           <span class="nutrition-option-icon">
             <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
@@ -235,16 +299,68 @@ function handleClose() {
           </span>
           <span class="list-main">
             <span class="list-title">Describe</span>
-            <span class="list-subtitle">Enter the meal and macros manually.</span>
+            <span class="list-subtitle">Let AI estimate the meal from a description.</span>
           </span>
           <ChevronRight size={17} class="settings-chevron" aria-hidden="true" />
         </button>
       </div>
       <p class="settings-note">
-        Saved meals use the recipe values. The estimate for Describe comes in a later
-        slice; for now you enter the macros.
+        Saved meals use recipe values. An AI estimate fills the logger; you can edit
+        everything before logging.
       </p>
       <button type="button" class="btn btn-ghost" onclick={close}>Cancel</button>
+    </div>
+  {:else if view === "describe"}
+    <div class="nutrition-full">
+      <header class="nutrition-full-head">
+        <button type="button" class="icon-btn muted" aria-label="Back" onclick={back}>
+          <ChevronLeft size={22} aria-hidden="true" />
+        </button>
+        <h2 class="nutrition-full-title">Describe</h2>
+        <button type="button" class="icon-btn muted" aria-label="Close" onclick={close}>
+          <X size={22} aria-hidden="true" />
+        </button>
+      </header>
+      <div class="nutrition-full-body nutrition-describe">
+        <label class="nutrition-describe-label" for="meal-description">
+          Meal description
+        </label>
+        <textarea
+          id="meal-description"
+          class="nutrition-describe-input"
+          maxlength={2000}
+          disabled={pending}
+          placeholder="e.g. Big Mac, medium fries and a Coke"
+          bind:this={descriptionInput}
+          bind:value={description}
+        ></textarea>
+        <p class="nutrition-describe-hint">
+          Include portions when you know them. The estimate fills the logger; you can
+          edit every value.
+        </p>
+        {#if error}
+          <p class="error" role="alert">{error}</p>
+        {/if}
+      </div>
+      <div class="nutrition-full-actions nutrition-describe-actions">
+        <button
+          type="button"
+          class="nutrition-primary"
+          disabled={pending || description.trim().length === 0}
+          aria-busy={pending}
+          onclick={() => void estimate()}
+        >
+          {pending ? "Estimating…" : "Estimate"}
+        </button>
+        <button
+          type="button"
+          class="nutrition-secondary"
+          disabled={pending}
+          onclick={startManualFromDescribe}
+        >
+          Enter manually
+        </button>
+      </div>
     </div>
   {:else if view === "saved"}
     <div class="nutrition-full">

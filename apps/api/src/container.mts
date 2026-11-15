@@ -1,4 +1,6 @@
-import { vapidConfig } from "./config/env.mts";
+import { deepSeekConfig, vapidConfig } from "./config/env.mts";
+import { DeepSeekClient } from "./modules/ai/client/deepseek-client.mts";
+import { AiService } from "./modules/ai/service/ai-service.mts";
 import { ExerciseRepository } from "./modules/gym/repository/exercise-repository.mts";
 import { PlanRepository } from "./modules/gym/repository/plan-repository.mts";
 import { RotationRepository } from "./modules/gym/repository/rotation-repository.mts";
@@ -35,6 +37,11 @@ const writeService = new GymWriteService(
 const nutritionRepository = new NutritionRepository();
 const nutritionService = new NutritionService(nutritionRepository);
 
+const deepseek = deepSeekConfig();
+const aiService = new AiService(
+  deepseek ? new DeepSeekClient(deepseek) : null
+);
+
 const restTimerRepository = new RestTimerRepository();
 const vapid = vapidConfig();
 const pushService = new PushService(
@@ -48,6 +55,7 @@ export const container = {
   readService,
   writeService,
   nutritionService,
+  aiService,
   pushService,
   restTimerRepository,
   currentUserService: new CurrentUserService(),

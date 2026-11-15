@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/svelte";
 import type {
+  MealEstimate,
   NutritionLogEntry,
   NutritionSummary,
   Recipe,
@@ -14,6 +15,7 @@ const nutritionApi = vi.hoisted(() => ({
   createLog: vi.fn(),
   updateLog: vi.fn(),
   deleteLog: vi.fn(),
+  estimateMeal: vi.fn(),
   setTargets: vi.fn(),
   createRecipe: vi.fn(),
   updateRecipe: vi.fn(),
@@ -37,6 +39,16 @@ const recipe: Recipe = {
   },
   ingredients: [],
   instructions: [],
+};
+
+const mealEstimate: MealEstimate = {
+  name: "Skyr bowl",
+  macros: {
+    calories: 410,
+    proteinGrams: 38,
+    carbsGrams: 44,
+    fatGrams: 6,
+  },
 };
 
 const entry: NutritionLogEntry = {
@@ -84,6 +96,7 @@ beforeEach(() => {
   nutritionApi.createLog.mockResolvedValue(entry);
   nutritionApi.updateLog.mockResolvedValue(entry);
   nutritionApi.deleteLog.mockResolvedValue(undefined);
+  nutritionApi.estimateMeal.mockResolvedValue(mealEstimate);
   nutritionApi.listRecipes.mockResolvedValue([recipe]);
 });
 
@@ -93,6 +106,9 @@ describe("NutritionLogFlow", () => {
 
     await fireEvent.click(
       await screen.findByRole("button", { name: /^Describe/ })
+    );
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Enter manually" })
     );
     await fireEvent.input(screen.getByLabelText("Meal name"), {
       target: { value: "Skyr & berries" },
@@ -123,6 +139,137 @@ describe("NutritionLogFlow", () => {
         },
       })
     );
+  });
+
+  it("estimates a described meal and logs edited values", async () => {
+    render(NutritionLogFlow, { props: { open: true } });
+
+    await fireEvent.click(
+      await screen.findByRole("button", { name: /^Describe/ })
+    );
+    await fireEvent.input(screen.getByLabelText("Meal description"), {
+      target: { value: "300g skyr with berries" },
+    });
+    await fireEvent.click(screen.getByRole("button", { name: "Estimate" }));
+
+    await waitFor(() =>
+      expect(nutritionApi.estimateMeal).toHaveBeenCalledWith({
+        description: "300g skyr with berries",
+      })
+    );
+    expect(await screen.findByLabelText("Meal name")).toHaveValue("Skyr bowl");
+    expect(screen.getByText("AI estimate")).toBeInTheDocument();
+    expect(screen.getByLabelText("Calories")).toHaveValue(410);
+    expect(screen.getByLabelText("Protein grams")).toHaveValue(38);
+    expect(screen.getByLabelText("Carbs grams")).toHaveValue(44);
+    expect(screen.getByLabelText("Fat grams")).toHaveValue(6);
+
+    await fireEvent.input(screen.getByLabelText("Calories"), {
+      target: { value: "420" },
+    });
+    await fireEvent.click(screen.getByRole("button", { name: "Log meal" }));
+
+    await waitFor(() =>
+      expect(nutritionApi.createLog).toHaveBeenCalledWith({
+        name: "Skyr bowl",
+        macros: {
+          calories: 420,
+          proteinGrams: 38,
+          carbsGrams: 44,
+          fatGrams: 6,
+        },
+      })
+    );
+  });
+
+  it("keeps the description when the estimate fails", async () => {
+    nutritionApi.estimateMeal.mockRejectedValueOnce(
+      new Error(
+        "The estimate service is unavailable. Try again or enter the meal manually."
+      )
+    );
+    render(NutritionLogFlow, { props: { open: true } });
+
+    await fireEvent.click(
+      await screen.findByRole("button", { name: /^Describe/ })
+    );
+    await fireEvent.input(screen.getByLabelText("Meal description"), {
+      target: { value: "toast with butter" },
+    });
+    await fireEvent.click(screen.getByRole("button", { name: "Estimate" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "estimate service is unavailable"
+    );
+    expect(screen.getByLabelText("Meal description")).toHaveValue(
+      "toast with butter"
+    );
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Enter manually" })
+    );
+    expect(screen.getByLabelText("Meal name")).toHaveValue("toast with butter");
+    expect(screen.getByLabelText("Calories")).toHaveValue(0);
+  });
+
+  it("shows the estimating state", async () => {
+    let resolveEstimate!: (value: MealEstimate) => void;
+    nutritionApi.estimateMeal.mockReturnValueOnce(
+      new Promise<MealEstimate>((resolve) => {
+        resolveEstimate = resolve;
+      })
+    );
+    render(NutritionLogFlow, { props: { open: true } });
+
+    await fireEvent.click(
+      await screen.findByRole("button", { name: /^Describe/ })
+    );
+    await fireEvent.input(screen.getByLabelText("Meal description"), {
+      target: { value: "toast" },
+    });
+    await fireEvent.click(screen.getByRole("button", { name: "Estimate" }));
+
+    expect(
+      await screen.findByRole("button", { name: "Estimating…" })
+    ).toBeDisabled();
+    expect(screen.getByLabelText("Meal description")).toBeDisabled();
+
+    resolveEstimate(mealEstimate);
+    expect(await screen.findByLabelText("Meal name")).toHaveValue("Skyr bowl");
+  });
+
+  it("ignores an estimate that arrives after leaving the step", async () => {
+    let resolveEstimate!: (value: MealEstimate) => void;
+    nutritionApi.estimateMeal.mockReturnValueOnce(
+      new Promise<MealEstimate>((resolve) => {
+        resolveEstimate = resolve;
+      })
+    );
+    render(NutritionLogFlow, { props: { open: true } });
+
+    await fireEvent.click(
+      await screen.findByRole("button", { name: /^Describe/ })
+    );
+    await fireEvent.input(screen.getByLabelText("Meal description"), {
+      target: { value: "toast" },
+    });
+    await fireEvent.click(screen.getByRole("button", { name: "Estimate" }));
+    await fireEvent.click(screen.getByRole("button", { name: "Back" }));
+
+    resolveEstimate(mealEstimate);
+
+    await waitFor(() =>
+      expect(screen.queryByLabelText("Meal name")).not.toBeInTheDocument()
+    );
+    expect(
+      screen.getByRole("button", { name: /^Saved meal/ })
+    ).toBeInTheDocument();
+
+    await fireEvent.click(screen.getByRole("button", { name: /^Describe/ }));
+    await fireEvent.input(screen.getByLabelText("Meal description"), {
+      target: { value: "a new meal" },
+    });
+    expect(screen.getByRole("button", { name: "Estimate" })).toBeEnabled();
   });
 
   it("multiplies a saved recipe by the portion", async () => {

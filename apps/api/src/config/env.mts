@@ -1,8 +1,21 @@
 import { z } from "zod";
 
+function emptyToUndefined(value: unknown) {
+  return value === "" ? undefined : value;
+}
+
 const OptionalString = z.preprocess(
-  (value) => (value === "" ? undefined : value),
+  emptyToUndefined,
   z.string().min(1).optional()
+);
+
+const BooleanString = z.preprocess(
+  (value) => {
+    if (typeof value !== "string") return value;
+    const normalized = value.trim().toLowerCase();
+    return normalized === "" ? undefined : normalized;
+  },
+  z.enum(["true", "false"]).default("true").transform((value) => value === "true")
 );
 
 const EnvSchema = z.object({
@@ -18,6 +31,16 @@ const EnvSchema = z.object({
     (value) => (value === "" ? undefined : value),
     z.string().min(1).default("mailto:admin@gymos.app")
   ),
+  DEEPSEEK_API_KEY: OptionalString,
+  DEEPSEEK_BASE_URL: z.preprocess(
+    emptyToUndefined,
+    z.url().default("https://api.deepseek.com")
+  ),
+  DEEPSEEK_TEXT_MODEL: z.preprocess(
+    emptyToUndefined,
+    z.string().min(1).default("deepseek-flash")
+  ),
+  DEEPSEEK_THINKING: BooleanString,
 });
 
 export const env = EnvSchema.parse(process.env);
@@ -34,6 +57,23 @@ export function vapidConfig(): VapidConfig | null {
     publicKey: env.VAPID_PUBLIC_KEY,
     privateKey: env.VAPID_PRIVATE_KEY,
     subject: env.VAPID_SUBJECT,
+  };
+}
+
+export type DeepSeekConfig = {
+  apiKey: string;
+  baseUrl: string;
+  model: string;
+  thinking: boolean;
+};
+
+export function deepSeekConfig(): DeepSeekConfig | null {
+  if (!env.DEEPSEEK_API_KEY) return null;
+  return {
+    apiKey: env.DEEPSEEK_API_KEY,
+    baseUrl: env.DEEPSEEK_BASE_URL,
+    model: env.DEEPSEEK_TEXT_MODEL,
+    thinking: env.DEEPSEEK_THINKING,
   };
 }
 
