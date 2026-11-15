@@ -26,13 +26,15 @@ to zero values.
   without it. Prompt text and meal descriptions are never logged.
 - The Describe choice opens a full-screen text step. `Estimate` pre-fills the existing
   focus logger and labels the source `AI estimate`; every value stays editable and
-  `Log meal` remains the only write. `Enter manually` reaches the same logger without
-  AI.
+  `Log meal` remains the only write. The Log food sheet also offers a direct `Manual`
+  choice that opens the same logger without the text step; `Enter manually` in the text
+  step stays as the fallback.
 - A failed estimate stays on the text step with the description preserved and an alert.
   Missing configuration or provider failure returns 503; an unreadable response returns
   502. The UI points to manual entry, and no zero values are logged silently.
 - The AI name is optional; without it the trimmed description (up to 120 characters)
-  becomes the meal name.
+  becomes the meal name. The prompt asks for the name in the description's language, so
+  a German description returns a German name.
 - The web client allows 70 seconds for the estimate, covering the two provider calls and
   their 30-second timeouts.
 

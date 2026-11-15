@@ -40,6 +40,12 @@ describe("AiService.estimateMeal", () => {
       system: expect.stringMatching(/json/i),
       user: "300g skyr with berries",
     });
+    const request = client.completeJson.mock.calls[0]?.[0] as
+      | { system: string; user: string }
+      | undefined;
+    expect(request?.system).toContain(
+      "same language as the description"
+    );
   });
 
   it("ignores an unusable AI name", async () => {
