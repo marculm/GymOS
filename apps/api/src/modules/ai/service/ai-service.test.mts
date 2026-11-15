@@ -42,6 +42,29 @@ describe("AiService.estimateMeal", () => {
     });
   });
 
+  it("ignores an unusable AI name", async () => {
+    const client = fakeClient(
+      JSON.stringify({ name: null, macros: estimate.macros })
+    );
+    const service = new AiService(client);
+
+    await expect(service.estimateMeal("toast")).resolves.toEqual({
+      macros: estimate.macros,
+    });
+  });
+
+  it("truncates an overlong AI name", async () => {
+    const client = fakeClient(
+      JSON.stringify({ name: "a".repeat(130), macros: estimate.macros })
+    );
+    const service = new AiService(client);
+
+    await expect(service.estimateMeal("toast")).resolves.toEqual({
+      name: "a".repeat(120),
+      macros: estimate.macros,
+    });
+  });
+
   it("retries an unreadable completion once", async () => {
     const client = fakeClient("   ", JSON.stringify(estimate));
     const service = new AiService(client);
