@@ -915,6 +915,55 @@ textarea.input {
   width: 100%;
 }
 
+.nutrition-describe-label {
+  padding: 0 4px;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.nutrition-describe-input {
+  flex: 1;
+  width: 100%;
+  min-height: 220px;
+  padding: 14px 16px;
+  border: 0;
+  border-radius: 16px;
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 1.0625rem;
+  line-height: 1.45;
+  resize: none;
+}
+
+.nutrition-describe-input::placeholder {
+  color: var(--muted);
+}
+
+.nutrition-describe-input:disabled {
+  opacity: 0.55;
+}
+
+.nutrition-describe-hint {
+  margin: 0;
+  padding: 0 4px;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
+.nutrition-describe .error {
+  margin: 0;
+  padding: 0 4px;
+}
+
+.nutrition-describe-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 .nutrition-log-summary {
   margin: 0;
   padding: 0 4px;
