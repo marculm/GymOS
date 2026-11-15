@@ -32,13 +32,14 @@ be parsed may come back as spaces-only content.
   parsed and validated with Zod; invalid or spaces-only content gets one retry, then
   a mapped provider error.
 - Calls time out after about 20 seconds. 429 and 5xx are retried once, then surface as
-  502/503 problem details; the UI keeps manual entry as the fallback.
+  503; an unreadable response surfaces as 502. The UI keeps manual entry as the
+  fallback.
 - Images are compressed in the browser (JPEG, about 1536px) and sent as `data:` URLs
   in `image_url` content blocks. The API stores no images and only passes them on.
 - Configuration is server-side only: `DEEPSEEK_API_KEY`, optional
-  `DEEPSEEK_BASE_URL`, `DEEPSEEK_TEXT_MODEL=deepseek-chat`,
-  `DEEPSEEK_VISION_MODEL=deepseek-flash`. Prompt content — meal text and image data —
-  is never logged.
+  `DEEPSEEK_BASE_URL`, `DEEPSEEK_TEXT_MODEL=deepseek-chat`; the photo slice adds
+  `DEEPSEEK_VISION_MODEL=deepseek-flash` (#150). Prompt content — meal text and image
+  data — is never logged.
 
 ## Consequences
 
