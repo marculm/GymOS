@@ -1,5 +1,7 @@
 import type {
   Macros,
+  MealEstimate,
+  MealEstimateInput,
   NutritionLogEntry,
   NutritionLogInput,
   NutritionLogUpdate,
@@ -13,6 +15,7 @@ import {
   createRecipe,
   deleteLog,
   deleteRecipe,
+  estimateMeal,
   getSummary,
   listLogs,
   listRecipes,
@@ -111,6 +114,10 @@ class NutritionData {
   async removeEntry(id: string): Promise<void> {
     await deleteLog(id);
     await this.refresh();
+  }
+
+  estimate(input: MealEstimateInput): Promise<MealEstimate> {
+    return estimateMeal(input);
   }
 
   async saveTargets(input: Macros): Promise<Macros> {

@@ -1,5 +1,7 @@
 import type {
   Macros,
+  MealEstimate,
+  MealEstimateInput,
   NutritionLogEntry,
   NutritionLogInput,
   NutritionLogUpdate,
@@ -10,11 +12,14 @@ import type {
 } from "@gymos/shared";
 import {
   MacrosSchema,
+  MealEstimateSchema,
   NutritionLogEntrySchema,
   NutritionSummarySchema,
   RecipeSchema,
 } from "@gymos/shared";
 import { api } from "./client.mts";
+
+const AI_ESTIMATE_TIMEOUT_MS = 45_000;
 
 function rangeQuery(from: Date, to: Date): string {
   return `?${new URLSearchParams({
@@ -60,6 +65,16 @@ export async function updateLog(
 
 export function deleteLog(id: string): Promise<void> {
   return api.delete<void>(`/nutrition/logs/${id}`);
+}
+
+export async function estimateMeal(
+  input: MealEstimateInput
+): Promise<MealEstimate> {
+  return MealEstimateSchema.parse(
+    await api.post<unknown>("/nutrition/estimate", input, {
+      timeoutMs: AI_ESTIMATE_TIMEOUT_MS,
+    })
+  );
 }
 
 export async function getTargets(): Promise<Macros | null> {
