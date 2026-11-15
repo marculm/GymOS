@@ -293,6 +293,24 @@ For the local `app` profile, add the three variables to the `api` service enviro
 Desktop Chrome can also send a local test notification from DevTools → Application →
 Service Workers → Push, which bypasses the API and the scheduler.
 
+## AI meal estimation
+
+Describe uses DeepSeek to estimate meal macros (ADR-0059, ADR-0060). It is optional:
+without `DEEPSEEK_API_KEY` the estimate endpoint returns `503` and manual entry still
+works.
+
+Add the key to the live secret; `deploy/k8s/secret.example.yaml` is the template:
+
+```bash
+kubectl -n gymos edit secret gymos-secrets
+# Add DEEPSEEK_API_KEY under stringData and keep the existing entries.
+kubectl -n gymos rollout restart deployment/gymos-api
+```
+
+For the local `app` profile, add `DEEPSEEK_API_KEY` to the `api` service environment in
+`deploy/docker/docker-compose.yml` (see the commented line there). Meal descriptions are
+sent only to DeepSeek; prompts and descriptions are not logged.
+
 ## Deploy and rollback
 
 The pipeline deploys automatically after a merge to `main` when `DEPLOY_ENABLED` is
