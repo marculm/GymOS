@@ -3,7 +3,11 @@ import {
   MEAL_ESTIMATION_SYSTEM_PROMPT,
   parseMealEstimate,
 } from "../prompt/meal-estimation.mts";
-import { AiInvalidResponseError, AiNotConfiguredError } from "./errors.mts";
+import {
+  AiInvalidResponseError,
+  AiNotConfiguredError,
+  AiProviderError,
+} from "./errors.mts";
 
 export type JsonCompletionRequest = {
   system: string;
@@ -20,13 +24,35 @@ export class AiService {
   async estimateMeal(description: string): Promise<MealEstimate> {
     if (!this.client) throw new AiNotConfiguredError();
 
+    return this.request(
+      this.client,
+      { system: MEAL_ESTIMATION_SYSTEM_PROMPT, user: description },
+      parseMealEstimate
+    );
+  }
+
+  private async request<T>(
+    client: JsonCompletionClient,
+    request: JsonCompletionRequest,
+    parse: (content: string) => T | null
+  ): Promise<T> {
     for (let attempt = 0; attempt < 2; attempt += 1) {
-      const content = await this.client.completeJson({
-        system: MEAL_ESTIMATION_SYSTEM_PROMPT,
-        user: description,
-      });
-      const estimate = parseMealEstimate(content);
-      if (estimate) return estimate;
+      let content: string;
+      try {
+        content = await client.completeJson(request);
+      } catch (error) {
+        if (
+          attempt === 0 &&
+          error instanceof AiProviderError &&
+          error.retryable
+        ) {
+          continue;
+        }
+        throw error;
+      }
+
+      const value = parse(content);
+      if (value) return value;
     }
 
     throw new AiInvalidResponseError();

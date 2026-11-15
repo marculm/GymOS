@@ -19,9 +19,10 @@ to zero values.
 - The nutrition module calls a provider-agnostic `AiService`. The service owns the
   prompt and the Zod response schema; the DeepSeek client only performs JSON-mode chat
   completions through `fetch`.
-- An unreadable or spaces-only completion is retried once by the service, then fails.
-  The client retries 429, 5xx, and network errors once, with a 20-second timeout per
-  attempt. Prompt text and meal descriptions are never logged.
+- The service makes at most two provider calls per estimate: one retry covers both a
+  retryable provider error (429, 5xx, network failure, or timeout) and an unreadable or
+  spaces-only completion. Each call times out after 20 seconds, and output is capped at
+  300 tokens. Prompt text and meal descriptions are never logged.
 - The Describe choice opens a full-screen text step. `Estimate` pre-fills the existing
   focus logger and labels the source `AI estimate`; every value stays editable and
   `Log meal` remains the only write. `Enter manually` reaches the same logger without
@@ -31,8 +32,8 @@ to zero values.
   502. The UI points to manual entry, and no zero values are logged silently.
 - The AI name is optional; without it the trimmed description (up to 120 characters)
   becomes the meal name.
-- The web client allows 45 seconds for the estimate, covering the provider timeout and
-  one retry.
+- The web client allows 50 seconds for the estimate, covering the two provider calls and
+  their 20-second timeouts.
 
 ## Consequences
 

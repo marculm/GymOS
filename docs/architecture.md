@@ -576,7 +576,7 @@ mutations are never retried (ADR-0015).
 `src/api/gym.mts` exposes typed functions for the gym endpoints. It maps the HTTP
 contract to UI types and returns `Page<T>` for list endpoints. `getActiveSession`
 returns `null` for a `404`. `src/api/nutrition.mts` exposes the nutrition endpoints;
-`estimateMeal` allows 45 seconds for the AI provider (ADR-0060).
+`estimateMeal` allows 50 seconds for the two AI provider calls (ADR-0060).
 
 ### 4.5 PWA
 

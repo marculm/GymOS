@@ -5,6 +5,7 @@ import type {
 import { AiProviderError } from "../service/errors.mts";
 
 const REQUEST_TIMEOUT_MS = 20_000;
+const MAX_OUTPUT_TOKENS = 300;
 
 export type DeepSeekConfig = {
   apiKey: string;
@@ -23,16 +24,11 @@ export class DeepSeekClient implements JsonCompletionClient {
   ) {}
 
   async completeJson(request: JsonCompletionRequest): Promise<string> {
-    for (let attempt = 0; attempt < 2; attempt += 1) {
-      try {
-        return await this.send(request);
-      } catch (error) {
-        if (attempt === 0 && isRetryable(error)) continue;
-        throw error instanceof AiProviderError ? error : new AiProviderError();
-      }
+    try {
+      return await this.send(request);
+    } catch (error) {
+      throw error instanceof AiProviderError ? error : new AiProviderError();
     }
-
-    throw new AiProviderError();
   }
 
   private async send({
@@ -53,6 +49,7 @@ export class DeepSeekClient implements JsonCompletionClient {
           { role: "user", content: user },
         ],
         response_format: { type: "json_object" },
+        max_tokens: MAX_OUTPUT_TOKENS,
       }),
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
@@ -69,11 +66,4 @@ export class DeepSeekClient implements JsonCompletionClient {
     const content = body.choices?.[0]?.message?.content;
     return typeof content === "string" ? content : "";
   }
-}
-
-function isRetryable(error: unknown): boolean {
-  if (error instanceof AiProviderError) {
-    return error.status === 429 || (error.status ?? 0) >= 500;
-  }
-  return error instanceof TypeError;
 }

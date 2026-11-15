@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import { AiService } from "./ai-service.mts";
-import { AiInvalidResponseError, AiNotConfiguredError } from "./errors.mts";
+import {
+  AiInvalidResponseError,
+  AiNotConfiguredError,
+  AiProviderError,
+} from "./errors.mts";
 
 const estimate = {
   name: "Skyr bowl",
@@ -12,10 +16,14 @@ const estimate = {
   },
 };
 
-function fakeClient(...responses: string[]) {
+function fakeClient(...responses: (string | Error)[]) {
   const completeJson = vi.fn();
   for (const response of responses) {
-    completeJson.mockResolvedValueOnce(response);
+    if (response instanceof Error) {
+      completeJson.mockRejectedValueOnce(response);
+    } else {
+      completeJson.mockResolvedValueOnce(response);
+    }
   }
   return { completeJson };
 }
@@ -39,6 +47,40 @@ describe("AiService.estimateMeal", () => {
     const service = new AiService(client);
 
     await expect(service.estimateMeal("toast")).resolves.toEqual(estimate);
+    expect(client.completeJson).toHaveBeenCalledTimes(2);
+  });
+
+  it("retries a retryable provider error once", async () => {
+    const client = fakeClient(
+      new AiProviderError(500),
+      JSON.stringify(estimate)
+    );
+    const service = new AiService(client);
+
+    await expect(service.estimateMeal("toast")).resolves.toEqual(estimate);
+    expect(client.completeJson).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not retry an authentication error", async () => {
+    const client = fakeClient(new AiProviderError(401));
+    const service = new AiService(client);
+
+    await expect(service.estimateMeal("toast")).rejects.toMatchObject({
+      status: 401,
+    });
+    expect(client.completeJson).toHaveBeenCalledTimes(1);
+  });
+
+  it("fails after two retryable provider errors", async () => {
+    const client = fakeClient(
+      new AiProviderError(),
+      new AiProviderError(503)
+    );
+    const service = new AiService(client);
+
+    await expect(service.estimateMeal("toast")).rejects.toBeInstanceOf(
+      AiProviderError
+    );
     expect(client.completeJson).toHaveBeenCalledTimes(2);
   });
 

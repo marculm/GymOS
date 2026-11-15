@@ -12,6 +12,10 @@ export class AiProviderError extends Error {
     );
     this.name = "AiProviderError";
   }
+
+  get retryable(): boolean {
+    return this.status === undefined || this.status === 429 || this.status >= 500;
+  }
 }
 
 export class AiInvalidResponseError extends Error {

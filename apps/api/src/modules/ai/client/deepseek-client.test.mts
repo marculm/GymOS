@@ -23,6 +23,15 @@ function createClient(fetchMock: ReturnType<typeof vi.fn>) {
   return new DeepSeekClient(config, fetchMock as unknown as typeof fetch);
 }
 
+async function capture(promise: Promise<unknown>): Promise<AiProviderError> {
+  try {
+    await promise;
+  } catch (error) {
+    return error as AiProviderError;
+  }
+  throw new Error("Expected the completion to fail");
+}
+
 describe("DeepSeekClient.completeJson", () => {
   it("sends a JSON-mode chat completion", async () => {
     const fetchMock = vi.fn().mockResolvedValue(completion('{"ok":true}'));
@@ -47,65 +56,67 @@ describe("DeepSeekClient.completeJson", () => {
         { role: "user", content: "meal text" },
       ],
       response_format: { type: "json_object" },
+      max_tokens: 300,
     });
     expect(init.signal).toBeInstanceOf(AbortSignal);
   });
 
-  it("retries a server error once", async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(failed(500))
-      .mockResolvedValueOnce(completion('{"ok":true}'));
+  it("reports a server error without retrying", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(failed(500));
     const client = createClient(fetchMock);
 
-    await expect(
+    const error = await capture(
       client.completeJson({ system: "s", user: "u" })
-    ).resolves.toBe('{"ok":true}');
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-  });
+    );
 
-  it("retries a network error once", async () => {
-    const fetchMock = vi
-      .fn()
-      .mockRejectedValueOnce(new TypeError("Failed to fetch"))
-      .mockResolvedValueOnce(completion('{"ok":true}'));
-    const client = createClient(fetchMock);
-
-    await expect(
-      client.completeJson({ system: "s", user: "u" })
-    ).resolves.toBe('{"ok":true}');
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-  });
-
-  it("fails after a second server error", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(failed(502));
-    const client = createClient(fetchMock);
-
-    await expect(
-      client.completeJson({ system: "s", user: "u" })
-    ).rejects.toBeInstanceOf(AiProviderError);
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-  });
-
-  it("does not retry an authentication error", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(failed(401));
-    const client = createClient(fetchMock);
-
-    await expect(
-      client.completeJson({ system: "s", user: "u" })
-    ).rejects.toMatchObject({ status: 401 });
+    expect(error).toBeInstanceOf(AiProviderError);
+    expect(error.status).toBe(500);
+    expect(error.retryable).toBe(true);
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it("does not retry a timeout", async () => {
+  it("maps a network error without retrying", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockRejectedValueOnce(new TypeError("Failed to fetch"));
+    const client = createClient(fetchMock);
+
+    const error = await capture(
+      client.completeJson({ system: "s", user: "u" })
+    );
+
+    expect(error).toBeInstanceOf(AiProviderError);
+    expect(error.status).toBeUndefined();
+    expect(error.retryable).toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("maps a timeout without retrying", async () => {
     const fetchMock = vi
       .fn()
       .mockRejectedValueOnce(new DOMException("Aborted", "AbortError"));
     const client = createClient(fetchMock);
 
-    await expect(
+    const error = await capture(
       client.completeJson({ system: "s", user: "u" })
-    ).rejects.toBeInstanceOf(AiProviderError);
+    );
+
+    expect(error).toBeInstanceOf(AiProviderError);
+    expect(error.retryable).toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("marks an authentication error as not retryable", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(failed(401));
+    const client = createClient(fetchMock);
+
+    const error = await capture(
+      client.completeJson({ system: "s", user: "u" })
+    );
+
+    expect(error).toBeInstanceOf(AiProviderError);
+    expect(error.status).toBe(401);
+    expect(error.retryable).toBe(false);
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
