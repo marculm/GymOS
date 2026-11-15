@@ -37,7 +37,7 @@ cannot be parsed may come back as spaces-only content.
 - Requests use JSON mode plus an explicit JSON example in the prompt. Responses are
   parsed and validated with Zod; invalid or spaces-only content gets one retry, then
   a mapped provider error.
-- Calls time out after about 20 seconds. 429 and 5xx are retried once, then surface as
+- Calls time out after about 30 seconds. 429 and 5xx are retried once, then surface as
   503; an unreadable response surfaces as 502. The UI keeps manual entry as the
   fallback.
 - Images are compressed in the browser (JPEG, about 1536px) and sent as `data:` URLs

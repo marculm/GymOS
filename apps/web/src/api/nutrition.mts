@@ -19,7 +19,7 @@ import {
 } from "@gymos/shared";
 import { api } from "./client.mts";
 
-const AI_ESTIMATE_TIMEOUT_MS = 50_000;
+const AI_ESTIMATE_TIMEOUT_MS = 70_000;
 
 function rangeQuery(from: Date, to: Date): string {
   return `?${new URLSearchParams({

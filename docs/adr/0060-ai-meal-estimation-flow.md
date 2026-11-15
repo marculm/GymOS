@@ -21,7 +21,7 @@ to zero values.
   completions through `fetch`.
 - The service makes at most two provider calls per estimate: one retry covers both a
   retryable provider error (429, 5xx, network failure, or timeout) and an unreadable or
-  spaces-only completion. Each call times out after 20 seconds. Output is capped at
+  spaces-only completion. Each call times out after 30 seconds. Output is capped at
   4096 tokens with thinking enabled (the default, ADR-0059) and at 300 tokens without
   it. Prompt text and meal descriptions are never logged.
 - The Describe choice opens a full-screen text step. `Estimate` pre-fills the existing
@@ -33,8 +33,8 @@ to zero values.
   502. The UI points to manual entry, and no zero values are logged silently.
 - The AI name is optional; without it the trimmed description (up to 120 characters)
   becomes the meal name.
-- The web client allows 50 seconds for the estimate, covering the two provider calls and
-  their 20-second timeouts.
+- The web client allows 70 seconds for the estimate, covering the two provider calls and
+  their 30-second timeouts.
 
 ## Consequences
 

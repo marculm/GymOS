@@ -5,7 +5,7 @@ import type {
 } from "../service/ai-service.mts";
 import { AiProviderError } from "../service/errors.mts";
 
-const REQUEST_TIMEOUT_MS = 20_000;
+const REQUEST_TIMEOUT_MS = 30_000;
 const MAX_OUTPUT_TOKENS = 300;
 const MAX_THINKING_OUTPUT_TOKENS = 4096;
 
