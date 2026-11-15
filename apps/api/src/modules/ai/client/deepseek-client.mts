@@ -1,3 +1,4 @@
+import type { DeepSeekConfig } from "../../../config/env.mts";
 import type {
   JsonCompletionClient,
   JsonCompletionRequest,
@@ -6,12 +7,6 @@ import { AiProviderError } from "../service/errors.mts";
 
 const REQUEST_TIMEOUT_MS = 20_000;
 const MAX_OUTPUT_TOKENS = 300;
-
-export type DeepSeekConfig = {
-  apiKey: string;
-  baseUrl: string;
-  model: string;
-};
 
 type ChatCompletionResponse = {
   choices?: { message?: { content?: unknown } }[];
