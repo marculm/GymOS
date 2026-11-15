@@ -41,6 +41,15 @@ export const NutritionSummarySchema = z.object({
   remaining: MacroDeltaSchema.nullable(),
 });
 
+export const MealEstimateInputSchema = z.object({
+  description: z.string().trim().min(1).max(2000),
+});
+
+export const MealEstimateSchema = z.object({
+  name: z.string().trim().min(1).max(120).optional(),
+  macros: MacrosSchema,
+});
+
 export const NutritionRangeQuerySchema = z
   .object({
     from: z.coerce.date(),
@@ -58,3 +67,5 @@ export type NutritionLogInput = z.infer<typeof NutritionLogInputSchema>;
 export type NutritionLogUpdate = z.infer<typeof NutritionLogUpdateSchema>;
 export type MacroDelta = z.infer<typeof MacroDeltaSchema>;
 export type NutritionSummary = z.infer<typeof NutritionSummarySchema>;
+export type MealEstimateInput = z.infer<typeof MealEstimateInputSchema>;
+export type MealEstimate = z.infer<typeof MealEstimateSchema>;
