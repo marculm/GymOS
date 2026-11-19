@@ -336,7 +336,7 @@
       };
       editing = null;
       startTimer();
-      if (completes) {
+      if (completes && index === pageIndex) {
         const targetIndex = pages.findIndex(
           (entry) => entry.exerciseId === (nextOpenId ?? page.exerciseId)
         );

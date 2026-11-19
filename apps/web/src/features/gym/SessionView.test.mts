@@ -328,6 +328,28 @@ describe("SessionView", () => {
     ).toBeInTheDocument();
   });
 
+  it("does not advance when the user moves during the log", async () => {
+    let resolveLog!: () => void;
+    const { onLogSet } = renderSession({ plan: singleSetPlan });
+    onLogSet.mockImplementationOnce(
+      () => new Promise<void>((resolve) => (resolveLog = resolve))
+    );
+
+    await fireEvent.click(screen.getByRole("button", { name: "Log set" }));
+    await fireEvent.click(
+      screen.getByRole("button", { name: /Next · Overhead Shoulder Press/ })
+    );
+    await fireEvent.click(
+      screen.getByRole("button", { name: /Next · Tricep Rope Pushdown/ })
+    );
+    resolveLog();
+    await screen.findByRole("button", { name: /Rest timer running/ });
+
+    expect(
+      within(activePage()).getByText("Exercise 3 of 3")
+    ).toBeInTheDocument();
+  });
+
   it("accepts a typed value", async () => {
     renderSession();
 
