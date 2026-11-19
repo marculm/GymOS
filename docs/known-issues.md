@@ -26,7 +26,7 @@ These are known, non-blocking issues. They do not affect the core flow: create a
 
 - A single root `.env` instead of the root/API duplication.
 - Mealprep slice.
-- AI photo meal estimation and the text/URL recipe extractor (needs its own ADR).
+- AI photo meal estimation and the URL recipe extractor (needs its own ADR).
 
 ## Security and operations
 

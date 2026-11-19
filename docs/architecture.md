@@ -249,8 +249,8 @@ Services are classes with constructor injection:
   subscriptions the push service reports as gone (ADR-0044).
 - `AiService` runs AI tasks through a provider-agnostic JSON completion client.
   `DeepSeekClient` is the current client; the service owns each task's prompt and
-  response schema. The nutrition module calls it for meal estimation (ADR-0059,
-  ADR-0060).
+  response schema. The nutrition module calls it for meal estimation and recipe text
+  import (ADR-0059, ADR-0060, ADR-0062).
 - Dependencies, includes, and the logger are `readonly #private` fields.
 - Each class uses `getLogger(ClassName.name)`.
 - Services are stateless. The container creates one instance each.
@@ -361,7 +361,7 @@ once with a Zod schema and fails fast on invalid values:
 - `CORS_ORIGINS`: comma-separated origins
 - `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`: optional web push key pair;
   push is disabled unless both keys are set (ADR-0044)
-- `DEEPSEEK_API_KEY`: optional; enables AI meal estimation
+- `DEEPSEEK_API_KEY`: optional; enables AI meal estimation and recipe text import
 - `DEEPSEEK_BASE_URL`: DeepSeek API base URL, default `https://api.deepseek.com`
 - `DEEPSEEK_TEXT_MODEL`: text model, default `deepseek-flash`; `deepseek-v4-pro` is the
   higher-quality alternative (ADR-0059, ADR-0060)
@@ -563,7 +563,8 @@ apps/web/
 - Nutrition loads the day's summary, logs, and recipes through `nutritionData`. The Log
   food sheet logs a saved recipe portion, estimates a described meal with AI into the
   editable logger, or opens manual entry; nothing is logged before the user confirms
-  (ADR-0057, ADR-0060).
+  (ADR-0057, ADR-0060). The recipe manager imports pasted recipe text with AI into the
+  editable recipe form; nothing is saved before the user confirms (ADR-0062).
 - The PWA theme color and background are black; the light spaces are scoped by the
   `.light-space` token block. The theme test checks WCAG AA in both scopes.
 
@@ -578,7 +579,8 @@ mutations are never retried (ADR-0015).
 `src/api/gym.mts` exposes typed functions for the gym endpoints. It maps the HTTP
 contract to UI types and returns `Page<T>` for list endpoints. `getActiveSession`
 returns `null` for a `404`. `src/api/nutrition.mts` exposes the nutrition endpoints;
-`estimateMeal` allows 70 seconds for the two AI provider calls (ADR-0060).
+`estimateMeal` and `extractRecipe` allow 70 seconds for the two AI provider calls
+(ADR-0060, ADR-0062).
 
 ### 4.5 PWA
 
