@@ -350,6 +350,17 @@ describe("SessionView", () => {
     ).toBeInTheDocument();
   });
 
+  it("stays when the logged set does not complete the exercise", async () => {
+    renderSession();
+
+    await fireEvent.click(screen.getByRole("button", { name: "Log set" }));
+
+    await screen.findByRole("button", { name: /Rest timer running/ });
+    expect(
+      within(activePage()).getByText("Exercise 1 of 3")
+    ).toBeInTheDocument();
+  });
+
   it("accepts a typed value", async () => {
     renderSession();
 
