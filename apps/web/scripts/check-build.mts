@@ -26,6 +26,10 @@ if (!sw.includes("gymos-shell")) {
   failures.push("sw.js has no shell cache");
 }
 
+if (!sw.includes("_app/immutable")) {
+  failures.push("sw.js has no precache entries");
+}
+
 const registers = readdirSync(immutable, { recursive: true })
   .filter((file): file is string => typeof file === "string" && file.endsWith(".js"))
   .some((file) =>
