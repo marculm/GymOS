@@ -16,10 +16,26 @@ describe("GymOS API Server", () => {
     expect(res.headers.get("x-frame-options")).toBe("SAMEORIGIN");
   });
 
-  it("answers readiness when the database is available", async () => {
+  it("answers readiness when the configured owner exists", async () => {
     const res = await app.request("/health/readiness");
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ status: "up" });
+  });
+
+  it("returns 503 when the configured owner is missing", async () => {
+    const previousEmail = process.env.GYMOS_USER_EMAIL;
+    process.env.GYMOS_USER_EMAIL = `missing-${crypto.randomUUID()}@gymos.app`;
+
+    try {
+      const res = await app.request("/health/readiness");
+
+      expect(res.status).toBe(503);
+      expect(res.headers.get("content-type")).toContain("application/problem+json");
+      expect(await res.text()).not.toContain("missing-");
+    } finally {
+      if (previousEmail === undefined) delete process.env.GYMOS_USER_EMAIL;
+      else process.env.GYMOS_USER_EMAIL = previousEmail;
+    }
   });
 
   it("returns a page of exercises", async () => {
