@@ -309,6 +309,10 @@
 
   async function logSet() {
     if (!current || pending) return;
+    const page = current;
+    const pageIndex = index;
+    const completes =
+      !isDone(page) && page.sets.length + 1 >= page.targetSets;
     pending = true;
     error = null;
 
@@ -329,6 +333,9 @@
       };
       editing = null;
       startTimer();
+      if (completes && pageIndex + 1 < pages.length) {
+        await goToPage(pageIndex + 1);
+      }
     } catch (logError) {
       error = messageOf(logError);
     } finally {

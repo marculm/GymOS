@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/svelte";
 import type {
   Exercise,
+  LoggedSet,
   WorkoutPlan,
   WorkoutSessionDetail,
 } from "@gymos/shared";
@@ -61,6 +62,23 @@ const session: WorkoutSessionDetail = {
   completedAt: null,
   sets: [],
 };
+
+const singleSetPlan: WorkoutPlan = {
+  ...plan,
+  exercises: plan.exercises.map((entry) => ({ ...entry, targetSets: 1 })),
+};
+
+function loggedSet(exercise: Exercise, setNumber = 1): LoggedSet {
+  return {
+    id: `set-${exercise.id}-${setNumber}`,
+    exerciseId: exercise.id,
+    exerciseName: exercise.name,
+    setNumber,
+    reps: 8,
+    weightKg: 40,
+    createdAt: "2026-11-13T18:05:00.000Z",
+  };
+}
 
 function renderSession(
   overrides: Partial<{
@@ -141,6 +159,84 @@ describe("SessionView", () => {
       await screen.findByRole("button", {
         name: /Rest timer running, 2:30/,
       })
+    ).toBeInTheDocument();
+  });
+
+  it("advances to the next exercise after the completing set", async () => {
+    renderSession({ plan: singleSetPlan });
+
+    await fireEvent.click(screen.getByRole("button", { name: "Log set" }));
+
+    const heading = await screen.findByRole("heading", {
+      name: "Overhead Shoulder Press",
+    });
+    expect(
+      within(activePage()).getByText("Exercise 2 of 3")
+    ).toBeInTheDocument();
+    await waitFor(() => expect(document.activeElement).toBe(heading));
+  });
+
+  it("keeps the page when logging an extra set on a done exercise", async () => {
+    renderSession({
+      plan: singleSetPlan,
+      session: { ...session, sets: [loggedSet(bench)] },
+    });
+
+    await fireEvent.click(screen.getByRole("button", { name: "Log set" }));
+
+    await screen.findByRole("button", { name: /Rest timer running/ });
+    expect(
+      within(activePage()).getByText("Exercise 1 of 3")
+    ).toBeInTheDocument();
+  });
+
+  it("keeps the page when the log fails", async () => {
+    const { onLogSet } = renderSession({ plan: singleSetPlan });
+    onLogSet.mockRejectedValueOnce(new Error("Network down"));
+
+    await fireEvent.click(screen.getByRole("button", { name: "Log set" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Network down");
+    expect(
+      within(activePage()).getByText("Exercise 1 of 3")
+    ).toBeInTheDocument();
+  });
+
+  it("advances to the next open exercise in a free workout", async () => {
+    const quick = { ...bench, defaultSets: 1 };
+    renderSession({
+      plan: null,
+      exercises: [quick, shoulder, tricep],
+      session: { ...session, title: "Free workout", planId: null },
+    });
+
+    await fireEvent.click(screen.getByRole("button", { name: "Add exercise" }));
+    let dialog = await screen.findByRole("dialog", { name: "Exercises" });
+    await fireEvent.change(within(dialog).getByLabelText("Add exercise"), {
+      target: { value: quick.id },
+    });
+    await fireEvent.click(within(dialog).getByRole("button", { name: "Add" }));
+
+    await fireEvent.click(screen.getByRole("button", { name: "Exercises" }));
+    dialog = await screen.findByRole("dialog", { name: "Exercises" });
+    await fireEvent.change(within(dialog).getByLabelText("Add exercise"), {
+      target: { value: shoulder.id },
+    });
+    await fireEvent.click(within(dialog).getByRole("button", { name: "Add" }));
+    await fireEvent.click(
+      within(activePage()).getByRole("button", { name: /^Back/ })
+    );
+    expect(
+      within(activePage()).getByText("Exercise 1 of 2")
+    ).toBeInTheDocument();
+
+    await fireEvent.click(screen.getByRole("button", { name: "Log set" }));
+
+    expect(
+      await screen.findByRole("heading", { name: "Overhead Shoulder Press" })
+    ).toBeInTheDocument();
+    expect(
+      within(activePage()).getByText("Exercise 2 of 2")
     ).toBeInTheDocument();
   });
 
