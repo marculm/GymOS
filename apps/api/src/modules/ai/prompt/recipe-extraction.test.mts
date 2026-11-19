@@ -58,6 +58,21 @@ describe("parseRecipeExtraction", () => {
     });
   });
 
+  it("keeps the totals for a single serving", () => {
+    const macrosTotal = {
+      calories: 980,
+      proteinGrams: 62,
+      carbsGrams: 110,
+      fatGrams: 31,
+    };
+
+    expect(
+      parseRecipeExtraction(
+        JSON.stringify({ ...completion, servings: 1, macrosTotal })
+      )?.macrosPerServing
+    ).toEqual(macrosTotal);
+  });
+
   it("rejects an unusable completion", () => {
     expect(parseRecipeExtraction("not json")).toBeNull();
     expect(

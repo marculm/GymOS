@@ -136,6 +136,39 @@ describe("RecipesManager", () => {
     expect(screen.getByLabelText("Instructions")).toHaveValue(
       "Mix the batter."
     );
+    expect(nutritionApi.createRecipe).not.toHaveBeenCalled();
+  });
+
+  it("discards an imported draft on cancel", async () => {
+    nutritionApi.extractRecipe.mockResolvedValue({
+      title: "Pancakes",
+      servings: 2,
+      macrosPerServing: {
+        calories: 410,
+        proteinGrams: 12,
+        carbsGrams: 60,
+        fatGrams: 13,
+      },
+      ingredients: [],
+      instructions: [],
+    });
+    render(RecipesManager);
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Import from text" })
+    );
+    await fireEvent.input(screen.getByLabelText("Recipe text"), {
+      target: { value: "Mix the batter." },
+    });
+    await fireEvent.click(screen.getByRole("button", { name: "Extract" }));
+    expect(await screen.findByLabelText("Name")).toHaveValue("Pancakes");
+
+    await fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    await fireEvent.click(
+      await screen.findByRole("button", { name: "Add recipe" })
+    );
+
+    expect(screen.getByLabelText("Name")).toHaveValue("");
   });
 
   it("keeps the pasted text when the import fails", async () => {
