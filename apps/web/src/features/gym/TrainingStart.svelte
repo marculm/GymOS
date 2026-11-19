@@ -17,9 +17,9 @@
   import { gymData } from "./gym-data.svelte.ts";
   import SessionView from "./SessionView.svelte";
   import WorkoutPicker from "./WorkoutPicker.svelte";
-  import SettingsButton from "$lib/SettingsButton.svelte";
-  import { settings } from "$lib/settings.svelte.ts";
-  import { goToSpace, prefetchSpace, spaceSwipe } from "$lib/space.ts";
+  import SettingsButton from "#lib/SettingsButton.svelte";
+  import { settings } from "#lib/settings.svelte.ts";
+  import { goToSpace, prefetchSpace, spaceSwipe } from "#lib/space.ts";
 
   let activeSession = $state<WorkoutSessionDetail | null>(null);
   let loading = $state(true);

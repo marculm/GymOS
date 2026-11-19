@@ -6,6 +6,10 @@
     "apps/*",
     "packages/*"
   ],
+  "overrides": {
+    "glob": "^14.0.2",
+    "minimatch": "^11.0.1"
+  },
   "scripts": {
     "dev": "bun --filter @gymos/api dev & bun --filter @gymos/web dev",
     "build": "bun --filter @gymos/web build",
@@ -27,7 +31,7 @@
   "devDependencies": {
     "@types/bun": "latest",
     "oxlint": "^1.89.0",
-    "typescript": "^5",
+    "typescript": "^6.0.3",
     "vitest": "^4.1.11"
   }
 }
