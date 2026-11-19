@@ -40,7 +40,10 @@ describe("healthRouter", () => {
     expect(res.status).toBe(503);
     expect(res.headers.get("content-type")).toContain("application/problem+json");
     expect(findUnique).toHaveBeenCalledWith({ where: { email: OWNER_EMAIL } });
-    expect(await res.text()).not.toContain(OWNER_EMAIL);
+
+    const body = (await res.json()) as { detail: string };
+    expect(body.detail).toBe("Configured user not found");
+    expect(JSON.stringify(body)).not.toContain(OWNER_EMAIL);
   });
 
   it("returns 503 without database details when readiness fails", async () => {

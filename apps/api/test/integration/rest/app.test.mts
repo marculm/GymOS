@@ -23,15 +23,19 @@ describe("GymOS API Server", () => {
   });
 
   it("returns 503 when the configured owner is missing", async () => {
+    const missingEmail = `missing-${crypto.randomUUID()}@gymos.app`;
     const previousEmail = process.env.GYMOS_USER_EMAIL;
-    process.env.GYMOS_USER_EMAIL = `missing-${crypto.randomUUID()}@gymos.app`;
+    process.env.GYMOS_USER_EMAIL = missingEmail;
 
     try {
       const res = await app.request("/health/readiness");
 
       expect(res.status).toBe(503);
       expect(res.headers.get("content-type")).toContain("application/problem+json");
-      expect(await res.text()).not.toContain("missing-");
+
+      const body = (await res.json()) as { detail: string };
+      expect(body.detail).toBe("Configured user not found");
+      expect(JSON.stringify(body)).not.toContain(missingEmail);
     } finally {
       if (previousEmail === undefined) delete process.env.GYMOS_USER_EMAIL;
       else process.env.GYMOS_USER_EMAIL = previousEmail;
