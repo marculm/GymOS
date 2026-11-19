@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/svelte";
+import { tick } from "svelte";
 import type { Recipe } from "@gymos/shared";
 
 const nutritionApi = vi.hoisted(() => ({
@@ -160,6 +161,49 @@ describe("RecipesManager", () => {
       "Mix the batter."
     );
     expect(screen.queryByLabelText("Name")).toBeNull();
+  });
+
+  it("cancels a pending import", async () => {
+    let resolveExtract: (value: unknown) => void = () => {};
+    nutritionApi.extractRecipe.mockReturnValue(
+      new Promise((resolve) => {
+        resolveExtract = resolve;
+      })
+    );
+    render(RecipesManager);
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Import from text" })
+    );
+    await fireEvent.input(screen.getByLabelText("Recipe text"), {
+      target: { value: "Mix the batter." },
+    });
+    await fireEvent.click(screen.getByRole("button", { name: "Extract" }));
+
+    expect(
+      screen.getByRole("button", { name: "Extracting…" })
+    ).toBeInTheDocument();
+    await fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    resolveExtract({
+      title: "Pancakes",
+      servings: 2,
+      macrosPerServing: {
+        calories: 410,
+        proteinGrams: 12,
+        carbsGrams: 60,
+        fatGrams: 13,
+      },
+      ingredients: [],
+      instructions: [],
+    });
+    await tick();
+
+    expect(screen.queryByLabelText("Name")).toBeNull();
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Import from text" })
+    );
+    expect(screen.getByLabelText("Recipe text")).toBeEnabled();
   });
 
   it("focuses the import step and restores focus on cancel", async () => {

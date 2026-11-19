@@ -86,6 +86,7 @@ async function cancelImport() {
   importOpen = false;
   importText = "";
   importError = null;
+  importPending = false;
   await tick();
   document.getElementById("import-recipe-button")?.focus();
 }
@@ -227,7 +228,6 @@ function format(value: number): string {
             <button
               class="btn btn-ghost"
               type="button"
-              disabled={importPending}
               onclick={() => void cancelImport()}
             >
               Cancel
