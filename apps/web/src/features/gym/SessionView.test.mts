@@ -176,6 +176,41 @@ describe("SessionView", () => {
     await waitFor(() => expect(document.activeElement).toBe(heading));
   });
 
+  it("skips exercises that are already done", async () => {
+    renderSession({
+      plan: singleSetPlan,
+      session: { ...session, sets: [loggedSet(shoulder)] },
+    });
+
+    await fireEvent.click(screen.getByRole("button", { name: "Log set" }));
+
+    const heading = await screen.findByRole("heading", {
+      name: "Tricep Rope Pushdown",
+    });
+    expect(
+      within(activePage()).getByText("Exercise 3 of 3")
+    ).toBeInTheDocument();
+    await waitFor(() => expect(document.activeElement).toBe(heading));
+  });
+
+  it("stays when no later exercise is open", async () => {
+    renderSession({
+      plan: singleSetPlan,
+      session: {
+        ...session,
+        sets: [loggedSet(shoulder), loggedSet(tricep)],
+      },
+    });
+
+    await fireEvent.click(screen.getByRole("button", { name: "Log set" }));
+
+    await screen.findByRole("button", { name: /Rest timer running/ });
+    expect(
+      within(activePage()).getByText("Exercise 1 of 3")
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Finish" })).toBeEnabled();
+  });
+
   it("keeps the page when logging an extra set on a done exercise", async () => {
     renderSession({
       plan: singleSetPlan,

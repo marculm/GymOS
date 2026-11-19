@@ -333,8 +333,11 @@
       };
       editing = null;
       startTimer();
-      if (completes && pageIndex + 1 < pages.length) {
-        await goToPage(pageIndex + 1);
+      if (completes) {
+        const nextOpen = pages.findIndex(
+          (entry, entryIndex) => entryIndex > pageIndex && !isDone(entry)
+        );
+        if (nextOpen !== -1) await goToPage(nextOpen);
       }
     } catch (logError) {
       error = messageOf(logError);
