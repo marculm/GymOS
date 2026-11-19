@@ -42,8 +42,9 @@ The **Nutrition** slice is implemented:
   cooking view (ADR-0058)
 - Describe a meal and let AI estimate calories and macros; every value stays editable
   before logging (ADR-0060)
+- Import a recipe from pasted text and let AI fill the editable recipe form (ADR-0062)
 
-Photo-based meal estimation, the AI recipe extractor, authentication, and offline logging are not implemented yet. The API is single-user (no login) and must be protected before public deployment. See [`docs/known-issues.md`](docs/known-issues.md) for known limitations.
+Photo-based meal estimation, the URL recipe extractor, authentication, and offline logging are not implemented yet. The API is single-user (no login) and must be protected before public deployment. See [`docs/known-issues.md`](docs/known-issues.md) for known limitations.
 
 ---
 
@@ -72,10 +73,10 @@ Photo-based meal estimation, the AI recipe extractor, authentication, and offlin
    and `VAPID_SUBJECT` in `.env` (see `.env.example`). Without them the API keeps push
    disabled and the in-app timer is used.
 
-   AI meal estimation is optional. Set `DEEPSEEK_API_KEY` in `.env` (see
-   `.env.example`); without it, Describe reports that estimation is not configured and
-   manual entry still works. Thinking mode is on by default at high effort; set
-   `DEEPSEEK_THINKING=false` for faster, cheaper estimates.
+   AI meal estimation and recipe text import are optional. Set `DEEPSEEK_API_KEY` in
+   `.env` (see `.env.example`); without it, Describe and Import from text report that AI
+   is not configured, and manual entry still works. Thinking mode is on by default at
+   high effort; set `DEEPSEEK_THINKING=false` for faster, cheaper requests.
 
 3. **Start local database & seed data:**
    ```bash

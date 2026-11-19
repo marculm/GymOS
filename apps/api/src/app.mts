@@ -110,15 +110,15 @@ app.onError((err, c) => {
     return createProblemDetails(c, 503, err.message);
   }
   if (err instanceof AiNotConfiguredError) {
-    logger.warn("AI estimation is not configured");
+    logger.warn("AI is not configured");
     return createProblemDetails(c, 503, err.message);
   }
   if (err instanceof AiProviderError) {
-    logger.warn({ status: err.status }, "AI estimate provider failed");
+    logger.warn({ status: err.status }, "AI provider failed");
     return createProblemDetails(c, 503, err.message);
   }
   if (err instanceof AiInvalidResponseError) {
-    logger.warn("AI estimate response was invalid");
+    logger.warn("AI response was invalid");
     return createProblemDetails(c, 502, err.message);
   }
 

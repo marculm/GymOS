@@ -1,8 +1,41 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { estimateMeal } from "./nutrition.mts";
+import { estimateMeal, extractRecipe } from "./nutrition.mts";
 
 afterEach(() => {
   vi.unstubAllGlobals();
+});
+
+describe("extractRecipe", () => {
+  it("posts recipe text and parses the draft", async () => {
+    const draft = {
+      title: "Pancakes",
+      servings: 2,
+      macrosPerServing: {
+        calories: 410,
+        proteinGrams: 12,
+        carbsGrams: 60,
+        fatGrams: 13,
+      },
+      ingredients: [{ name: "Flour", amount: 200, unit: "g" }],
+      instructions: ["Mix the batter."],
+    };
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(draft), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(extractRecipe({ text: "Mix the batter." })).resolves.toEqual(
+      draft
+    );
+
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("/api/nutrition/recipes/extract");
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(String(init.body))).toEqual({ text: "Mix the batter." });
+  });
 });
 
 describe("estimateMeal", () => {

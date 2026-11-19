@@ -183,7 +183,7 @@ describe("NutritionLogFlow", () => {
   it("keeps the description when the estimate fails", async () => {
     nutritionApi.estimateMeal.mockRejectedValueOnce(
       new Error(
-        "The estimate service is unavailable. Try again or enter the meal manually."
+        "The AI service is unavailable. Try again or enter the values manually."
       )
     );
     render(NutritionLogFlow, { props: { open: true } });
@@ -197,7 +197,7 @@ describe("NutritionLogFlow", () => {
     await fireEvent.click(screen.getByRole("button", { name: "Estimate" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "estimate service is unavailable"
+      "The AI service is unavailable"
     );
     expect(screen.getByLabelText("Meal description")).toHaveValue(
       "toast with butter"

@@ -1,6 +1,6 @@
 export class AiNotConfiguredError extends Error {
   constructor() {
-    super("AI estimation is not configured. Enter the meal manually.");
+    super("AI is not configured. Enter the values manually.");
     this.name = "AiNotConfiguredError";
   }
 }
@@ -8,7 +8,7 @@ export class AiNotConfiguredError extends Error {
 export class AiProviderError extends Error {
   constructor(public readonly status?: number) {
     super(
-      "The estimate service is unavailable. Try again or enter the meal manually."
+      "The AI service is unavailable. Try again or enter the values manually."
     );
     this.name = "AiProviderError";
   }
@@ -21,7 +21,7 @@ export class AiProviderError extends Error {
 export class AiInvalidResponseError extends Error {
   constructor() {
     super(
-      "The estimate could not be read. Try again or enter the meal manually."
+      "The AI response could not be read. Try again or enter the values manually."
     );
     this.name = "AiInvalidResponseError";
   }

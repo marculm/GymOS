@@ -6,32 +6,37 @@ type IngredientRow = { name: string; amount: string; unit: string };
 
 let {
   recipe = null,
+  draft = null,
   onSubmit,
   onCancel,
 }: {
   recipe?: Recipe | null;
+  draft?: RecipeInput | null;
   onSubmit: (input: RecipeInput) => Promise<void>;
   onCancel: () => void;
 } = $props();
 
 // svelte-ignore state_referenced_locally
-let title = $state(recipe?.title ?? "");
+const initial = recipe ?? draft;
+
 // svelte-ignore state_referenced_locally
-let servings = $state(String(recipe?.servings ?? 1));
+let title = $state(initial?.title ?? "");
 // svelte-ignore state_referenced_locally
-let calories = $state(String(recipe?.macrosPerServing.calories ?? ""));
+let servings = $state(String(initial?.servings ?? 1));
 // svelte-ignore state_referenced_locally
-let proteinGrams = $state(String(recipe?.macrosPerServing.proteinGrams ?? ""));
+let calories = $state(String(initial?.macrosPerServing.calories ?? ""));
 // svelte-ignore state_referenced_locally
-let carbsGrams = $state(String(recipe?.macrosPerServing.carbsGrams ?? ""));
+let proteinGrams = $state(String(initial?.macrosPerServing.proteinGrams ?? ""));
 // svelte-ignore state_referenced_locally
-let fatGrams = $state(String(recipe?.macrosPerServing.fatGrams ?? ""));
+let carbsGrams = $state(String(initial?.macrosPerServing.carbsGrams ?? ""));
 // svelte-ignore state_referenced_locally
-let sourceUrl = $state(recipe?.sourceUrl ?? "");
+let fatGrams = $state(String(initial?.macrosPerServing.fatGrams ?? ""));
+// svelte-ignore state_referenced_locally
+let sourceUrl = $state(initial?.sourceUrl ?? "");
 // svelte-ignore state_referenced_locally
 let ingredients = $state<IngredientRow[]>(
-  recipe
-    ? recipe.ingredients.map((item) => ({
+  initial
+    ? initial.ingredients.map((item) => ({
         name: item.name,
         amount: String(item.amount),
         unit: item.unit,
@@ -39,7 +44,7 @@ let ingredients = $state<IngredientRow[]>(
     : [{ name: "", amount: "", unit: "" }]
 );
 // svelte-ignore state_referenced_locally
-let instructions = $state(recipe?.instructions.join("\n") ?? "");
+let instructions = $state(initial?.instructions.join("\n") ?? "");
 
 let pending = $state(false);
 let error = $state<string | null>(null);

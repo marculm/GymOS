@@ -62,6 +62,37 @@ describe("RecipeForm", () => {
     );
   });
 
+  it("prefills a new recipe from a draft", () => {
+    const draft = {
+      title: "Pancakes",
+      servings: 2,
+      macrosPerServing: {
+        calories: 410,
+        proteinGrams: 12,
+        carbsGrams: 60,
+        fatGrams: 13,
+      },
+      ingredients: [{ name: "Flour", amount: 200, unit: "g" }],
+      instructions: ["Mix the batter.", "Fry the pancakes."],
+    };
+    render(RecipeForm, {
+      props: { draft, onSubmit: vi.fn(), onCancel: vi.fn() },
+    });
+
+    expect(
+      screen.getByRole("heading", { name: "New recipe" })
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Name")).toHaveValue("Pancakes");
+    expect(screen.getByLabelText("Servings")).toHaveValue(2);
+    expect(screen.getByLabelText("Calories per serving")).toHaveValue(410);
+    expect(screen.getByLabelText("Ingredient")).toHaveValue("Flour");
+    expect(screen.getByLabelText("Amount")).toHaveValue(200);
+    expect(screen.getByLabelText("Unit")).toHaveValue("g");
+    expect(screen.getByLabelText("Instructions")).toHaveValue(
+      "Mix the batter.\nFry the pancakes."
+    );
+  });
+
   it("adds an ingredient row and focuses it", async () => {
     render(RecipeForm, { props: { onSubmit: vi.fn(), onCancel: vi.fn() } });
 

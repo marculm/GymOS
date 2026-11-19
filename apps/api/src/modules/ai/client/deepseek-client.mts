@@ -31,9 +31,13 @@ export class DeepSeekClient implements JsonCompletionClient {
   private async send({
     system,
     user,
+    maxTokens,
   }: JsonCompletionRequest): Promise<string> {
     const baseUrl = this.config.baseUrl.replace(/\/$/, "");
     const thinking = this.config.thinking;
+    const outputTokens = thinking
+      ? MAX_THINKING_OUTPUT_TOKENS
+      : MAX_OUTPUT_TOKENS;
     const response = await this.fetchImpl(`${baseUrl}/chat/completions`, {
       method: "POST",
       headers: {
@@ -49,7 +53,7 @@ export class DeepSeekClient implements JsonCompletionClient {
         response_format: { type: "json_object" },
         thinking: { type: thinking ? "enabled" : "disabled" },
         ...(thinking ? { reasoning_effort: REASONING_EFFORT } : {}),
-        max_tokens: thinking ? MAX_THINKING_OUTPUT_TOKENS : MAX_OUTPUT_TOKENS,
+        max_tokens: Math.max(maxTokens ?? 0, outputTokens),
       }),
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });

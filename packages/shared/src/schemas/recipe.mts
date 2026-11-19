@@ -19,6 +19,10 @@ export const RecipeSchema = z.object({
 
 export const RecipeInputSchema = RecipeSchema.omit({ id: true });
 
+export const RecipeExtractionInputSchema = z.object({
+  text: z.string().trim().min(1).max(8000),
+});
+
 export const RecipeUpdateSchema = z.object({
   title: z.string().min(1).optional(),
   sourceUrl: z.string().url().optional(),
@@ -31,4 +35,5 @@ export const RecipeUpdateSchema = z.object({
 export type RecipeIngredient = z.infer<typeof RecipeIngredientSchema>;
 export type Recipe = z.infer<typeof RecipeSchema>;
 export type RecipeInput = z.infer<typeof RecipeInputSchema>;
+export type RecipeExtractionInput = z.infer<typeof RecipeExtractionInputSchema>;
 export type RecipeUpdate = z.infer<typeof RecipeUpdateSchema>;

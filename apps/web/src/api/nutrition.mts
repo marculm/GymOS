@@ -7,6 +7,7 @@ import type {
   NutritionLogUpdate,
   NutritionSummary,
   Recipe,
+  RecipeExtractionInput,
   RecipeInput,
   RecipeUpdate,
 } from "@gymos/shared";
@@ -15,6 +16,7 @@ import {
   MealEstimateSchema,
   NutritionLogEntrySchema,
   NutritionSummarySchema,
+  RecipeInputSchema,
   RecipeSchema,
 } from "@gymos/shared";
 import { api } from "./client.mts";
@@ -72,6 +74,16 @@ export async function estimateMeal(
 ): Promise<MealEstimate> {
   return MealEstimateSchema.parse(
     await api.post<unknown>("/nutrition/estimate", input, {
+      timeoutMs: AI_ESTIMATE_TIMEOUT_MS,
+    })
+  );
+}
+
+export async function extractRecipe(
+  input: RecipeExtractionInput
+): Promise<RecipeInput> {
+  return RecipeInputSchema.parse(
+    await api.post<unknown>("/nutrition/recipes/extract", input, {
       timeoutMs: AI_ESTIMATE_TIMEOUT_MS,
     })
   );

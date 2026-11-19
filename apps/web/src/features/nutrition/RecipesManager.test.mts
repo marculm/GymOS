@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/svelte";
+import { tick } from "svelte";
 import type { Recipe } from "@gymos/shared";
 
 const nutritionApi = vi.hoisted(() => ({
@@ -14,6 +15,7 @@ const nutritionApi = vi.hoisted(() => ({
   createRecipe: vi.fn(),
   updateRecipe: vi.fn(),
   deleteRecipe: vi.fn(),
+  extractRecipe: vi.fn(),
 }));
 
 vi.mock("../../api/nutrition.mts", () => nutritionApi);
@@ -97,6 +99,209 @@ describe("RecipesManager", () => {
       })
     );
     expect(await screen.findByText("Chicken rice bowl")).toBeInTheDocument();
+  });
+
+  it("imports a recipe from pasted text", async () => {
+    const draft = {
+      title: "Pancakes",
+      servings: 2,
+      macrosPerServing: {
+        calories: 410,
+        proteinGrams: 12,
+        carbsGrams: 60,
+        fatGrams: 13,
+      },
+      ingredients: [{ name: "Flour", amount: 200, unit: "g" }],
+      instructions: ["Mix the batter."],
+    };
+    nutritionApi.extractRecipe.mockResolvedValue(draft);
+    render(RecipesManager);
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Import from text" })
+    );
+    await fireEvent.input(screen.getByLabelText("Recipe text"), {
+      target: { value: "  Mix the batter.  " },
+    });
+    await fireEvent.click(screen.getByRole("button", { name: "Extract" }));
+
+    await waitFor(() =>
+      expect(nutritionApi.extractRecipe).toHaveBeenCalledWith({
+        text: "Mix the batter.",
+      })
+    );
+    expect(await screen.findByLabelText("Name")).toHaveValue("Pancakes");
+    expect(screen.getByLabelText("Servings")).toHaveValue(2);
+    expect(screen.getByLabelText("Ingredient")).toHaveValue("Flour");
+    expect(screen.getByLabelText("Instructions")).toHaveValue(
+      "Mix the batter."
+    );
+    expect(nutritionApi.createRecipe).not.toHaveBeenCalled();
+  });
+
+  it("discards an imported draft on cancel", async () => {
+    nutritionApi.extractRecipe.mockResolvedValue({
+      title: "Pancakes",
+      servings: 2,
+      macrosPerServing: {
+        calories: 410,
+        proteinGrams: 12,
+        carbsGrams: 60,
+        fatGrams: 13,
+      },
+      ingredients: [],
+      instructions: [],
+    });
+    render(RecipesManager);
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Import from text" })
+    );
+    await fireEvent.input(screen.getByLabelText("Recipe text"), {
+      target: { value: "Mix the batter." },
+    });
+    await fireEvent.click(screen.getByRole("button", { name: "Extract" }));
+    expect(await screen.findByLabelText("Name")).toHaveValue("Pancakes");
+
+    await fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    await fireEvent.click(
+      await screen.findByRole("button", { name: "Add recipe" })
+    );
+
+    expect(screen.getByLabelText("Name")).toHaveValue("");
+  });
+
+  it("keeps the pasted text when the import fails", async () => {
+    nutritionApi.extractRecipe.mockRejectedValue(
+      new Error(
+        "The AI service is unavailable. Try again or enter the values manually."
+      )
+    );
+    render(RecipesManager);
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Import from text" })
+    );
+    await fireEvent.input(screen.getByLabelText("Recipe text"), {
+      target: { value: "Mix the batter." },
+    });
+    await fireEvent.click(screen.getByRole("button", { name: "Extract" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "The AI service is unavailable. Try again or enter the values manually."
+    );
+    expect(screen.getByLabelText("Recipe text")).toHaveValue(
+      "Mix the batter."
+    );
+    expect(screen.queryByLabelText("Name")).toBeNull();
+  });
+
+  it("hides the empty state while the import step is open", async () => {
+    render(RecipesManager);
+
+    expect(await screen.findByText("No recipes yet.")).toBeInTheDocument();
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Import from text" })
+    );
+
+    expect(screen.queryByText("No recipes yet.")).toBeNull();
+  });
+
+  it("cancels a pending import", async () => {
+    let resolveExtract: (value: unknown) => void = () => {};
+    nutritionApi.extractRecipe.mockReturnValue(
+      new Promise((resolve) => {
+        resolveExtract = resolve;
+      })
+    );
+    render(RecipesManager);
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Import from text" })
+    );
+    await fireEvent.input(screen.getByLabelText("Recipe text"), {
+      target: { value: "Mix the batter." },
+    });
+    await fireEvent.click(screen.getByRole("button", { name: "Extract" }));
+
+    expect(
+      screen.getByRole("button", { name: "Extracting…" })
+    ).toBeInTheDocument();
+    await fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    resolveExtract({
+      title: "Pancakes",
+      servings: 2,
+      macrosPerServing: {
+        calories: 410,
+        proteinGrams: 12,
+        carbsGrams: 60,
+        fatGrams: 13,
+      },
+      ingredients: [],
+      instructions: [],
+    });
+    await tick();
+
+    expect(screen.queryByLabelText("Name")).toBeNull();
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Import from text" })
+    );
+    expect(screen.getByLabelText("Recipe text")).toBeEnabled();
+  });
+
+  it("focuses the import step and restores focus on cancel", async () => {
+    render(RecipesManager);
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Import from text" })
+    );
+    expect(screen.getByLabelText("Recipe text")).toHaveFocus();
+
+    await fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(
+      await screen.findByRole("button", { name: "Import from text" })
+    ).toHaveFocus();
+  });
+
+  it("locks the recipe list while the import step is open", async () => {
+    nutritionApi.listRecipes.mockResolvedValue([recipe]);
+    render(RecipesManager);
+
+    await screen.findByText("Chicken rice bowl");
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Import from text" })
+    );
+
+    expect(
+      screen.queryByRole("button", { name: /^Chicken rice bowl/ })
+    ).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Edit Chicken rice bowl" })
+    ).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Delete Chicken rice bowl" })
+    ).toBeNull();
+  });
+
+  it("locks the recipe list while the form is open", async () => {
+    nutritionApi.listRecipes.mockResolvedValue([recipe]);
+    render(RecipesManager);
+
+    await screen.findByText("Chicken rice bowl");
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Edit Chicken rice bowl" })
+    );
+
+    expect(
+      screen.queryByRole("button", { name: /^Chicken rice bowl/ })
+    ).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Edit Chicken rice bowl" })
+    ).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Delete Chicken rice bowl" })
+    ).toBeNull();
   });
 
   it("opens the recipe detail", async () => {

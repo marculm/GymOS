@@ -4,6 +4,7 @@ import {
   NutritionLogInputSchema,
   NutritionLogUpdateSchema,
   NutritionRangeQuerySchema,
+  RecipeExtractionInputSchema,
   RecipeInputSchema,
   RecipeUpdateSchema,
 } from "@gymos/shared";
@@ -62,6 +63,11 @@ nutritionModule.put("/targets", async (c) => {
 nutritionModule.post("/estimate", async (c) => {
   const input = MealEstimateInputSchema.parse(await c.req.json());
   return c.json(await container.aiService.estimateMeal(input.description));
+});
+
+nutritionModule.post("/recipes/extract", async (c) => {
+  const input = RecipeExtractionInputSchema.parse(await c.req.json());
+  return c.json(await container.aiService.extractRecipe(input.text));
 });
 
 nutritionModule.get("/recipes", async (c) =>

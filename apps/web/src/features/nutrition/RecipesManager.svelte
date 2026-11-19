@@ -1,6 +1,6 @@
 <script lang="ts">
 import { onMount, tick } from "svelte";
-import { Pencil, Plus, Trash2 } from "lucide-svelte";
+import { Pencil, Plus, Sparkles, Trash2 } from "lucide-svelte";
 import type { Recipe, RecipeInput } from "@gymos/shared";
 import RecipeDetail from "./RecipeDetail.svelte";
 import RecipeForm from "./RecipeForm.svelte";
@@ -19,7 +19,14 @@ let {
 let error = $state<string | null>(null);
 let formOpen = $state(false);
 let editing = $state<Recipe | null>(null);
+let draft = $state<RecipeInput | null>(null);
 let viewing = $state<Recipe | null>(null);
+let importOpen = $state(false);
+let importText = $state("");
+let importPending = $state(false);
+let importError = $state<string | null>(null);
+let importTextarea = $state<HTMLTextAreaElement | null>(null);
+let importRun = 0;
 let listScrollTop = 0;
 
 onMount(() => {
@@ -27,7 +34,7 @@ onMount(() => {
 });
 
 $effect(() => {
-  onEditingChange?.(formOpen);
+  onEditingChange?.(formOpen || importOpen);
 });
 
 $effect(() => {
@@ -53,14 +60,63 @@ async function load() {
 
 function openCreate() {
   editing = null;
+  draft = null;
   error = null;
   formOpen = true;
 }
 
 function openEdit(recipe: Recipe) {
   editing = recipe;
+  draft = null;
   error = null;
   formOpen = true;
+}
+
+async function openImport() {
+  draft = null;
+  importText = "";
+  importError = null;
+  importOpen = true;
+  await tick();
+  importTextarea?.focus();
+}
+
+async function cancelImport() {
+  importRun += 1;
+  importOpen = false;
+  importText = "";
+  importError = null;
+  importPending = false;
+  await tick();
+  document.getElementById("import-recipe-button")?.focus();
+}
+
+async function extract() {
+  if (importPending) return;
+  const text = importText.trim();
+  if (!text) {
+    importError = "Paste the recipe text first.";
+    return;
+  }
+
+  const run = importRun + 1;
+  importRun = run;
+  importPending = true;
+  importError = null;
+  try {
+    const extracted = await nutritionData.extractRecipe({ text });
+    if (run !== importRun || !importOpen) return;
+    draft = extracted;
+    importOpen = false;
+    importText = "";
+    formOpen = true;
+    editing = null;
+  } catch (extractError) {
+    if (run !== importRun || !importOpen) return;
+    importError = messageOf(extractError);
+  } finally {
+    if (run === importRun) importPending = false;
+  }
 }
 
 async function openDetail(recipe: Recipe) {
@@ -92,6 +148,7 @@ async function closeDetail() {
 async function close(focusId: string) {
   formOpen = false;
   editing = null;
+  draft = null;
   await tick();
   document.getElementById(focusId)?.focus();
 }
@@ -132,18 +189,71 @@ function format(value: number): string {
   <RecipeDetail recipe={viewing} onEdit={() => void editViewed()} />
 {:else}
   <div class="group">
-    {#if formOpen}
+    {#if importOpen}
       <div class="group-form">
-        <RecipeForm recipe={editing} onSubmit={handleSubmit} onCancel={cancel} />
+        <form
+          class="stack"
+          onsubmit={(event) => {
+            event.preventDefault();
+            void extract();
+          }}
+        >
+          <h3 class="card-title form-title">Import from text</h3>
+          <div class="form-rows">
+            <label class="field field-block">
+              <span class="label">Recipe text</span>
+              <textarea
+                class="input"
+                rows="6"
+                maxlength={8000}
+                disabled={importPending}
+                placeholder="Paste the recipe text"
+                bind:this={importTextarea}
+                bind:value={importText}
+              ></textarea>
+            </label>
+          </div>
+          {#if importError}
+            <p class="error" role="alert">{importError}</p>
+          {/if}
+          <div class="form-actions">
+            <button
+              class="btn btn-primary"
+              type="submit"
+              disabled={importPending || importText.trim().length === 0}
+              aria-busy={importPending}
+            >
+              {importPending ? "Extracting…" : "Extract"}
+            </button>
+            <button
+              class="btn btn-ghost"
+              type="button"
+              onclick={() => void cancelImport()}
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
       </div>
     {/if}
 
-    {#if nutritionData.recipes.length === 0 && !formOpen}
+    {#if formOpen}
+      <div class="group-form">
+        <RecipeForm
+          recipe={editing}
+          draft={draft}
+          onSubmit={handleSubmit}
+          onCancel={cancel}
+        />
+      </div>
+    {/if}
+
+    {#if nutritionData.recipes.length === 0 && !formOpen && !importOpen}
       <p class="group-empty">No recipes yet.</p>
     {:else}
       {#each nutritionData.recipes as recipe (recipe.id)}
         <div class="list-row">
-          {#if formOpen}
+          {#if formOpen || importOpen}
             <div class="list-main">
               <span class="list-title">{recipe.title}</span>
               <span class="list-subtitle">
@@ -165,30 +275,32 @@ function format(value: number): string {
               </span>
             </button>
           {/if}
-          <div class="list-actions">
-            <button
-              type="button"
-              class="icon-btn muted"
-              id={`edit-recipe-${recipe.id}`}
-              aria-label={`Edit ${recipe.title}`}
-              onclick={() => openEdit(recipe)}
-            >
-              <Pencil size={18} aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              class="icon-btn muted"
-              aria-label={`Delete ${recipe.title}`}
-              onclick={() => void handleDelete(recipe)}
-            >
-              <Trash2 size={18} aria-hidden="true" />
-            </button>
-          </div>
+          {#if !formOpen && !importOpen}
+            <div class="list-actions">
+              <button
+                type="button"
+                class="icon-btn muted"
+                id={`edit-recipe-${recipe.id}`}
+                aria-label={`Edit ${recipe.title}`}
+                onclick={() => openEdit(recipe)}
+              >
+                <Pencil size={18} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                class="icon-btn muted"
+                aria-label={`Delete ${recipe.title}`}
+                onclick={() => void handleDelete(recipe)}
+              >
+                <Trash2 size={18} aria-hidden="true" />
+              </button>
+            </div>
+          {/if}
         </div>
       {/each}
     {/if}
 
-    {#if !formOpen && !editing}
+    {#if !formOpen && !importOpen && !editing}
       <button
         type="button"
         class="list-row add-row"
@@ -197,6 +309,15 @@ function format(value: number): string {
       >
         <Plus size={18} aria-hidden="true" />
         <span>Add recipe</span>
+      </button>
+      <button
+        type="button"
+        class="list-row add-row"
+        id="import-recipe-button"
+        onclick={() => void openImport()}
+      >
+        <Sparkles size={18} aria-hidden="true" />
+        <span>Import from text</span>
       </button>
     {/if}
   </div>

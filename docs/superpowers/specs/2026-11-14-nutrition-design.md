@@ -24,7 +24,8 @@ is deterministic and works without an LLM; estimations and the recipe extractor 
 2. **AI estimation:** Describe and Photo paths fill the same focus logger with estimated
    values; every value stays editable before logging. Describe accepts 1-2000 characters
    and keeps manual entry as a fallback (ADR-0059, ADR-0060).
-3. **Recipe extractor:** import a recipe from a link into the editable recipe form.
+3. **Recipe extractor:** import a recipe from a link (#3) or pasted text into the editable
+   recipe form (text: ADR-0062).
 4. **Cooking view:** recipe detail with ingredients and instructions for inspiration.
 
 Mealprep and weekly planning are out of scope.
@@ -116,6 +117,8 @@ data.
 - `PUT /api/nutrition/targets` `{ calories, proteinGrams, carbsGrams, fatGrams }`.
 - `POST /api/nutrition/estimate` `{ description }` → `{ name?, macros }`; persists
   nothing (ADR-0060).
+- `POST /api/nutrition/recipes/extract` `{ text }` → recipe draft (per-serving macros);
+  persists nothing (ADR-0062).
 
 The client sends the local day boundaries as `from`/`to`, so the day does not depend on
 the server timezone.

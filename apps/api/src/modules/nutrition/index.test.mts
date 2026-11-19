@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { estimateMeal, getUser } = vi.hoisted(() => ({
+const { estimateMeal, extractRecipe, getUser } = vi.hoisted(() => ({
   estimateMeal: vi.fn(),
+  extractRecipe: vi.fn(),
   getUser: vi.fn(),
 }));
 
@@ -10,7 +11,7 @@ vi.mock("../../container.mts", () => ({
   container: {
     currentUserService: { get: getUser },
     nutritionService: {},
-    aiService: { estimateMeal },
+    aiService: { estimateMeal, extractRecipe },
   },
 }));
 
@@ -38,6 +39,34 @@ function postEstimate(body: unknown) {
     body: JSON.stringify(body),
   });
 }
+
+describe("POST /recipes/extract", () => {
+  it("extracts a recipe from trimmed text", async () => {
+    const draft = {
+      title: "Pancakes",
+      servings: 2,
+      macrosPerServing: {
+        calories: 410,
+        proteinGrams: 12,
+        carbsGrams: 60,
+        fatGrams: 13,
+      },
+      ingredients: [{ name: "Flour", amount: 200, unit: "g" }],
+      instructions: ["Mix the batter."],
+    };
+    extractRecipe.mockResolvedValue(draft);
+
+    const response = await nutritionModule.request("/recipes/extract", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: "  Mix the batter.  " }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual(draft);
+    expect(extractRecipe).toHaveBeenCalledWith("Mix the batter.");
+  });
+});
 
 describe("POST /estimate", () => {
   it("estimates a described meal", async () => {
