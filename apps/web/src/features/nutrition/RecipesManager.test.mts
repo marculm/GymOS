@@ -162,6 +162,46 @@ describe("RecipesManager", () => {
     expect(screen.queryByLabelText("Name")).toBeNull();
   });
 
+  it("locks the recipe list while the import step is open", async () => {
+    nutritionApi.listRecipes.mockResolvedValue([recipe]);
+    render(RecipesManager);
+
+    await screen.findByText("Chicken rice bowl");
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Import from text" })
+    );
+
+    expect(
+      screen.queryByRole("button", { name: /^Chicken rice bowl/ })
+    ).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Edit Chicken rice bowl" })
+    ).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Delete Chicken rice bowl" })
+    ).toBeNull();
+  });
+
+  it("locks the recipe list while the form is open", async () => {
+    nutritionApi.listRecipes.mockResolvedValue([recipe]);
+    render(RecipesManager);
+
+    await screen.findByText("Chicken rice bowl");
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Edit Chicken rice bowl" })
+    );
+
+    expect(
+      screen.queryByRole("button", { name: /^Chicken rice bowl/ })
+    ).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Edit Chicken rice bowl" })
+    ).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Delete Chicken rice bowl" })
+    ).toBeNull();
+  });
+
   it("opens the recipe detail", async () => {
     nutritionApi.listRecipes.mockResolvedValue([recipe]);
     let close: (() => void) | null = null;

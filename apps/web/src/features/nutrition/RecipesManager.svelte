@@ -25,6 +25,7 @@ let importOpen = $state(false);
 let importText = $state("");
 let importPending = $state(false);
 let importError = $state<string | null>(null);
+let importRun = 0;
 let listScrollTop = 0;
 
 onMount(() => {
@@ -78,6 +79,7 @@ function openImport() {
 }
 
 function cancelImport() {
+  importRun += 1;
   importOpen = false;
   importText = "";
   importError = null;
@@ -91,18 +93,23 @@ async function extract() {
     return;
   }
 
+  const run = importRun + 1;
+  importRun = run;
   importPending = true;
   importError = null;
   try {
-    draft = await nutritionData.extractRecipe({ text });
+    const extracted = await nutritionData.extractRecipe({ text });
+    if (run !== importRun || !importOpen) return;
+    draft = extracted;
     importOpen = false;
     importText = "";
     formOpen = true;
     editing = null;
   } catch (extractError) {
+    if (run !== importRun || !importOpen) return;
     importError = messageOf(extractError);
   } finally {
-    importPending = false;
+    if (run === importRun) importPending = false;
   }
 }
 
@@ -240,7 +247,7 @@ function format(value: number): string {
     {:else}
       {#each nutritionData.recipes as recipe (recipe.id)}
         <div class="list-row">
-          {#if formOpen}
+          {#if formOpen || importOpen}
             <div class="list-main">
               <span class="list-title">{recipe.title}</span>
               <span class="list-subtitle">
@@ -262,25 +269,27 @@ function format(value: number): string {
               </span>
             </button>
           {/if}
-          <div class="list-actions">
-            <button
-              type="button"
-              class="icon-btn muted"
-              id={`edit-recipe-${recipe.id}`}
-              aria-label={`Edit ${recipe.title}`}
-              onclick={() => openEdit(recipe)}
-            >
-              <Pencil size={18} aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              class="icon-btn muted"
-              aria-label={`Delete ${recipe.title}`}
-              onclick={() => void handleDelete(recipe)}
-            >
-              <Trash2 size={18} aria-hidden="true" />
-            </button>
-          </div>
+          {#if !formOpen && !importOpen}
+            <div class="list-actions">
+              <button
+                type="button"
+                class="icon-btn muted"
+                id={`edit-recipe-${recipe.id}`}
+                aria-label={`Edit ${recipe.title}`}
+                onclick={() => openEdit(recipe)}
+              >
+                <Pencil size={18} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                class="icon-btn muted"
+                aria-label={`Delete ${recipe.title}`}
+                onclick={() => void handleDelete(recipe)}
+              >
+                <Trash2 size={18} aria-hidden="true" />
+              </button>
+            </div>
+          {/if}
         </div>
       {/each}
     {/if}
