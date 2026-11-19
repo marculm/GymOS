@@ -6,7 +6,7 @@
     "dev": "NODE_ENV=development bun --env-file=../../.env --watch src/index.mts",
     "start": "bun src/index.mts",
     "test": "vitest run",
-    "test:watch": "vitest",
+    "test:watch": "vitest --watch",
     "typecheck": "bun check",
     "db:generate": "bunx prisma generate",
     "db:migrate": "bunx prisma migrate dev && bunx prisma generate",
