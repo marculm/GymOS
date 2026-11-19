@@ -50,5 +50,6 @@ entry point.
   harness with their own prompts and inputs.
 - The model can still return implausible values; the user confirms every field in the
   form before saving.
-- The 8000-character bound keeps the provider call and the response inside the harness
-  limits.
+- The 8000-character bound keeps the provider call bounded; a very long recipe can still
+  exhaust the 2048-token output budget, which fails visibly with a 502 instead of
+  returning partial data.
