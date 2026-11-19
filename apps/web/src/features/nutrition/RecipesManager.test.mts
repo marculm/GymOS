@@ -163,6 +163,17 @@ describe("RecipesManager", () => {
     expect(screen.queryByLabelText("Name")).toBeNull();
   });
 
+  it("hides the empty state while the import step is open", async () => {
+    render(RecipesManager);
+
+    expect(await screen.findByText("No recipes yet.")).toBeInTheDocument();
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Import from text" })
+    );
+
+    expect(screen.queryByText("No recipes yet.")).toBeNull();
+  });
+
   it("cancels a pending import", async () => {
     let resolveExtract: (value: unknown) => void = () => {};
     nutritionApi.extractRecipe.mockReturnValue(

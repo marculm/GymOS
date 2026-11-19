@@ -248,7 +248,7 @@ function format(value: number): string {
       </div>
     {/if}
 
-    {#if nutritionData.recipes.length === 0 && !formOpen}
+    {#if nutritionData.recipes.length === 0 && !formOpen && !importOpen}
       <p class="group-empty">No recipes yet.</p>
     {:else}
       {#each nutritionData.recipes as recipe (recipe.id)}
