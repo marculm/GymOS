@@ -12,6 +12,7 @@ import {
 export type JsonCompletionRequest = {
   system: string;
   user: string;
+  maxTokens?: number;
 };
 
 export type JsonCompletionClient = {

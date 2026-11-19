@@ -82,6 +82,29 @@ describe("DeepSeekClient.completeJson", () => {
     expect(body.reasoning_effort).toBeUndefined();
   });
 
+  it("uses the requested output budget", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(completion('{"ok":true}'));
+    const client = new DeepSeekClient(
+      { ...config, thinking: false },
+      fetchMock as unknown as typeof fetch
+    );
+
+    await client.completeJson({ system: "s", user: "u", maxTokens: 2048 });
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(JSON.parse(String(init.body))).toMatchObject({ max_tokens: 2048 });
+  });
+
+  it("keeps the larger thinking budget", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(completion('{"ok":true}'));
+    const client = createClient(fetchMock);
+
+    await client.completeJson({ system: "s", user: "u", maxTokens: 2048 });
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(JSON.parse(String(init.body))).toMatchObject({ max_tokens: 4096 });
+  });
+
   it("reports a server error without retrying", async () => {
     const fetchMock = vi.fn().mockResolvedValue(failed(500));
     const client = createClient(fetchMock);
