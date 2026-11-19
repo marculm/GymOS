@@ -20,6 +20,7 @@
   },
   "scripts": {
     "test": "vitest run",
+    "test:watch": "vitest --watch",
     "typecheck": "bun check"
   },
   "dependencies": {
