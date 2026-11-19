@@ -72,7 +72,7 @@ The former `svelte.config.js` moves into the `sveltekit()` plugin in
 service worker lands in the adapter-static output with a populated precache
 manifest. The dev-only `glob` and `minimatch` versions used by
 `workbox-build` are overridden to their patched releases; the PWA build
-verifies the override.
+exercises the override and `bun audit` verifies the patched versions.
 
 Consequences: `bun audit --audit-level=high` passes, and the full audit is clean
 once the Hono patch lands. SvelteKit 3 no longer runs `transformIndexHtml`, so
@@ -85,7 +85,7 @@ exception to remove when `workbox-build` catches up.
 
 - **Vite + hand-rolled router.** Rejected: custom navigation code, no deep-link or
   back-button conventions, and it is the rebuild this decision avoids.
-- **SvelteKit 3.** Deferred: it requires Vite 8, plugin-svelte 7, TypeScript 6, and
-  Vitest 5. That repo-wide toolchain upgrade is not needed for routing.
+- **SvelteKit 3.** Deferred at the time: it required Vite 8, plugin-svelte 7,
+  TypeScript 6, and a repo-wide toolchain upgrade. Adopted in the update above.
 - **SSR and server endpoints.** Rejected: the API is Hono, and the app is an
   online-only static PWA (ADR-0012).
