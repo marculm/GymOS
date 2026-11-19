@@ -99,6 +99,8 @@ async function extract() {
     importText = "";
     formOpen = true;
     editing = null;
+  } catch (extractError) {
+    importError = messageOf(extractError);
   } finally {
     importPending = false;
   }

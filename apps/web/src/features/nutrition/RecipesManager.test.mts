@@ -137,6 +137,31 @@ describe("RecipesManager", () => {
     );
   });
 
+  it("keeps the pasted text when the import fails", async () => {
+    nutritionApi.extractRecipe.mockRejectedValue(
+      new Error(
+        "The AI service is unavailable. Try again or enter the values manually."
+      )
+    );
+    render(RecipesManager);
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Import from text" })
+    );
+    await fireEvent.input(screen.getByLabelText("Recipe text"), {
+      target: { value: "Mix the batter." },
+    });
+    await fireEvent.click(screen.getByRole("button", { name: "Extract" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "The AI service is unavailable. Try again or enter the values manually."
+    );
+    expect(screen.getByLabelText("Recipe text")).toHaveValue(
+      "Mix the batter."
+    );
+    expect(screen.queryByLabelText("Name")).toBeNull();
+  });
+
   it("opens the recipe detail", async () => {
     nutritionApi.listRecipes.mockResolvedValue([recipe]);
     let close: (() => void) | null = null;
