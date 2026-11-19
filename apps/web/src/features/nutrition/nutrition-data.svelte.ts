@@ -7,6 +7,7 @@ import type {
   NutritionLogUpdate,
   NutritionSummary,
   Recipe,
+  RecipeExtractionInput,
   RecipeInput,
   RecipeUpdate,
 } from "@gymos/shared";
@@ -16,6 +17,7 @@ import {
   deleteLog,
   deleteRecipe,
   estimateMeal,
+  extractRecipe as requestRecipeExtraction,
   getSummary,
   listLogs,
   listRecipes,
@@ -118,6 +120,10 @@ class NutritionData {
 
   estimate(input: MealEstimateInput): Promise<MealEstimate> {
     return estimateMeal(input);
+  }
+
+  extractRecipe(input: RecipeExtractionInput): Promise<RecipeInput> {
+    return requestRecipeExtraction(input);
   }
 
   async saveTargets(input: Macros): Promise<Macros> {

@@ -14,6 +14,7 @@ const nutritionApi = vi.hoisted(() => ({
   createRecipe: vi.fn(),
   updateRecipe: vi.fn(),
   deleteRecipe: vi.fn(),
+  extractRecipe: vi.fn(),
 }));
 
 vi.mock("../../api/nutrition.mts", () => nutritionApi);
@@ -97,6 +98,43 @@ describe("RecipesManager", () => {
       })
     );
     expect(await screen.findByText("Chicken rice bowl")).toBeInTheDocument();
+  });
+
+  it("imports a recipe from pasted text", async () => {
+    const draft = {
+      title: "Pancakes",
+      servings: 2,
+      macrosPerServing: {
+        calories: 410,
+        proteinGrams: 12,
+        carbsGrams: 60,
+        fatGrams: 13,
+      },
+      ingredients: [{ name: "Flour", amount: 200, unit: "g" }],
+      instructions: ["Mix the batter."],
+    };
+    nutritionApi.extractRecipe.mockResolvedValue(draft);
+    render(RecipesManager);
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Import from text" })
+    );
+    await fireEvent.input(screen.getByLabelText("Recipe text"), {
+      target: { value: "  Mix the batter.  " },
+    });
+    await fireEvent.click(screen.getByRole("button", { name: "Extract" }));
+
+    await waitFor(() =>
+      expect(nutritionApi.extractRecipe).toHaveBeenCalledWith({
+        text: "Mix the batter.",
+      })
+    );
+    expect(await screen.findByLabelText("Name")).toHaveValue("Pancakes");
+    expect(screen.getByLabelText("Servings")).toHaveValue(2);
+    expect(screen.getByLabelText("Ingredient")).toHaveValue("Flour");
+    expect(screen.getByLabelText("Instructions")).toHaveValue(
+      "Mix the batter."
+    );
   });
 
   it("opens the recipe detail", async () => {
