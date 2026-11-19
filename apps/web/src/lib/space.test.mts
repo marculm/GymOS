@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { goto } from "$app/navigation";
-import { goToSpace, spaceSwipe } from "./space.ts";
+import { goto, preloadData } from "$app/navigation";
+import { goToSpace, prefetchSpace, spaceSwipe } from "./space.ts";
 
 vi.mock("$app/navigation", () => ({
   goto: vi.fn(async () => undefined),
@@ -40,6 +40,20 @@ function swipe(
 }
 
 describe("space gestures", () => {
+  it("retries a prefetch after a failed preload", async () => {
+    vi.mocked(preloadData).mockResolvedValueOnce({
+      type: "error",
+      status: 500,
+      error: { message: "preload failed", status: 500 },
+    });
+
+    prefetchSpace("training");
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    prefetchSpace("training");
+
+    expect(preloadData).toHaveBeenCalledTimes(2);
+  });
+
   it("navigates to the other space", async () => {
     goToSpace("nutrition");
     expect(goto).toHaveBeenCalledWith("/nutrition", { replace: true });
