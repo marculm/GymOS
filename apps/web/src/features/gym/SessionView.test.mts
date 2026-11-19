@@ -275,6 +275,59 @@ describe("SessionView", () => {
     ).toBeInTheDocument();
   });
 
+  it("keeps the completed free exercise when the session updates", async () => {
+    const quickBench = { ...bench, defaultSets: 1 };
+    const quickShoulder = { ...shoulder, defaultSets: 1 };
+    const freeSession: WorkoutSessionDetail = {
+      ...session,
+      title: "Free workout",
+      planId: null,
+    };
+    const onLogSet = vi.fn().mockResolvedValue(undefined);
+    const props = {
+      session: freeSession,
+      plan: null,
+      exercises: [quickBench, quickShoulder],
+      onLogSet,
+      onDeleteSet: vi.fn().mockResolvedValue(undefined),
+      onUpdateExercise: vi.fn().mockResolvedValue(undefined),
+      onComplete: vi.fn().mockResolvedValue(undefined),
+    };
+    const view = render(SessionView, { props });
+    onLogSet.mockImplementation(async () => {
+      await view.rerender({
+        ...props,
+        session: { ...freeSession, sets: [loggedSet(quickShoulder)] },
+      });
+    });
+
+    await fireEvent.click(screen.getByRole("button", { name: "Add exercise" }));
+    let dialog = await screen.findByRole("dialog", { name: "Exercises" });
+    await fireEvent.change(within(dialog).getByLabelText("Add exercise"), {
+      target: { value: quickBench.id },
+    });
+    await fireEvent.click(within(dialog).getByRole("button", { name: "Add" }));
+
+    await fireEvent.click(screen.getByRole("button", { name: "Exercises" }));
+    dialog = await screen.findByRole("dialog", { name: "Exercises" });
+    await fireEvent.change(within(dialog).getByLabelText("Add exercise"), {
+      target: { value: quickShoulder.id },
+    });
+    await fireEvent.click(within(dialog).getByRole("button", { name: "Add" }));
+    expect(
+      within(activePage()).getByText("Exercise 2 of 2")
+    ).toBeInTheDocument();
+
+    await fireEvent.click(screen.getByRole("button", { name: "Log set" }));
+
+    await screen.findByRole("button", { name: /Rest timer running/ });
+    expect(
+      within(activePage()).getByRole("heading", {
+        name: "Overhead Shoulder Press",
+      })
+    ).toBeInTheDocument();
+  });
+
   it("accepts a typed value", async () => {
     renderSession();
 

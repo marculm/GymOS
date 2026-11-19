@@ -313,6 +313,9 @@
     const pageIndex = index;
     const completes =
       !isDone(page) && page.sets.length + 1 >= page.targetSets;
+    const nextOpenId = completes
+      ? pages.slice(pageIndex + 1).find((entry) => !isDone(entry))?.exerciseId
+      : undefined;
     pending = true;
     error = null;
 
@@ -334,10 +337,12 @@
       editing = null;
       startTimer();
       if (completes) {
-        const nextOpen = pages.findIndex(
-          (entry, entryIndex) => entryIndex > pageIndex && !isDone(entry)
+        const targetIndex = pages.findIndex(
+          (entry) => entry.exerciseId === (nextOpenId ?? page.exerciseId)
         );
-        if (nextOpen !== -1) await goToPage(nextOpen);
+        if (targetIndex !== -1 && targetIndex !== index) {
+          await goToPage(targetIndex);
+        }
       }
     } catch (logError) {
       error = messageOf(logError);

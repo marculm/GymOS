@@ -24,7 +24,9 @@ already known and the rest timer is running.
   still reach it.
 - A failed log stays on the current page and shows the existing error.
 - The rule applies to plan exercises and to exercises added to a free workout, because
-  both are pager pages.
+  both are pager pages. The target is identified by exercise, not by page position: a
+  free exercise's first set moves its page into the session-set section, so a position
+  captured before the log no longer points at the same exercise afterwards.
 - The advance reuses `goToPage`, including its focus on the exercise heading. The rest
   timer starts as before, immediately after the successful log.
 
