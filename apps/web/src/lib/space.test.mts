@@ -1,10 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { goto } from "$app/navigation";
-import { goToSpace, spaceSwipe } from "./space.ts";
+import { goto, preloadData } from "$app/navigation";
+import { goToSpace, prefetchSpace, spaceSwipe } from "./space.ts";
 
 vi.mock("$app/navigation", () => ({
   goto: vi.fn(async () => undefined),
-  preloadData: vi.fn(async () => ({})),
+  preloadData: vi.fn(async () => ({ type: "loaded" })),
 }));
 
 afterEach(() => {
@@ -40,13 +40,27 @@ function swipe(
 }
 
 describe("space gestures", () => {
+  it("retries a prefetch after a failed preload", async () => {
+    vi.mocked(preloadData).mockResolvedValueOnce({
+      type: "error",
+      status: 500,
+      error: { message: "preload failed", status: 500 },
+    });
+
+    prefetchSpace("training");
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    prefetchSpace("training");
+
+    expect(preloadData).toHaveBeenCalledTimes(2);
+  });
+
   it("navigates to the other space", async () => {
     goToSpace("nutrition");
-    expect(goto).toHaveBeenCalledWith("/nutrition", { replaceState: true });
+    expect(goto).toHaveBeenCalledWith("/nutrition", { replace: true });
     await new Promise((resolve) => setTimeout(resolve, 0));
 
     goToSpace("training");
-    expect(goto).toHaveBeenCalledWith("/gym", { replaceState: true });
+    expect(goto).toHaveBeenCalledWith("/gym", { replace: true });
     await new Promise((resolve) => setTimeout(resolve, 0));
   });
 
@@ -55,7 +69,7 @@ describe("space gestures", () => {
     goToSpace("training");
 
     expect(goto).toHaveBeenCalledTimes(1);
-    expect(goto).toHaveBeenCalledWith("/nutrition", { replaceState: true });
+    expect(goto).toHaveBeenCalledWith("/nutrition", { replace: true });
     await new Promise((resolve) => setTimeout(resolve, 0));
   });
 

@@ -2,12 +2,12 @@
   import { onDestroy, onMount } from "svelte";
   import { goto } from "$app/navigation";
   import { ChevronLeft } from "lucide-svelte";
-  import SettingsButton from "$lib/SettingsButton.svelte";
-  import { prefetchSpace, spaceSwipe } from "$lib/space.ts";
+  import SettingsButton from "#lib/SettingsButton.svelte";
+  import { prefetchSpace, spaceSwipe } from "#lib/space.ts";
   import {
     lightThemeColor,
     trainingThemeColor,
-  } from "$lib/theme-color.ts";
+  } from "#lib/theme-color.ts";
   import RecipesManager from "../../../features/nutrition/RecipesManager.svelte";
 
   let editing = $state(false);
@@ -19,7 +19,7 @@
       closeDetail?.();
       return;
     }
-    void goto("/nutrition", { replaceState: true });
+    void goto("/nutrition", { replace: true });
   }
 
   onMount(() => {
@@ -34,7 +34,7 @@
   use:spaceSwipe={{
     onSwipeRight: editing
       ? undefined
-      : () => void goto("/nutrition", { replaceState: true }),
+      : () => void goto("/nutrition", { replace: true }),
   }}
 >
   <SettingsButton />

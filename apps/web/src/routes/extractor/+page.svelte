@@ -1,12 +1,12 @@
 <script lang="ts">
   import { onDestroy, onMount } from "svelte";
   import { ChevronLeft, Sparkles } from "lucide-svelte";
-  import SettingsButton from "$lib/SettingsButton.svelte";
-  import { goToSpace, prefetchSpace, spaceSwipe } from "$lib/space.ts";
+  import SettingsButton from "#lib/SettingsButton.svelte";
+  import { goToSpace, prefetchSpace, spaceSwipe } from "#lib/space.ts";
   import {
     lightThemeColor,
     trainingThemeColor,
-  } from "$lib/theme-color.ts";
+  } from "#lib/theme-color.ts";
 
   onMount(() => {
     lightThemeColor();

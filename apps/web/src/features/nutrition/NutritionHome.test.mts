@@ -10,7 +10,7 @@ const nutritionData = vi.hoisted(() => ({
 }));
 
 vi.mock("./nutrition-data.svelte.ts", () => ({ nutritionData }));
-vi.mock("$lib/space.ts", () => ({ goToSpace: vi.fn() }));
+vi.mock("#lib/space.ts", () => ({ goToSpace: vi.fn() }));
 
 import NutritionHome from "./NutritionHome.svelte";
 

@@ -1,3 +1,5 @@
+import adapter from "@sveltejs/adapter-static";
+import { vitePreprocess } from "@sveltejs/vite-plugin-svelte";
 import { sveltekit } from "@sveltejs/kit/vite";
 import { defineConfig } from "vitest/config";
 import { VitePWA } from "vite-plugin-pwa";
@@ -8,7 +10,11 @@ export default defineConfig({
     conditions: ["browser"],
   },
   plugins: [
-    sveltekit(),
+    sveltekit({
+      preprocess: vitePreprocess(),
+      adapter: adapter({ fallback: "index.html" }),
+    }),
+
     VitePWA({
       registerType: "autoUpdate",
       injectRegister: null,
@@ -16,8 +22,10 @@ export default defineConfig({
       srcDir: "src",
       // The plugin only compiles service-worker sources named with a .ts extension.
       filename: "sw.ts",
+      outDir: ".svelte-kit/output/client",
       manifest: pwaManifest,
       injectManifest: {
+        globDirectory: ".svelte-kit/output/client",
         globPatterns: ["**/*.{js,css,html,png,svg,ico,webmanifest}"],
       },
     }),

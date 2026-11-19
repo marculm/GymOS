@@ -21,7 +21,7 @@
     loadRestSeconds,
     REST_PRESETS,
     saveRestSeconds,
-  } from "$lib/rest-timer.ts";
+  } from "#lib/rest-timer.ts";
   import { syncRestTimer } from "../../push.mts";
   import ExerciseForm from "./ExerciseForm.svelte";
   import { formatWeight } from "./format.mts";

@@ -2,8 +2,8 @@
 import { Beef, BookOpen, Droplet, Wheat } from "lucide-svelte";
 import { onMount } from "svelte";
 import type { Macros } from "@gymos/shared";
-import { settings } from "$lib/settings.svelte.ts";
-import { goToSpace } from "$lib/space.ts";
+import { settings } from "#lib/settings.svelte.ts";
+import { goToSpace } from "#lib/space.ts";
 import { nutritionData } from "./nutrition-data.svelte.ts";
 
 let {

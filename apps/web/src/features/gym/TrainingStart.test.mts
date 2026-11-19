@@ -14,13 +14,13 @@ import {
   listAllPlans,
   startSession,
 } from "../../api/gym.mts";
-import { settings } from "$lib/settings.svelte.ts";
+import { settings } from "#lib/settings.svelte.ts";
 import { gymData } from "./gym-data.svelte.ts";
 import TrainingStart from "./TrainingStart.svelte";
 
 vi.mock("$app/navigation", () => ({
   goto: vi.fn(),
-  preloadData: vi.fn(async () => ({})),
+  preloadData: vi.fn(async () => ({ type: "loaded" })),
 }));
 
 vi.mock("../../api/gym.mts", () => ({

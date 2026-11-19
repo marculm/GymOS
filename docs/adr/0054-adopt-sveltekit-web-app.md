@@ -35,8 +35,8 @@ supports that toolchain.
   immutable asset cache path change.
 - The explicit service worker gains a network-first `NavigationRoute` shell handler that
   caches `/index.html` and serves that cache offline; the install event primes it.
-- SvelteKit 3 and the Vite 8/TypeScript 6/Vitest 5 toolchain upgrade are deferred to a
-  separate ADR. This decision does not depend on them.
+- SvelteKit 3 and the Vite 8/TypeScript 6 toolchain upgrade were deferred at first;
+  they landed on 2026-11-19 (see the update below).
 
 ## Consequences
 
@@ -53,11 +53,39 @@ supports that toolchain.
 - The service worker's navigation shell handler is new behavior and must not intercept
   `/api`, `/health`, the service worker, or the manifest.
 
+## Update 2026-11-19: SvelteKit 3
+
+The 2026-11-19 `bun audit` run reported four SvelteKit advisories and one
+`cookie` advisory. The high one is a form-data DoS in the experimental remote
+functions feature, which this app does not enable, and production serves the
+static `adapter-static` build from nginx. The fixes exist only in SvelteKit
+3.1.1 and later, so the deferred toolchain upgrade is now required.
+
+The upgrade uses SvelteKit 3.4.x, `@sveltejs/adapter-static` 4.x, Vite 8.x,
+TypeScript 6.x, `@sveltejs/vite-plugin-svelte` 7.x, and `vite-plugin-pwa` 2.x.
+The former `svelte.config.js` moves into the `sveltekit()` plugin in
+`vite.config.ts`; `$lib` imports become `#lib` subpath imports; the custom
+`$api` and `$features` aliases become relative imports;
+`goto(..., { replaceState: true })` becomes `{ replace: true }`; and
+`preloadData` handles its non-loaded results. The PWA plugin's `outDir` and
+`injectManifest.globDirectory` point at `.svelte-kit/output/client`, so the
+service worker lands in the adapter-static output with a populated precache
+manifest. The dev-only `glob` and `minimatch` versions used by
+`workbox-build` are overridden to their patched releases; the PWA build
+exercises the override and `bun audit` verifies the patched versions.
+
+Consequences: `bun audit --audit-level=high` passes, and the full audit is clean
+once the Hono patch lands. SvelteKit 3 no longer runs `transformIndexHtml`, so
+the PWA plugin logs a `transform_index_html_unsupported` warning at build time;
+the app already links the manifest and registers the service worker itself, so
+the warning is accepted. The `glob`/`minimatch` override is a build-tooling
+exception to remove when `workbox-build` catches up.
+
 ## Considered Options
 
 - **Vite + hand-rolled router.** Rejected: custom navigation code, no deep-link or
   back-button conventions, and it is the rebuild this decision avoids.
-- **SvelteKit 3.** Deferred: it requires Vite 8, plugin-svelte 7, TypeScript 6, and
-  Vitest 5. That repo-wide toolchain upgrade is not needed for routing.
+- **SvelteKit 3.** Deferred at the time: it required Vite 8, plugin-svelte 7,
+  TypeScript 6, and a repo-wide toolchain upgrade. Adopted in the update above.
 - **SSR and server endpoints.** Rejected: the API is Hono, and the app is an
   online-only static PWA (ADR-0012).

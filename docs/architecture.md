@@ -426,7 +426,7 @@ nutrition module is implemented (ADR-0057, ADR-0058, ADR-0060). See ADR-0017.
 
 ### 4.1 Stack
 
-- Svelte 5 with SvelteKit 2 and Vite, built as a static SPA.
+- Svelte 5 with SvelteKit 3 and Vite 8, built as a static SPA (ADR-0054).
 - `vite-plugin-pwa` for the manifest and service worker.
 - Plain CSS with custom properties and named component classes (ADR-0012).
 - Instrument design system: the root is a dark training space with white display
@@ -450,7 +450,6 @@ The PWA is installed from the browser. The service worker caches the app shell f
 
 ```text
 apps/web/
-├── svelte.config.js
 ├── vite.config.ts
 ├── tsconfig.json
 └── src/

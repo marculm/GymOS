@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Settings } from "lucide-svelte";
-  import { settings } from "$lib/settings.svelte.ts";
+  import { settings } from "#lib/settings.svelte.ts";
 </script>
 
 <button

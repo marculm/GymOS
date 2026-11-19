@@ -20,7 +20,11 @@ export function prefetchSpace(space: Space): void {
   const path = pathFor(space);
   if (prefetched.has(path)) return;
   prefetched.add(path);
-  void preloadData(path).catch(() => prefetched.delete(path));
+  void preloadData(path)
+    .then((result) => {
+      if (result.type !== "loaded") prefetched.delete(path);
+    })
+    .catch(() => prefetched.delete(path));
 }
 
 export function goToSpace(space: Space): void {
@@ -42,7 +46,7 @@ export function goToSpace(space: Space): void {
   unlockTimer = setTimeout(settle, 1500);
 
   if (!doc.startViewTransition) {
-    void goto(path, { replaceState: true })
+    void goto(path, { replace: true })
       .catch(() => {})
       .finally(settle);
     return;
@@ -53,12 +57,12 @@ export function goToSpace(space: Space): void {
 
   try {
     const transition = doc.startViewTransition(() =>
-      goto(path, { replaceState: true })
+      goto(path, { replace: true })
     );
     void transition.finished.finally(settle).catch(() => {});
   } catch {
     settle();
-    void goto(path, { replaceState: true }).catch(() => {});
+    void goto(path, { replace: true }).catch(() => {});
   }
 }
 
