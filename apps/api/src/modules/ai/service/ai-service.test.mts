@@ -28,6 +28,52 @@ function fakeClient(...responses: (string | Error)[]) {
   return { completeJson };
 }
 
+describe("AiService.extractRecipe", () => {
+  const completion = {
+    title: "Pancakes",
+    servings: 2,
+    macrosTotal: {
+      calories: 820,
+      proteinGrams: 24,
+      carbsGrams: 120,
+      fatGrams: 26,
+    },
+    ingredients: [{ name: "Flour", amount: 200, unit: "g" }],
+    instructions: ["Mix the batter.", "Fry the pancakes."],
+  };
+
+  it("requests a recipe draft with a larger output budget", async () => {
+    const client = fakeClient(JSON.stringify(completion));
+    const service = new AiService(client);
+
+    await expect(service.extractRecipe("Mix the batter.")).resolves.toEqual({
+      title: "Pancakes",
+      servings: 2,
+      macrosPerServing: {
+        calories: 410,
+        proteinGrams: 12,
+        carbsGrams: 60,
+        fatGrams: 13,
+      },
+      ingredients: completion.ingredients,
+      instructions: completion.instructions,
+    });
+    expect(client.completeJson).toHaveBeenCalledWith({
+      system: expect.stringMatching(/recipe/i),
+      user: "Mix the batter.",
+      maxTokens: 2048,
+    });
+  });
+
+  it("fails when no provider is configured", async () => {
+    const service = new AiService(null);
+
+    await expect(service.extractRecipe("Mix the batter.")).rejects.toBeInstanceOf(
+      AiNotConfiguredError
+    );
+  });
+});
+
 describe("AiService.estimateMeal", () => {
   it("parses a JSON meal estimate", async () => {
     const client = fakeClient(JSON.stringify(estimate));
