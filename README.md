@@ -111,7 +111,7 @@ Photo-based meal estimation, the AI recipe extractor, authentication, and offlin
 | Command | Description |
 | :--- | :--- |
 | `bun run test` | Runs all Vitest suites (API, Web, Shared) |
-| `bun run test:watch` | Runs all Vitest suites in interactive watch mode |
+| `bun run test:watch` | Runs all Vitest suites in watch mode |
 
 ### Database Management (PostgreSQL & Prisma)
 
