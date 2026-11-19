@@ -162,6 +162,20 @@ describe("RecipesManager", () => {
     expect(screen.queryByLabelText("Name")).toBeNull();
   });
 
+  it("focuses the import step and restores focus on cancel", async () => {
+    render(RecipesManager);
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Import from text" })
+    );
+    expect(screen.getByLabelText("Recipe text")).toHaveFocus();
+
+    await fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(
+      await screen.findByRole("button", { name: "Import from text" })
+    ).toHaveFocus();
+  });
+
   it("locks the recipe list while the import step is open", async () => {
     nutritionApi.listRecipes.mockResolvedValue([recipe]);
     render(RecipesManager);

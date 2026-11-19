@@ -25,6 +25,7 @@ let importOpen = $state(false);
 let importText = $state("");
 let importPending = $state(false);
 let importError = $state<string | null>(null);
+let importTextarea = $state<HTMLTextAreaElement | null>(null);
 let importRun = 0;
 let listScrollTop = 0;
 
@@ -71,18 +72,22 @@ function openEdit(recipe: Recipe) {
   formOpen = true;
 }
 
-function openImport() {
+async function openImport() {
   draft = null;
   importText = "";
   importError = null;
   importOpen = true;
+  await tick();
+  importTextarea?.focus();
 }
 
-function cancelImport() {
+async function cancelImport() {
   importRun += 1;
   importOpen = false;
   importText = "";
   importError = null;
+  await tick();
+  document.getElementById("import-recipe-button")?.focus();
 }
 
 async function extract() {
@@ -202,6 +207,7 @@ function format(value: number): string {
                 maxlength={8000}
                 disabled={importPending}
                 placeholder="Paste the recipe text"
+                bind:this={importTextarea}
                 bind:value={importText}
               ></textarea>
             </label>
@@ -222,7 +228,7 @@ function format(value: number): string {
               class="btn btn-ghost"
               type="button"
               disabled={importPending}
-              onclick={cancelImport}
+              onclick={() => void cancelImport()}
             >
               Cancel
             </button>
@@ -308,7 +314,7 @@ function format(value: number): string {
         type="button"
         class="list-row add-row"
         id="import-recipe-button"
-        onclick={openImport}
+        onclick={() => void openImport()}
       >
         <Sparkles size={18} aria-hidden="true" />
         <span>Import from text</span>
