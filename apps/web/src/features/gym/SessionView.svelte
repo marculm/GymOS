@@ -309,6 +309,13 @@
 
   async function logSet() {
     if (!current || pending) return;
+    const page = current;
+    const pageIndex = index;
+    const completes =
+      !isDone(page) && page.sets.length + 1 >= page.targetSets;
+    const nextOpenId = completes
+      ? pages.slice(pageIndex + 1).find((entry) => !isDone(entry))?.exerciseId
+      : undefined;
     pending = true;
     error = null;
 
@@ -329,6 +336,14 @@
       };
       editing = null;
       startTimer();
+      if (completes && index === pageIndex) {
+        const targetIndex = pages.findIndex(
+          (entry) => entry.exerciseId === (nextOpenId ?? page.exerciseId)
+        );
+        if (targetIndex !== -1 && targetIndex !== index) {
+          await goToPage(targetIndex);
+        }
+      }
     } catch (logError) {
       error = messageOf(logError);
     } finally {
