@@ -55,6 +55,8 @@ metrics, `responseTime`, `requestLogger`, then routes.
 - `GET /health/readiness` runs a cheap Prisma query (`prisma.user.count()`) and returns
   `503` problem details when the database is unavailable. Raw SQL is not used
   (ADR-0007).
+- Amended by ADR-0064: readiness resolves the configured owner with
+  `user.findUnique` and returns `503` when it is missing.
 - `GET /health` is an alias for liveness.
 
 ### Metrics
