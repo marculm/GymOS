@@ -22,8 +22,7 @@ as the previous count.
 - A missing owner returns `503` problem details, like an unavailable database.
 - The response detail is a fixed message; it does not expose the configured email or
   database details.
-- The check runs per request, so repairing the seed or changing `GYMOS_USER_EMAIL` is
-  visible without a restart.
+- The check runs per request, so repairing the owner row is visible without a restart.
 
 ## Consequences
 
