@@ -530,7 +530,9 @@ apps/web/
   Finish, and the exercise switcher fixed above. A horizontal swipe moves between the
   plan's exercises; the next action is the tappable equivalent. The switcher lists every
   exercise, allows out-of-order jumps, and offers Finish workout; for free workouts it
-  also adds exercises (ADR-0056).
+  also adds exercises (ADR-0056). Logging the set that completes the current exercise
+  advances to the next exercise with open sets, skipping completed ones; with no later
+  open exercise the page stays, so Finish remains reachable (ADR-0063).
 - Each exercise page shows the last performance (the plan targets derived from exercise
   defaults), Reps and Weight at display size, set progress, and a white Log set action.
   Values are prefilled from the last set or the targets. Steppers change reps by 1 and
