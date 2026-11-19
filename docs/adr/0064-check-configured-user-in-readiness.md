@@ -8,9 +8,9 @@ Accepted
 
 `GET /health/readiness` only verified that the database answered by running
 `prisma.user.count()` (ADR-0016). The API resolves the single owner from
-`GYMOS_USER_EMAIL` on every request (ADR-0009). When no row matches, every API call
-fails with `CurrentUserNotFoundError` and returns `500`, yet readiness still reported
-`up`, so an orchestrator kept a broken instance in rotation.
+`GYMOS_USER_EMAIL` on every request (ADR-0009). When no row matches, every API route
+that resolves the owner fails with `CurrentUserNotFoundError` and returns `500`, yet
+readiness still reported `up`, so an orchestrator kept a broken instance in rotation.
 
 Resolving the owner is a lookup by a unique column, so it costs the same class of query
 as the previous count.
