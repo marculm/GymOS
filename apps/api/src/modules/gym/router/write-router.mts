@@ -108,6 +108,11 @@ writeRouter.delete("/sessions/:id/sets/:setId", async (c) => {
   return c.body(null, statuscode.NO_CONTENT);
 });
 
+writeRouter.delete("/sessions/:id", async (c) => {
+  await writeService.deleteSession(c.get("user").id, c.req.param("id"));
+  return c.body(null, statuscode.NO_CONTENT);
+});
+
 writeRouter.post("/sessions/:id/complete", async (c) => {
   const session = await writeService.completeSession(
     c.get("user").id,

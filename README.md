@@ -245,6 +245,7 @@ full contract.
 | `GET` | `/api/gym/sessions/active` | Active session, or `404` when none exists |
 | `GET` | `/api/gym/sessions?page=&size=&planId=&from=&to=` | List completed sessions |
 | `GET` | `/api/gym/sessions/:id` | Get a session with its sets |
+| `DELETE` | `/api/gym/sessions/:id` | Delete a completed session and its logged sets; `204`, or `404` when missing or not completed |
 | `GET` | `/api/gym/progress` | Personal records per exercise and volume per completed session |
 | `POST` | `/api/gym/sessions/:id/sets` | Log a set (`{ exerciseId, reps, weightKg, idempotencyKey }`); `201` + `Location`; a repeated key returns the stored set |
 | `PUT` | `/api/gym/sessions/:id/sets/:setId` | Correct the reps and weight of a set in a completed session |

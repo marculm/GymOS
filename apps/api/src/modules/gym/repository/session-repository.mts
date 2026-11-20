@@ -121,6 +121,13 @@ export class SessionRepository {
     });
   }
 
+  async deleteCompleted(userId: string, sessionId: string): Promise<boolean> {
+    const { count } = await prisma.workoutSession.deleteMany({
+      where: { id: sessionId, userId, completedAt: { not: null } },
+    });
+    return count > 0;
+  }
+
   async logSet(
     userId: string,
     sessionId: string,

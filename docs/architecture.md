@@ -241,8 +241,8 @@ Services are classes with constructor injection:
   suggestion, active session, session list, session detail, and progress analytics
   (personal records and per-session volume).
 - `GymWriteService` handles commands: create, edit, and soft-delete exercises; create,
-  edit, and delete plans; set rotation; start session; log set; complete session. It may
-  receive the read service for read-side checks.
+  edit, and delete plans; set rotation; start session; log set; complete session; delete
+  a completed session. It may receive the read service for read-side checks.
 - `PushService` stores push subscriptions and the single pending rest timer per user, and
   sends the rest-over notification to each subscription. `RestTimerScheduler` polls due
   timers once per second from `index.mts`, deletes each after sending, and prunes
@@ -563,8 +563,10 @@ apps/web/
   the plan's exercises. Logged sets carry `exerciseName`, so deleted exercises stay
   readable in history (ADR-0019).
 - History lives in Settings: plan and date filters, pagination, session summaries, and an
-  inline detail with sets and duration (ADR-0032). Progress charts are removed from the
-  UI; the backend progress endpoint remains available for future use.
+  inline detail with sets and duration (ADR-0032). Each completed workout has a delete
+  action with a confirmation prompt; deleting removes the workout and its sets from
+  history and progress (ADR-0069). Progress charts are removed from the UI; the backend
+  progress endpoint remains available for future use.
 - After a start conflict (`409`), the screen re-reads the active session; if none exists,
   it retries the start once or shows a message (ADR-0019). After a `409` from finishing,
   logging a set, or deleting a set, it re-reads the active session; if none exists, the
@@ -680,6 +682,8 @@ Required regression coverage (ADR-0018):
   this endpoint (ADR-0056).
 - History filters by plan and start-date range, and session detail includes sets,
   start/finish times, and duration (ADR-0032).
+- Deleting a completed session removes it and its sets from history and progress, while
+  unknown, foreign, and active sessions are untouched (ADR-0069).
 
 Verification commands:
 

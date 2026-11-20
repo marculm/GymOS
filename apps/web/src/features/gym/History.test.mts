@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   fireEvent,
   render,
@@ -16,12 +16,18 @@ import type {
 } from "@gymos/shared";
 import History from "./History.svelte";
 import { gymData } from "./gym-data.svelte.ts";
-import { getSession, listSessions, updateSet } from "../../api/gym.mts";
+import {
+  deleteSession,
+  getSession,
+  listSessions,
+  updateSet,
+} from "../../api/gym.mts";
 
 vi.mock("../../api/gym.mts", () => ({
   listSessions: vi.fn(),
   getSession: vi.fn(),
   updateSet: vi.fn(),
+  deleteSession: vi.fn(),
 }));
 
 const exercise: Exercise = {
@@ -139,6 +145,11 @@ function renderHistory(plans: WorkoutPlan[] = [plan]) {
 beforeEach(() => {
   vi.resetAllMocks();
   vi.mocked(listSessions).mockResolvedValue(page([], 0, 0));
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
 });
 
 describe("History", () => {
@@ -411,6 +422,120 @@ describe("History", () => {
         screen.getByRole("button", { name: "Edit set 2 for Bench Press" })
       ).toHaveFocus();
     });
+  });
+
+  it("deletes a workout after confirmation", async () => {
+    vi.mocked(listSessions)
+      .mockResolvedValueOnce(page([pushSession, pullSession], 0, 2))
+      .mockResolvedValueOnce(page([pullSession], 0, 1));
+    vi.mocked(deleteSession).mockResolvedValue();
+    const confirm = vi.fn(() => true);
+    vi.stubGlobal("confirm", confirm);
+    const reload = vi.spyOn(gymData, "reload").mockResolvedValue();
+
+    renderHistory();
+
+    await fireEvent.click(
+      await screen.findByRole("button", { name: "Delete Push Day" })
+    );
+
+    await waitFor(() => {
+      expect(deleteSession).toHaveBeenCalledWith("session-1");
+    });
+    expect(confirm).toHaveBeenCalledWith(
+      "Delete Push Day? This cannot be undone."
+    );
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("heading", { name: "Push Day" })
+      ).not.toBeInTheDocument();
+    });
+    expect(await screen.findByText("Pull Day")).toBeInTheDocument();
+    expect(reload).toHaveBeenCalled();
+    expect(listSessions).toHaveBeenLastCalledWith({ page: 1, size: 10 });
+
+    reload.mockRestore();
+  });
+
+  it("refreshes the page after deletion so the next workout is not skipped", async () => {
+    const manySessions = Array.from({ length: 11 }, (_, index) => ({
+      ...pushSession,
+      id: `session-${index + 1}`,
+      title: `Workout ${index + 1}`,
+    }));
+    let deleted = false;
+    vi.mocked(deleteSession).mockImplementation(async () => {
+      deleted = true;
+    });
+    vi.mocked(listSessions).mockImplementation(
+      async ({ page: pageNumber = 1, size = 10 } = {}) => {
+        const remaining = deleted ? manySessions.slice(1) : manySessions;
+        const start = (pageNumber - 1) * size;
+        return page(
+          remaining.slice(start, start + size),
+          pageNumber - 1,
+          remaining.length
+        );
+      }
+    );
+    vi.stubGlobal("confirm", vi.fn(() => true));
+    const reload = vi.spyOn(gymData, "reload").mockResolvedValue();
+
+    renderHistory();
+
+    expect(
+      await screen.findByRole("heading", { name: "Workout 1" })
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "Workout 11" })
+    ).not.toBeInTheDocument();
+
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Delete Workout 1" })
+    );
+
+    expect(
+      await screen.findByRole("heading", { name: "Workout 11" })
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "Workout 1" })
+    ).not.toBeInTheDocument();
+    expect(listSessions).toHaveBeenLastCalledWith({ page: 1, size: 10 });
+
+    reload.mockRestore();
+  });
+
+  it("keeps the workout and shows an error when deletion fails", async () => {
+    vi.mocked(listSessions).mockResolvedValue(page([pushSession], 0, 1));
+    vi.mocked(deleteSession).mockRejectedValue(new Error("Delete failed"));
+    vi.stubGlobal("confirm", vi.fn(() => true));
+
+    renderHistory();
+
+    await fireEvent.click(
+      await screen.findByRole("button", { name: "Delete Push Day" })
+    );
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Delete failed");
+    expect(
+      screen.getByRole("heading", { name: "Push Day" })
+    ).toBeInTheDocument();
+  });
+
+  it("does not delete when the confirmation is cancelled", async () => {
+    vi.mocked(listSessions).mockResolvedValue(page([pushSession], 0, 1));
+    vi.stubGlobal("confirm", vi.fn(() => false));
+
+    renderHistory();
+
+    await fireEvent.click(
+      await screen.findByRole("button", { name: "Delete Push Day" })
+    );
+
+    expect(deleteSession).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole("heading", { name: "Push Day" })
+    ).toBeInTheDocument();
   });
 
   it("displays weights with up to two decimals", async () => {

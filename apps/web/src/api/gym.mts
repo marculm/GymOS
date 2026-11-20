@@ -134,6 +134,10 @@ export function getSession(id: string): Promise<WorkoutSessionDetail> {
   return api.get<WorkoutSessionDetail>(`/gym/sessions/${id}`);
 }
 
+export function deleteSession(id: string): Promise<void> {
+  return api.delete<void>(`/gym/sessions/${id}`);
+}
+
 export function addSet(
   sessionId: string,
   input: CreateWorkoutSetInput
