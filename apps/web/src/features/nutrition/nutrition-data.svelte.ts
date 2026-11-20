@@ -42,6 +42,27 @@ export function dayRange(date = new Date()): DayRange {
   return { from, to };
 }
 
+export type FolderTreeEntry = { folder: RecipeFolder; depth: number };
+
+export function folderTree(folders: RecipeFolder[]): FolderTreeEntry[] {
+  const byParent = new Map<string | null, RecipeFolder[]>();
+  for (const folder of folders) {
+    const siblings = byParent.get(folder.parentId) ?? [];
+    siblings.push(folder);
+    byParent.set(folder.parentId, siblings);
+  }
+
+  const entries: FolderTreeEntry[] = [];
+  const walk = (parentId: string | null, depth: number) => {
+    for (const folder of byParent.get(parentId) ?? []) {
+      entries.push({ folder, depth });
+      walk(folder.id, depth + 1);
+    }
+  };
+  walk(null, 0);
+  return entries;
+}
+
 function messageOf(value: unknown): string {
   return value instanceof Error ? value.message : "Something went wrong";
 }

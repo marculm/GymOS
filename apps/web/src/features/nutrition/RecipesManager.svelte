@@ -364,6 +364,8 @@ function format(value: number): string {
         <RecipeForm
           recipe={editing}
           draft={draft}
+          folders={nutritionData.folders}
+          defaultFolderId={currentFolderId}
           onSubmit={handleSubmit}
           onCancel={cancel}
         />

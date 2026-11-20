@@ -574,6 +574,31 @@ describe("RecipesManager", () => {
       expect(await screen.findByText("No recipes yet.")).toBeInTheDocument();
     });
 
+    it("creates a recipe in the open folder", async () => {
+      nutritionApi.listFolders.mockResolvedValue([breakfast]);
+      nutritionApi.createRecipe.mockResolvedValue({
+        ...recipe,
+        folderId: breakfast.id,
+      });
+      render(RecipesManager);
+
+      await fireEvent.click(
+        await screen.findByRole("button", { name: "Open Breakfast" })
+      );
+      await fireEvent.click(screen.getByRole("button", { name: "Add recipe" }));
+      await fillRecipeFields();
+      await fireEvent.click(
+        screen.getByRole("button", { name: "Save recipe" })
+      );
+
+      await waitFor(() =>
+        expect(nutritionApi.createRecipe).toHaveBeenCalledWith(
+          expect.objectContaining({ folderId: breakfast.id })
+        )
+      );
+      expect(await screen.findByText("Chicken rice bowl")).toBeInTheDocument();
+    });
+
     it("shows the empty state inside an empty folder", async () => {
       nutritionApi.listFolders.mockResolvedValue([breakfast]);
       render(RecipesManager);
