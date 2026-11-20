@@ -5,12 +5,14 @@ import type {
   NutritionLogEntry,
   NutritionSummary,
   Recipe,
+  RecipeFolder,
 } from "@gymos/shared";
 
 const nutritionApi = vi.hoisted(() => ({
   getSummary: vi.fn(),
   listLogs: vi.fn(),
   listRecipes: vi.fn(),
+  listFolders: vi.fn(),
   getTargets: vi.fn(),
   createLog: vi.fn(),
   updateLog: vi.fn(),
@@ -42,6 +44,20 @@ const recipe: Recipe = {
   },
   ingredients: [],
   instructions: [],
+};
+
+const breakfast: RecipeFolder = {
+  id: "folder-1",
+  name: "Breakfast",
+  parentId: null,
+  position: 0,
+};
+
+const oats: RecipeFolder = {
+  id: "folder-2",
+  name: "Oats",
+  parentId: breakfast.id,
+  position: 0,
 };
 
 const mealEstimate: MealEstimate = {
@@ -94,6 +110,7 @@ beforeEach(() => {
   nutritionData.summary = summary;
   nutritionData.entries = [];
   nutritionData.recipes = [recipe];
+  nutritionData.folders = [];
   nutritionApi.getSummary.mockResolvedValue(summary);
   nutritionApi.listLogs.mockResolvedValue([]);
   nutritionApi.createLog.mockResolvedValue(entry);
@@ -356,6 +373,32 @@ describe("NutritionLogFlow", () => {
       target: { value: "a new meal" },
     });
     expect(screen.getByRole("button", { name: "Estimate" })).toBeEnabled();
+  });
+
+  it("groups saved recipes by folder path", async () => {
+    nutritionData.folders = [breakfast, oats];
+    nutritionData.recipes = [
+      { ...recipe, id: "recipe-eggs", title: "Eggs", folderId: breakfast.id },
+      {
+        ...recipe,
+        id: "recipe-oats",
+        title: "Overnight oats",
+        folderId: oats.id,
+      },
+      { ...recipe, id: "recipe-toast", title: "Toast", folderId: null },
+    ];
+    render(NutritionLogFlow, { props: { open: true } });
+
+    await fireEvent.click(
+      await screen.findByRole("button", { name: /^Saved meal/ })
+    );
+
+    expect(screen.getByText("Breakfast")).toBeInTheDocument();
+    expect(screen.getByText("Breakfast / Oats")).toBeInTheDocument();
+    expect(screen.getByText("Unfiled")).toBeInTheDocument();
+    expect(screen.getByText("Eggs")).toBeInTheDocument();
+    expect(screen.getByText("Overnight oats")).toBeInTheDocument();
+    expect(screen.getByText("Toast")).toBeInTheDocument();
   });
 
   it("multiplies a saved recipe by the portion", async () => {

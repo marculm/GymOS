@@ -63,6 +63,54 @@ export function folderTree(folders: RecipeFolder[]): FolderTreeEntry[] {
   return entries;
 }
 
+export function folderPath(
+  folders: RecipeFolder[],
+  id: string
+): RecipeFolder[] {
+  const path: RecipeFolder[] = [];
+  let parentId: string | null = id;
+  while (parentId) {
+    const folder = folders.find((item) => item.id === parentId);
+    if (!folder) break;
+    path.unshift(folder);
+    parentId = folder.parentId;
+  }
+  return path;
+}
+
+export type RecipeGroup = {
+  key: string;
+  label: string;
+  recipes: Recipe[];
+};
+
+export function groupRecipes(
+  recipes: Recipe[],
+  folders: RecipeFolder[]
+): RecipeGroup[] {
+  const folderIds = new Set(folders.map((folder) => folder.id));
+  const groups: RecipeGroup[] = [];
+  const unfiled = recipes.filter(
+    (recipe) => !recipe.folderId || !folderIds.has(recipe.folderId)
+  );
+  if (unfiled.length > 0) {
+    groups.push({ key: "unfiled", label: "Unfiled", recipes: unfiled });
+  }
+
+  for (const { folder } of folderTree(folders)) {
+    const items = recipes.filter((recipe) => recipe.folderId === folder.id);
+    if (items.length === 0) continue;
+    groups.push({
+      key: folder.id,
+      label: folderPath(folders, folder.id)
+        .map((item) => item.name)
+        .join(" / "),
+      recipes: items,
+    });
+  }
+  return groups;
+}
+
 function messageOf(value: unknown): string {
   return value instanceof Error ? value.message : "Something went wrong";
 }

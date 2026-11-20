@@ -3,7 +3,7 @@ import { tick } from "svelte";
 import { ChevronLeft, ChevronRight, Pencil, X } from "lucide-svelte";
 import type { NutritionLogEntry, Recipe } from "@gymos/shared";
 import { goto } from "$app/navigation";
-import { nutritionData } from "./nutrition-data.svelte.ts";
+import { groupRecipes, nutritionData } from "./nutrition-data.svelte.ts";
 import { compressMealPhoto } from "./meal-photo.mts";
 
 type View = "choice" | "describe" | "saved" | "focus" | "today";
@@ -219,6 +219,10 @@ function changePortion(delta: number) {
 
 const portionLabel = $derived(
   portion === 1 ? "1 serving" : `${format(portion)} servings`
+);
+
+const recipeGroups = $derived(
+  groupRecipes(nutritionData.recipes, nutritionData.folders)
 );
 
 function format(value: number): string {
@@ -467,19 +471,24 @@ function handleClose() {
             <p class="muted">Recipes you save will appear here for one-tap logging.</p>
           </div>
         {:else}
-          <div class="group">
-            {#each nutritionData.recipes as recipe (recipe.id)}
-              <button type="button" class="list-row" onclick={() => startRecipe(recipe)}>
-                <span class="list-main">
-                  <span class="list-title">{recipe.title}</span>
-                  <span class="list-subtitle">
-                    {format(recipe.macrosPerServing.calories)} kcal per serving
-                  </span>
-                </span>
-                <ChevronRight size={17} class="settings-chevron" aria-hidden="true" />
-              </button>
-            {/each}
-          </div>
+          {#each recipeGroups as group (group.key)}
+            <div class="recipe-section">
+              <p class="section-header">{group.label}</p>
+              <div class="group">
+                {#each group.recipes as recipe (recipe.id)}
+                  <button type="button" class="list-row" onclick={() => startRecipe(recipe)}>
+                    <span class="list-main">
+                      <span class="list-title">{recipe.title}</span>
+                      <span class="list-subtitle">
+                        {format(recipe.macrosPerServing.calories)} kcal per serving
+                      </span>
+                    </span>
+                    <ChevronRight size={17} class="settings-chevron" aria-hidden="true" />
+                  </button>
+                {/each}
+              </div>
+            </div>
+          {/each}
         {/if}
       </div>
       <div class="nutrition-full-actions">
