@@ -42,6 +42,7 @@ let folderDraft = $state<{ id: string | null; parentId: string | null } | null>(
   null
 );
 let folderName = $state("");
+let folderInput = $state<HTMLInputElement | null>(null);
 let folderError = $state<string | null>(null);
 let folderPending = $state(false);
 
@@ -212,16 +213,20 @@ function goToFolder(id: string | null) {
   folderError = null;
 }
 
-function openCreateFolder() {
+async function openCreateFolder() {
   folderDraft = { id: null, parentId: currentFolderId };
   folderName = "";
   folderError = null;
+  await tick();
+  folderInput?.focus();
 }
 
-function openRenameFolder(folder: RecipeFolder) {
+async function openRenameFolder(folder: RecipeFolder) {
   folderDraft = { id: folder.id, parentId: folder.parentId };
   folderName = folder.name;
   folderError = null;
+  await tick();
+  folderInput?.focus();
 }
 
 async function closeFolderForm(focusId: string) {
@@ -428,7 +433,7 @@ function format(value: number): string {
                 class="icon-btn muted"
                 id={`rename-folder-${folder.id}`}
                 aria-label={`Rename ${folder.name}`}
-                onclick={() => openRenameFolder(folder)}
+                onclick={() => void openRenameFolder(folder)}
               >
                 <Pencil size={18} aria-hidden="true" />
               </button>
@@ -458,6 +463,7 @@ function format(value: number): string {
                   class="input"
                   required
                   maxlength={100}
+                  bind:this={folderInput}
                   bind:value={folderName}
                 />
               </label>
@@ -488,7 +494,7 @@ function format(value: number): string {
           type="button"
           class="list-row add-row"
           id="new-folder-button"
-          onclick={openCreateFolder}
+          onclick={() => void openCreateFolder()}
         >
           <FolderPlus size={18} aria-hidden="true" />
           <span>New folder</span>

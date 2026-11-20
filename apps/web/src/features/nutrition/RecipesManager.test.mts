@@ -623,6 +623,14 @@ describe("RecipesManager", () => {
       );
     });
 
+    it("focuses the folder name field when the form opens", async () => {
+      render(RecipesManager);
+
+      await fireEvent.click(screen.getByRole("button", { name: "New folder" }));
+
+      expect(screen.getByLabelText("Folder name")).toHaveFocus();
+    });
+
     it("restores focus after canceling the folder form", async () => {
       render(RecipesManager);
 
