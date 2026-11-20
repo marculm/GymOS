@@ -214,6 +214,7 @@ describe("Gym rotation routes", () => {
       expect(res.headers.get("content-type")).toContain(
         "application/problem+json"
       );
+      expect(await getRotation()).toEqual({ plans: [], nextPlanId: null });
     } finally {
       spy.mockRestore();
     }
