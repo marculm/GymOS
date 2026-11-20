@@ -218,7 +218,7 @@ describe("service worker", () => {
         json: () => ({
           title: "Rest is over",
           body: "Time for your next set.",
-          url: "/gym",
+          url: "/nutrition",
         }),
       },
       waitUntil,
@@ -228,7 +228,7 @@ describe("service worker", () => {
       "Rest is over",
       expect.objectContaining({
         body: "Time for your next set.",
-        data: { url: "/gym" },
+        data: { url: "/nutrition" },
       })
     );
     expect(waitUntil).toHaveBeenCalledOnce();
