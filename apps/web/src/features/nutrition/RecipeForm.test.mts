@@ -194,6 +194,20 @@ describe("RecipeForm", () => {
     );
   });
 
+  it("keeps an unfiled recipe at the top level inside a folder", () => {
+    render(RecipeForm, {
+      props: {
+        recipe: { ...savedRecipe, folderId: null },
+        folders: [breakfast, oats],
+        defaultFolderId: breakfast.id,
+        onSubmit: vi.fn(),
+        onCancel: vi.fn(),
+      },
+    });
+
+    expect(screen.getByLabelText("Folder")).toHaveValue("");
+  });
+
   it("rejects an incomplete ingredient row", async () => {
     const onSubmit = vi.fn().mockResolvedValue(undefined);
     render(RecipeForm, { props: { onSubmit, onCancel: vi.fn() } });

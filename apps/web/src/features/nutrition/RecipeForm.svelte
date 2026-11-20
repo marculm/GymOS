@@ -51,7 +51,9 @@ let ingredients = $state<IngredientRow[]>(
 // svelte-ignore state_referenced_locally
 let instructions = $state(initial?.instructions.join("\n") ?? "");
 // svelte-ignore state_referenced_locally
-let folderId = $state(initial?.folderId ?? defaultFolderId ?? "");
+let folderId = $state(
+  initial ? (initial.folderId ?? "") : (defaultFolderId ?? "")
+);
 
 let pending = $state(false);
 let error = $state<string | null>(null);
