@@ -7,8 +7,8 @@ export function fitPhoto(
 ): { width: number; height: number } {
   const scale = Math.min(1, MAX_EDGE / Math.max(width, height));
   return {
-    width: Math.round(width * scale),
-    height: Math.round(height * scale),
+    width: Math.max(1, Math.round(width * scale)),
+    height: Math.max(1, Math.round(height * scale)),
   };
 }
 

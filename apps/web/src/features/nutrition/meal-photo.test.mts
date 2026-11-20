@@ -14,6 +14,10 @@ describe("fitPhoto", () => {
   it("keeps smaller photos unchanged", () => {
     expect(fitPhoto(800, 600)).toEqual({ width: 800, height: 600 });
   });
+
+  it("keeps a dimension of at least one pixel", () => {
+    expect(fitPhoto(1, 100000)).toEqual({ width: 1, height: 1536 });
+  });
 });
 
 describe("compressMealPhoto", () => {
