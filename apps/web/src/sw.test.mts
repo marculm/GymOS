@@ -142,6 +142,23 @@ describe("service worker", () => {
     expect(put).not.toHaveBeenCalled();
   });
 
+  it("caches the shell on install", async () => {
+    const put = vi.fn().mockResolvedValue(undefined);
+    const match = vi.fn();
+    Object.defineProperty(globalThis, "caches", {
+      configurable: true,
+      value: { open: vi.fn().mockResolvedValue({ put, match }) },
+    });
+    const response = new Response("shell", { status: 200 });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response));
+    const waitUntil = vi.fn();
+
+    installListener({ waitUntil });
+
+    await expect(waitUntil.mock.calls[0]?.[0]).resolves.toBe(response);
+    expect(put).toHaveBeenCalledWith("/index.html", expect.any(Response));
+  });
+
   it("times out the install prefetch", async () => {
     vi.useFakeTimers();
     const put = vi.fn();
