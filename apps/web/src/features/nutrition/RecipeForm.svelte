@@ -202,9 +202,9 @@ async function handleSubmit(event: SubmitEvent) {
         onchange={(event) => (folderId = event.currentTarget.value)}
       >
         <option value="">Top level</option>
-        {#each folderTree(folders) as entry (entry.folder.id)}
-          <option value={entry.folder.id}>
-            {"  ".repeat(entry.depth)}{entry.folder.name}
+        {#each folderTree(folders) as folder (folder.id)}
+          <option value={folder.id}>
+            {folderLabel(folders, folder.id)}
           </option>
         {/each}
       </select>

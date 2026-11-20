@@ -166,7 +166,7 @@ describe("RecipeForm", () => {
 
     expect(screen.getByLabelText("Folder")).toHaveValue(breakfast.id);
     expect(
-      screen.getByRole("option", { name: "Oats" })
+      screen.getByRole("option", { name: "Breakfast / Oats" })
     ).toBeInTheDocument();
   });
 

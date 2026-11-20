@@ -1,8 +1,6 @@
 import type { Recipe, RecipeFolder } from "@gymos/shared";
 
-export type FolderTreeEntry = { folder: RecipeFolder; depth: number };
-
-export function folderTree(folders: RecipeFolder[]): FolderTreeEntry[] {
+export function folderTree(folders: RecipeFolder[]): RecipeFolder[] {
   const byParent = new Map<string | null, RecipeFolder[]>();
   for (const folder of folders) {
     const siblings = byParent.get(folder.parentId) ?? [];
@@ -10,15 +8,15 @@ export function folderTree(folders: RecipeFolder[]): FolderTreeEntry[] {
     byParent.set(folder.parentId, siblings);
   }
 
-  const entries: FolderTreeEntry[] = [];
-  const walk = (parentId: string | null, depth: number) => {
+  const ordered: RecipeFolder[] = [];
+  const walk = (parentId: string | null) => {
     for (const folder of byParent.get(parentId) ?? []) {
-      entries.push({ folder, depth });
-      walk(folder.id, depth + 1);
+      ordered.push(folder);
+      walk(folder.id);
     }
   };
-  walk(null, 0);
-  return entries;
+  walk(null);
+  return ordered;
 }
 
 export function folderPath(
@@ -61,7 +59,7 @@ export function groupRecipes(
     groups.push({ key: "unfiled", label: "Unfiled", recipes: unfiled });
   }
 
-  for (const { folder } of folderTree(folders)) {
+  for (const folder of folderTree(folders)) {
     const items = recipes.filter((recipe) => recipe.folderId === folder.id);
     if (items.length === 0) continue;
     groups.push({
