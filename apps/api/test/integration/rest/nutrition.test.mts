@@ -491,6 +491,24 @@ describe("nutrition API", () => {
       expect(badUpdate.status).toBe(404);
     });
 
+    it("rejects a reorder that repeats a folder", async () => {
+      const first = await (
+        await sendJson("POST", "/api/nutrition/recipe-folders", {
+          name: "First",
+        })
+      ).json();
+      await sendJson("POST", "/api/nutrition/recipe-folders", {
+        name: "Second",
+      });
+
+      const response = await sendJson(
+        "PUT",
+        "/api/nutrition/recipe-folders/order",
+        { parentId: null, ids: [first.id, first.id] }
+      );
+      expect(response.status).toBe(404);
+    });
+
     it("keeps another user's folders inaccessible", async () => {
       const other = await createUser(
         `folders-${crypto.randomUUID()}@gymos.app`

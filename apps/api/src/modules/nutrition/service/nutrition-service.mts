@@ -124,6 +124,7 @@ export class NutritionService {
     );
     if (
       siblings.size !== input.ids.length ||
+      new Set(input.ids).size !== input.ids.length ||
       input.ids.some((id) => !siblings.has(id))
     ) {
       throw new NutritionNotFoundError("Folder not found");
