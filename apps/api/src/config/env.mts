@@ -40,6 +40,10 @@ const EnvSchema = z.object({
     emptyToUndefined,
     z.string().min(1).default("deepseek-flash")
   ),
+  DEEPSEEK_VISION_MODEL: z.preprocess(
+    emptyToUndefined,
+    z.string().min(1).default("deepseek-flash")
+  ),
   DEEPSEEK_THINKING: BooleanString,
 });
 
@@ -63,7 +67,8 @@ export function vapidConfig(): VapidConfig | null {
 export type DeepSeekConfig = {
   apiKey: string;
   baseUrl: string;
-  model: string;
+  textModel: string;
+  visionModel: string;
   thinking: boolean;
 };
 
@@ -72,7 +77,8 @@ export function deepSeekConfig(): DeepSeekConfig | null {
   return {
     apiKey: env.DEEPSEEK_API_KEY,
     baseUrl: env.DEEPSEEK_BASE_URL,
-    model: env.DEEPSEEK_TEXT_MODEL,
+    textModel: env.DEEPSEEK_TEXT_MODEL,
+    visionModel: env.DEEPSEEK_VISION_MODEL,
     thinking: env.DEEPSEEK_THINKING,
   };
 }

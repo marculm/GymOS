@@ -11,6 +11,7 @@ const originalDeepSeek = {
   apiKey: process.env.DEEPSEEK_API_KEY,
   baseUrl: process.env.DEEPSEEK_BASE_URL,
   model: process.env.DEEPSEEK_TEXT_MODEL,
+  visionModel: process.env.DEEPSEEK_VISION_MODEL,
   thinking: process.env.DEEPSEEK_THINKING,
 };
 
@@ -28,6 +29,7 @@ afterEach(() => {
   restore("DEEPSEEK_API_KEY", originalDeepSeek.apiKey);
   restore("DEEPSEEK_BASE_URL", originalDeepSeek.baseUrl);
   restore("DEEPSEEK_TEXT_MODEL", originalDeepSeek.model);
+  restore("DEEPSEEK_VISION_MODEL", originalDeepSeek.visionModel);
   restore("DEEPSEEK_THINKING", originalDeepSeek.thinking);
   vi.resetModules();
 });
@@ -91,18 +93,21 @@ describe("env", () => {
     expect(defaults.deepSeekConfig()).toEqual({
       apiKey: "test-key",
       baseUrl: "https://api.deepseek.com",
-      model: "deepseek-flash",
+      textModel: "deepseek-flash",
+      visionModel: "deepseek-flash",
       thinking: true,
     });
 
     process.env.DEEPSEEK_BASE_URL = "https://ai.test";
     process.env.DEEPSEEK_TEXT_MODEL = "custom-text";
+    process.env.DEEPSEEK_VISION_MODEL = "custom-vision";
     vi.resetModules();
     const overrides = await import("./env.mts");
     expect(overrides.deepSeekConfig()).toEqual({
       apiKey: "test-key",
       baseUrl: "https://ai.test",
-      model: "custom-text",
+      textModel: "custom-text",
+      visionModel: "custom-vision",
       thinking: true,
     });
   });
@@ -111,6 +116,7 @@ describe("env", () => {
     process.env.DEEPSEEK_API_KEY = "test-key";
     process.env.DEEPSEEK_BASE_URL = "";
     process.env.DEEPSEEK_TEXT_MODEL = "";
+    process.env.DEEPSEEK_VISION_MODEL = "";
     process.env.DEEPSEEK_THINKING = "";
     vi.resetModules();
 
@@ -119,7 +125,8 @@ describe("env", () => {
     expect(deepSeekConfig()).toEqual({
       apiKey: "test-key",
       baseUrl: "https://api.deepseek.com",
-      model: "deepseek-flash",
+      textModel: "deepseek-flash",
+      visionModel: "deepseek-flash",
       thinking: true,
     });
   });

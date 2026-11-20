@@ -31,6 +31,7 @@ export class DeepSeekClient implements JsonCompletionClient {
   private async send({
     system,
     user,
+    image,
     maxTokens,
   }: JsonCompletionRequest): Promise<string> {
     const baseUrl = this.config.baseUrl.replace(/\/$/, "");
@@ -38,6 +39,12 @@ export class DeepSeekClient implements JsonCompletionClient {
     const outputTokens = thinking
       ? MAX_THINKING_OUTPUT_TOKENS
       : MAX_OUTPUT_TOKENS;
+    const userContent = image
+      ? [
+          ...(user ? [{ type: "text", text: user }] : []),
+          { type: "image_url", image_url: { url: image } },
+        ]
+      : user;
     const response = await this.fetchImpl(`${baseUrl}/chat/completions`, {
       method: "POST",
       headers: {
@@ -45,10 +52,10 @@ export class DeepSeekClient implements JsonCompletionClient {
         Authorization: `Bearer ${this.config.apiKey}`,
       },
       body: JSON.stringify({
-        model: this.config.model,
+        model: image ? this.config.visionModel : this.config.textModel,
         messages: [
           { role: "system", content: system },
-          { role: "user", content: user },
+          { role: "user", content: userContent },
         ],
         response_format: { type: "json_object" },
         thinking: { type: thinking ? "enabled" : "disabled" },

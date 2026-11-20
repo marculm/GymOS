@@ -5,7 +5,8 @@ import { DeepSeekClient } from "./deepseek-client.mts";
 const config = {
   apiKey: "test-key",
   baseUrl: "https://deepseek.test",
-  model: "deepseek-flash",
+  textModel: "deepseek-flash",
+  visionModel: "deepseek-flash",
   thinking: true,
 };
 
@@ -64,8 +65,56 @@ describe("DeepSeekClient.completeJson", () => {
     expect(init.signal).toBeInstanceOf(AbortSignal);
   });
 
-  it("uses the small cap when thinking is disabled", async () => {
+  it("sends an image with the vision model", async () => {
     const fetchMock = vi.fn().mockResolvedValue(completion('{"ok":true}'));
+    const client = new DeepSeekClient(
+      { ...config, visionModel: "vision-model" },
+      fetchMock as unknown as typeof fetch
+    );
+
+    await client.completeJson({
+      system: "system prompt",
+      user: "what is this",
+      image: "data:image/jpeg;base64,AAAA",
+    });
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(JSON.parse(String(init.body))).toMatchObject({
+      model: "vision-model",
+      messages: [
+        { role: "system", content: "system prompt" },
+        {
+          role: "user",
+          content: [
+            { type: "text", text: "what is this" },
+            {
+              type: "image_url",
+              image_url: { url: "data:image/jpeg;base64,AAAA" },
+            },
+          ],
+        },
+      ],
+    });
+  });
+
+  it("sends only the image when there is no text", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(completion('{"ok":true}'));
+    const client = createClient(fetchMock);
+
+    await client.completeJson({
+      system: "s",
+      user: "",
+      image: "data:image/jpeg;base64,AAAA",
+    });
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const body = JSON.parse(String(init.body));
+    expect(body.messages[1].content).toEqual([
+      { type: "image_url", image_url: { url: "data:image/jpeg;base64,AAAA" } },
+    ]);
+  });
+
+  it("uses the small cap when thinking is disabled", async () => {    const fetchMock = vi.fn().mockResolvedValue(completion('{"ok":true}'));
     const client = new DeepSeekClient(
       { ...config, thinking: false },
       fetchMock as unknown as typeof fetch

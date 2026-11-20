@@ -18,6 +18,7 @@ const RECIPE_MAX_OUTPUT_TOKENS = 2048;
 export type JsonCompletionRequest = {
   system: string;
   user: string;
+  image?: string;
   maxTokens?: number;
 };
 
