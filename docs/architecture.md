@@ -578,7 +578,9 @@ apps/web/
   food sheet logs a saved recipe portion, estimates a described or photographed meal
   with AI into the editable logger, or opens manual entry; nothing is logged before the
   user confirms (ADR-0057, ADR-0060). The recipe manager imports pasted recipe text with AI into the
-  editable recipe form; nothing is saved before the user confirms (ADR-0062).
+  editable recipe form; nothing is saved before the user confirms (ADR-0062). Recipes and
+  their manually ordered folders form an owner-scoped tree; deleting a folder moves its
+  recipes to the top level (ADR-0071).
 - The PWA theme color and background are black; the light spaces are scoped by the
   `.light-space` token block. The theme test checks WCAG AA in both scopes.
 
