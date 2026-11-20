@@ -12,7 +12,7 @@ export type RestOverPayload = {
 export const REST_OVER_PAYLOAD: RestOverPayload = {
   title: "Rest is over",
   body: "Time for your next set.",
-  url: "/",
+  url: "/gym",
 };
 
 export type PushNotifier = {
