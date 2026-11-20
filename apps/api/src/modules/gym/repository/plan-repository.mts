@@ -108,6 +108,7 @@ export class PlanRepository {
         return toPlan(plan);
       });
     } catch (error) {
+      if (isPrismaError(error, "P2025")) return null;
       rethrowDuplicateName(error);
     }
   }
