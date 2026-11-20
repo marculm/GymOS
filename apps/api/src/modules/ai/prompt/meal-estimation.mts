@@ -12,6 +12,13 @@ Use typical portion sizes when the description is vague.
 Write the meal name in the same language as the description.
 Example json: {"name":"Chicken rice bowl","macros":{"calories":610,"proteinGrams":45,"carbsGrams":62,"fatGrams":20}}`;
 
+export const MEAL_PHOTO_SYSTEM_PROMPT = `Estimate the nutrition of the meal in the photo.
+When a description is included, use it as additional context and prefer its stated portions.
+Return only a JSON object with a short meal name (at most 120 characters) and the estimated calories, protein, carbs, and fat in grams.
+Use typical portion sizes when the portion is unclear.
+Write the meal name in the same language as the description, or in English when there is no description.
+Example json: {"name":"Chicken rice bowl","macros":{"calories":610,"proteinGrams":45,"carbsGrams":62,"fatGrams":20}}`;
+
 export function parseMealEstimate(content: string): MealEstimate | null {
   const text = content.trim();
   if (!text) return null;

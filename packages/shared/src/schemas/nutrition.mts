@@ -41,9 +41,19 @@ export const NutritionSummarySchema = z.object({
   remaining: MacroDeltaSchema.nullable(),
 });
 
-export const MealEstimateInputSchema = z.object({
-  description: z.string().trim().min(1).max(2000),
-});
+const MealPhotoSchema = z
+  .string()
+  .max(2_800_000)
+  .regex(/^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+/]+={0,2}$/);
+
+export const MealEstimateInputSchema = z
+  .object({
+    description: z.string().trim().min(1).max(2000).optional(),
+    image: MealPhotoSchema.optional(),
+  })
+  .refine((input) => input.description !== undefined || input.image !== undefined, {
+    message: "Provide a description or an image",
+  });
 
 export const MealEstimateSchema = z.object({
   name: z.string().trim().min(1).max(120).optional(),

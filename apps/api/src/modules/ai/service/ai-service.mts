@@ -1,6 +1,11 @@
-import type { MealEstimate, RecipeInput } from "@gymos/shared";
+import type {
+  MealEstimate,
+  MealEstimateInput,
+  RecipeInput,
+} from "@gymos/shared";
 import {
   MEAL_ESTIMATION_SYSTEM_PROMPT,
+  MEAL_PHOTO_SYSTEM_PROMPT,
   parseMealEstimate,
 } from "../prompt/meal-estimation.mts";
 import {
@@ -29,12 +34,18 @@ export type JsonCompletionClient = {
 export class AiService {
   constructor(private readonly client: JsonCompletionClient | null) {}
 
-  async estimateMeal(description: string): Promise<MealEstimate> {
+  async estimateMeal(input: MealEstimateInput): Promise<MealEstimate> {
     if (!this.client) throw new AiNotConfiguredError();
 
     return this.request(
       this.client,
-      { system: MEAL_ESTIMATION_SYSTEM_PROMPT, user: description },
+      {
+        system: input.image
+          ? MEAL_PHOTO_SYSTEM_PROMPT
+          : MEAL_ESTIMATION_SYSTEM_PROMPT,
+        user: input.description ?? "",
+        ...(input.image ? { image: input.image } : {}),
+      },
       parseMealEstimate
     );
   }

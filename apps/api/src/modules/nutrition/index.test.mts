@@ -78,6 +78,22 @@ describe("POST /estimate", () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual(estimate);
-    expect(estimateMeal).toHaveBeenCalledWith("300g skyr with berries");
+    expect(estimateMeal).toHaveBeenCalledWith({
+      description: "300g skyr with berries",
+    });
+  });
+
+  it("estimates a photographed meal", async () => {
+    estimateMeal.mockResolvedValue(estimate);
+
+    const response = await postEstimate({
+      image: "data:image/jpeg;base64,AAAA",
+    });
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual(estimate);
+    expect(estimateMeal).toHaveBeenCalledWith({
+      image: "data:image/jpeg;base64,AAAA",
+    });
   });
 });
