@@ -341,7 +341,7 @@ function handleClose() {
           </span>
           <span class="list-main">
             <span class="list-title">Describe</span>
-            <span class="list-subtitle">Let AI estimate the meal from a description.</span>
+            <span class="list-subtitle">Let AI estimate the meal from a description or photo.</span>
           </span>
           <ChevronRight size={17} class="settings-chevron" aria-hidden="true" />
         </button>
