@@ -614,6 +614,9 @@ returns `null` for a `404`. `src/api/nutrition.mts` exposes the nutrition endpoi
 - The service worker caches the app shell. The shell fetch times out after 3 seconds and
   serves the cached copy when the network hangs (ADR-0065). There is no offline data
   store, background sync, or offline mutation queue (ADR-0012).
+- The registration is rooted at `/sw.js` with scope `/` from any first route. The PWA
+  plugin's `base` and `scope` override SvelteKit's relative Vite base, and the build
+  check asserts it (ADR-0070).
 
 ### 4.6 Testing and Type Checking
 

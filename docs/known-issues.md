@@ -16,6 +16,7 @@ These are known, non-blocking issues. They do not affect the core flow: create a
 - The seed provisions the configured `GYMOS_USER_EMAIL`, so a custom owner has a usable first run (ADR-0023).
 - POST and PUT requests require `Content-Type: application/json`; a cross-site `text/plain` write returns `415` without writing (ADR-0015).
 - The web app runs on SvelteKit 3 as a static SPA (ADR-0054).
+- The service worker registers at `/sw.js` with scope `/` from a deep-link first visit (ADR-0070).
 - All workspaces run on Vitest, and `bun run test:watch` watches the API, web, and shared suites (ADR-0018, ADR-0061).
 - Configuration uses a single root `.env`.
 
@@ -36,7 +37,6 @@ These are known, non-blocking issues. They do not affect the core flow: create a
 - **`bun run test:watch` has no Vitest keyboard shortcuts.** Bun's filter runner pipes stdin, so press Ctrl-C to stop all watchers (ADR-0061).
 - **The PWA build logs a `transform_index_html_unsupported` warning.** SvelteKit 3 no longer runs `transformIndexHtml`; the app links the manifest and registers the service worker itself, so the warning is accepted (ADR-0054).
 - **The root `glob` and `minimatch` overrides are temporary.** They patch `workbox-build`; remove them when it catches up (ADR-0054).
-- **A first visit to a deep link does not register the service worker.** The generated registration resolves `./sw.js` against the current URL, so the PWA is not installable until the app is opened at a top-level route and reloaded (#164).
 
 ## Security and operations
 

@@ -30,13 +30,18 @@ if (!sw.includes("_app/immutable")) {
   failures.push("sw.js has no precache entries");
 }
 
-const registers = readdirSync(immutable, { recursive: true })
+const chunks = readdirSync(immutable, { recursive: true })
   .filter((file): file is string => typeof file === "string" && file.endsWith(".js"))
-  .some((file) =>
-    readFileSync(join(immutable, file), "utf8").includes("serviceWorker.register"),
-  );
-if (!registers) {
+  .map((file) => readFileSync(join(immutable, file), "utf8"));
+
+if (!chunks.some((chunk) => chunk.includes("serviceWorker.register"))) {
   failures.push("no service worker registration in the client bundle");
+}
+
+const rootRegistration =
+  /new\s+[\w$]+\(\s*["'`]\/sw\.js["'`]\s*,\s*\{\s*scope\s*:\s*["'`]\/["'`]/;
+if (!chunks.some((chunk) => rootRegistration.test(chunk))) {
+  failures.push("client bundle does not register /sw.js with scope /");
 }
 
 if (failures.length > 0) {
