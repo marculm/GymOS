@@ -381,7 +381,7 @@ function format(value: number): string {
       {#if breadcrumb.length > 0}
         <div class="folder-breadcrumb">
           <button type="button" onclick={() => goToFolder(null)}>
-            All recipes
+            Top level
           </button>
           {#each breadcrumb as folder (folder.id)}
             <span class="folder-separator" aria-hidden="true">/</span>

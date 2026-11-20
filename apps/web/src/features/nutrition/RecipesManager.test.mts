@@ -504,7 +504,7 @@ describe("RecipesManager", () => {
       expect(screen.getByText("Oats")).toBeInTheDocument();
       expect(screen.queryByText("Chicken rice bowl")).toBeNull();
 
-      await fireEvent.click(screen.getByRole("button", { name: "All recipes" }));
+      await fireEvent.click(screen.getByRole("button", { name: "Top level" }));
 
       expect(await screen.findByText("Chicken rice bowl")).toBeInTheDocument();
       expect(screen.queryByText("Overnight oats")).toBeNull();
