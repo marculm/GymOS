@@ -1,6 +1,36 @@
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/svelte";
+import type { Recipe, RecipeFolder } from "@gymos/shared";
 import RecipeForm from "./RecipeForm.svelte";
+
+const breakfast: RecipeFolder = {
+  id: "folder-1",
+  name: "Breakfast",
+  parentId: null,
+  position: 0,
+};
+
+const oats: RecipeFolder = {
+  id: "folder-2",
+  name: "Oats",
+  parentId: breakfast.id,
+  position: 0,
+};
+
+const savedRecipe: Recipe = {
+  id: "recipe-1",
+  title: "Overnight oats",
+  servings: 1,
+  macrosPerServing: {
+    calories: 410,
+    proteinGrams: 12,
+    carbsGrams: 60,
+    fatGrams: 13,
+  },
+  ingredients: [],
+  instructions: [],
+  folderId: breakfast.id,
+};
 
 async function fillRequiredFields() {
   await fireEvent.input(screen.getByLabelText("Name"), {
@@ -103,6 +133,79 @@ describe("RecipeForm", () => {
     const inputs = screen.getAllByLabelText("Ingredient");
     expect(inputs).toHaveLength(2);
     expect(inputs[1]).toHaveFocus();
+  });
+
+  it("assigns a new recipe to the selected folder", async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    render(RecipeForm, {
+      props: { folders: [breakfast, oats], onSubmit, onCancel: vi.fn() },
+    });
+
+    await fillRequiredFields();
+    await fireEvent.change(screen.getByLabelText("Folder"), {
+      target: { value: breakfast.id },
+    });
+    await fireEvent.click(screen.getByRole("button", { name: "Save recipe" }));
+
+    await waitFor(() =>
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({ folderId: breakfast.id })
+      )
+    );
+  });
+
+  it("prefills the folder being browsed and nests options", () => {
+    render(RecipeForm, {
+      props: {
+        folders: [breakfast, oats],
+        defaultFolderId: breakfast.id,
+        onSubmit: vi.fn(),
+        onCancel: vi.fn(),
+      },
+    });
+
+    expect(screen.getByLabelText("Folder")).toHaveValue(breakfast.id);
+    expect(
+      screen.getByRole("option", { name: "Breakfast / Oats" })
+    ).toBeInTheDocument();
+  });
+
+  it("moves an edited recipe back to the top level", async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    render(RecipeForm, {
+      props: {
+        recipe: savedRecipe,
+        folders: [breakfast, oats],
+        onSubmit,
+        onCancel: vi.fn(),
+      },
+    });
+
+    expect(screen.getByLabelText("Folder")).toHaveValue(breakfast.id);
+    await fireEvent.change(screen.getByLabelText("Folder"), {
+      target: { value: "" },
+    });
+    await fireEvent.click(screen.getByRole("button", { name: "Save recipe" }));
+
+    await waitFor(() =>
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({ folderId: null })
+      )
+    );
+  });
+
+  it("keeps an unfiled recipe at the top level inside a folder", () => {
+    render(RecipeForm, {
+      props: {
+        recipe: { ...savedRecipe, folderId: null },
+        folders: [breakfast, oats],
+        defaultFolderId: breakfast.id,
+        onSubmit: vi.fn(),
+        onCancel: vi.fn(),
+      },
+    });
+
+    expect(screen.getByLabelText("Folder")).toHaveValue("");
   });
 
   it("rejects an incomplete ingredient row", async () => {

@@ -1,9 +1,18 @@
 <script lang="ts">
 import { onMount, tick } from "svelte";
-import { Pencil, Plus, Sparkles, Trash2 } from "lucide-svelte";
-import type { Recipe, RecipeInput } from "@gymos/shared";
+import {
+  ArrowDown,
+  ArrowUp,
+  FolderPlus,
+  Pencil,
+  Plus,
+  Sparkles,
+  Trash2,
+} from "lucide-svelte";
+import type { Recipe, RecipeFolder, RecipeInput } from "@gymos/shared";
 import RecipeDetail from "./RecipeDetail.svelte";
 import RecipeForm from "./RecipeForm.svelte";
+import { folderPath } from "./folders.mts";
 import { nutritionData } from "./nutrition-data.svelte.ts";
 
 let {
@@ -28,13 +37,40 @@ let importError = $state<string | null>(null);
 let importTextarea = $state<HTMLTextAreaElement | null>(null);
 let importRun = 0;
 let listScrollTop = 0;
+let currentFolderId = $state<string | null>(null);
+let folderDraft = $state<{ id: string | null; parentId: string | null } | null>(
+  null
+);
+let folderName = $state("");
+let folderInput = $state<HTMLInputElement | null>(null);
+let folderError = $state<string | null>(null);
+let folderPending = $state(false);
+
+const subfolders = $derived(
+  nutritionData.folders.filter(
+    (folder) => folder.parentId === currentFolderId
+  )
+);
+const visibleRecipes = $derived.by(() => {
+  const folderIds = new Set(nutritionData.folders.map((folder) => folder.id));
+  return nutritionData.recipes.filter((recipe) => {
+    const folderId =
+      recipe.folderId && folderIds.has(recipe.folderId)
+        ? recipe.folderId
+        : null;
+    return folderId === currentFolderId;
+  });
+});
+const breadcrumb = $derived(
+  currentFolderId ? folderPath(nutritionData.folders, currentFolderId) : []
+);
 
 onMount(() => {
   void load();
 });
 
 $effect(() => {
-  onEditingChange?.(formOpen || importOpen);
+  onEditingChange?.(formOpen || importOpen || folderDraft !== null);
 });
 
 $effect(() => {
@@ -62,6 +98,7 @@ function openCreate() {
   editing = null;
   draft = null;
   error = null;
+  folderDraft = null;
   formOpen = true;
 }
 
@@ -69,6 +106,7 @@ function openEdit(recipe: Recipe) {
   editing = recipe;
   draft = null;
   error = null;
+  folderDraft = null;
   formOpen = true;
 }
 
@@ -76,6 +114,7 @@ async function openImport() {
   draft = null;
   importText = "";
   importError = null;
+  folderDraft = null;
   importOpen = true;
   await tick();
   importTextarea?.focus();
@@ -168,6 +207,99 @@ async function handleSubmit(input: RecipeInput) {
   await close(`edit-recipe-${created.id}`);
 }
 
+function goToFolder(id: string | null) {
+  currentFolderId = id;
+  folderDraft = null;
+  folderError = null;
+}
+
+async function openCreateFolder() {
+  folderDraft = { id: null, parentId: currentFolderId };
+  folderName = "";
+  folderError = null;
+  await tick();
+  folderInput?.focus();
+}
+
+async function openRenameFolder(folder: RecipeFolder) {
+  folderDraft = { id: folder.id, parentId: folder.parentId };
+  folderName = folder.name;
+  folderError = null;
+  await tick();
+  folderInput?.focus();
+}
+
+async function closeFolderForm(focusId: string) {
+  folderDraft = null;
+  folderName = "";
+  folderError = null;
+  await tick();
+  document.getElementById(focusId)?.focus();
+}
+
+function cancelFolderForm() {
+  const id = folderDraft?.id;
+  void closeFolderForm(id ? `rename-folder-${id}` : "new-folder-button");
+}
+
+async function saveFolder(event: SubmitEvent) {
+  event.preventDefault();
+  if (!folderDraft || folderPending) return;
+  const name = folderName.trim();
+  if (!name) {
+    folderError = "Enter a folder name.";
+    return;
+  }
+
+  const id = folderDraft.id;
+  folderPending = true;
+  folderError = null;
+  try {
+    await nutritionData.saveFolder(id, name, folderDraft.parentId);
+    await closeFolderForm(id ? `rename-folder-${id}` : "new-folder-button");
+  } catch (saveError) {
+    folderError = messageOf(saveError);
+  } finally {
+    folderPending = false;
+  }
+}
+
+async function moveFolder(folder: RecipeFolder, direction: -1 | 1) {
+  const index = subfolders.findIndex((item) => item.id === folder.id);
+  const target = index + direction;
+  if (index < 0 || target < 0 || target >= subfolders.length) return;
+
+  const ids = subfolders.map((item) => item.id);
+  const moved = ids[index];
+  const targetId = ids[target];
+  if (!moved || !targetId) return;
+  ids[index] = targetId;
+  ids[target] = moved;
+  error = null;
+  try {
+    await nutritionData.reorderFolders(currentFolderId, ids);
+  } catch (moveError) {
+    error = messageOf(moveError);
+  }
+}
+
+async function handleDeleteFolder(folder: RecipeFolder) {
+  if (
+    !confirm(
+      `Delete ${folder.name}? Its subfolders are deleted and its recipes move to the top level.`
+    )
+  ) {
+    return;
+  }
+  error = null;
+  try {
+    await nutritionData.removeFolder(folder.id);
+    if (currentFolderId === folder.id) currentFolderId = null;
+  } catch (deleteError) {
+    error = messageOf(deleteError);
+  }
+}
+
 async function handleDelete(recipe: Recipe) {
   if (!confirm(`Delete ${recipe.title}?`)) return;
   error = null;
@@ -242,16 +374,140 @@ function format(value: number): string {
         <RecipeForm
           recipe={editing}
           draft={draft}
+          folders={nutritionData.folders}
+          defaultFolderId={currentFolderId}
           onSubmit={handleSubmit}
           onCancel={cancel}
         />
       </div>
     {/if}
 
-    {#if nutritionData.recipes.length === 0 && !formOpen && !importOpen}
-      <p class="group-empty">No recipes yet.</p>
+    {#if !formOpen && !importOpen}
+      {#if breadcrumb.length > 0}
+        <div class="folder-breadcrumb">
+          <button type="button" onclick={() => goToFolder(null)}>
+            Top level
+          </button>
+          {#each breadcrumb as folder (folder.id)}
+            <span class="folder-separator" aria-hidden="true">/</span>
+            <button type="button" onclick={() => goToFolder(folder.id)}>
+              {folder.name}
+            </button>
+          {/each}
+        </div>
+      {/if}
+
+      {#each subfolders as folder, index (folder.id)}
+        <div class="list-row">
+          <button
+            type="button"
+            class="list-main recipe-open"
+            id={`open-folder-${folder.id}`}
+            aria-label={`Open ${folder.name}`}
+            onclick={() => goToFolder(folder.id)}
+          >
+            <span class="list-title">{folder.name}</span>
+          </button>
+          {#if !folderDraft}
+            <div class="list-actions">
+              <button
+                type="button"
+                class="icon-btn muted"
+                aria-label={`Move ${folder.name} up`}
+                disabled={index === 0}
+                onclick={() => void moveFolder(folder, -1)}
+              >
+                <ArrowUp size={18} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                class="icon-btn muted"
+                aria-label={`Move ${folder.name} down`}
+                disabled={index === subfolders.length - 1}
+                onclick={() => void moveFolder(folder, 1)}
+              >
+                <ArrowDown size={18} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                class="icon-btn muted"
+                id={`rename-folder-${folder.id}`}
+                aria-label={`Rename ${folder.name}`}
+                onclick={() => void openRenameFolder(folder)}
+              >
+                <Pencil size={18} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                class="icon-btn muted"
+                aria-label={`Delete ${folder.name}`}
+                onclick={() => void handleDeleteFolder(folder)}
+              >
+                <Trash2 size={18} aria-hidden="true" />
+              </button>
+            </div>
+          {/if}
+        </div>
+      {/each}
+
+      {#if folderDraft}
+        <div class="group-form">
+          <form class="stack" onsubmit={(event) => void saveFolder(event)}>
+            <h3 class="card-title form-title">
+              {folderDraft.id ? "Rename folder" : "New folder"}
+            </h3>
+            <div class="form-rows">
+              <label class="field">
+                <span class="label">Folder name</span>
+                <input
+                  class="input"
+                  required
+                  maxlength={100}
+                  bind:this={folderInput}
+                  bind:value={folderName}
+                />
+              </label>
+            </div>
+            {#if folderError}
+              <p class="error" role="alert">{folderError}</p>
+            {/if}
+            <div class="form-actions">
+              <button
+                class="btn btn-primary"
+                type="submit"
+                disabled={folderPending}
+              >
+                {folderDraft.id ? "Save folder" : "Create folder"}
+              </button>
+              <button
+                class="btn btn-ghost"
+                type="button"
+                onclick={cancelFolderForm}
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      {:else}
+        <button
+          type="button"
+          class="list-row add-row"
+          id="new-folder-button"
+          onclick={() => void openCreateFolder()}
+        >
+          <FolderPlus size={18} aria-hidden="true" />
+          <span>New folder</span>
+        </button>
+      {/if}
+    {/if}
+
+    {#if subfolders.length === 0 && visibleRecipes.length === 0 && !formOpen && !importOpen && !folderDraft}
+      <p class="group-empty">
+        {currentFolderId ? "This folder is empty." : "No recipes yet."}
+      </p>
     {:else}
-      {#each nutritionData.recipes as recipe (recipe.id)}
+      {#each visibleRecipes as recipe (recipe.id)}
         <div class="list-row">
           {#if formOpen || importOpen}
             <div class="list-main">

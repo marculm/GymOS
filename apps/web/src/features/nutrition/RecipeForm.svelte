@@ -1,17 +1,22 @@
 <script lang="ts">
 import { tick } from "svelte";
-import type { Recipe, RecipeInput } from "@gymos/shared";
+import type { Recipe, RecipeFolder, RecipeInput } from "@gymos/shared";
+import { folderLabel, folderTree } from "./folders.mts";
 
 type IngredientRow = { name: string; amount: string; unit: string };
 
 let {
   recipe = null,
   draft = null,
+  folders = [],
+  defaultFolderId = null,
   onSubmit,
   onCancel,
 }: {
   recipe?: Recipe | null;
   draft?: RecipeInput | null;
+  folders?: RecipeFolder[];
+  defaultFolderId?: string | null;
   onSubmit: (input: RecipeInput) => Promise<void>;
   onCancel: () => void;
 } = $props();
@@ -45,6 +50,10 @@ let ingredients = $state<IngredientRow[]>(
 );
 // svelte-ignore state_referenced_locally
 let instructions = $state(initial?.instructions.join("\n") ?? "");
+// svelte-ignore state_referenced_locally
+let folderId = $state(
+  initial ? (initial.folderId ?? "") : (defaultFolderId ?? "")
+);
 
 let pending = $state(false);
 let error = $state<string | null>(null);
@@ -117,6 +126,7 @@ function parseInput(): RecipeInput | null {
   return {
     title: name,
     ...(url ? { sourceUrl: url } : {}),
+    ...(folderId ? { folderId } : recipe ? { folderId: null } : {}),
     servings: servingCount,
     macrosPerServing: macroValues,
     ingredients: filled,
@@ -185,6 +195,21 @@ async function handleSubmit(event: SubmitEvent) {
     <label class="field">
       <span class="label">Source URL</span>
       <input class="input" type="url" placeholder="Optional" bind:value={sourceUrl} />
+    </label>
+    <label class="field">
+      <span class="label">Folder</span>
+      <select
+        class="input"
+        value={folderId}
+        onchange={(event) => (folderId = event.currentTarget.value)}
+      >
+        <option value="">Top level</option>
+        {#each folderTree(folders) as folder (folder.id)}
+          <option value={folder.id}>
+            {folderLabel(folders, folder.id)}
+          </option>
+        {/each}
+      </select>
     </label>
   </div>
 

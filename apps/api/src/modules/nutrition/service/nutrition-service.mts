@@ -5,6 +5,10 @@ import type {
   NutritionLogUpdate,
   NutritionSummary,
   Recipe,
+  RecipeFolder,
+  RecipeFolderInput,
+  RecipeFolderOrder,
+  RecipeFolderUpdate,
   RecipeInput,
   RecipeUpdate,
 } from "@gymos/shared";
@@ -78,11 +82,71 @@ export class NutritionService {
     if (!deleted) throw new NutritionNotFoundError("Meal not found");
   }
 
+  listFolders(userId: string): Promise<RecipeFolder[]> {
+    return this.repository.listFolders(userId);
+  }
+
+  async createFolder(
+    userId: string,
+    input: RecipeFolderInput
+  ): Promise<RecipeFolder> {
+    if (input.parentId) {
+      const parent = await this.repository.findFolder(userId, input.parentId);
+      if (!parent) throw new NutritionNotFoundError("Folder not found");
+    }
+    return this.repository.createFolder(userId, input);
+  }
+
+  async renameFolder(
+    userId: string,
+    id: string,
+    input: RecipeFolderUpdate
+  ): Promise<RecipeFolder> {
+    const folder = await this.repository.updateFolder(userId, id, input);
+    if (!folder) throw new NutritionNotFoundError("Folder not found");
+    return folder;
+  }
+
+  async deleteFolder(userId: string, id: string): Promise<void> {
+    const deleted = await this.repository.deleteFolder(userId, id);
+    if (!deleted) throw new NutritionNotFoundError("Folder not found");
+  }
+
+  async reorderFolders(
+    userId: string,
+    input: RecipeFolderOrder
+  ): Promise<RecipeFolder[]> {
+    const folders = await this.repository.listFolders(userId);
+    const siblings = new Set(
+      folders
+        .filter((folder) => folder.parentId === input.parentId)
+        .map((folder) => folder.id)
+    );
+    if (
+      siblings.size !== input.ids.length ||
+      new Set(input.ids).size !== input.ids.length ||
+      input.ids.some((id) => !siblings.has(id))
+    ) {
+      throw new NutritionNotFoundError("Folder not found");
+    }
+    return this.repository.reorderFolders(userId, input.parentId, input.ids);
+  }
+
   listRecipes(userId: string): Promise<Recipe[]> {
     return this.repository.listRecipes(userId);
   }
 
-  createRecipe(userId: string, input: RecipeInput): Promise<Recipe> {
+  private async assertFolder(
+    userId: string,
+    folderId: string | null | undefined
+  ): Promise<void> {
+    if (!folderId) return;
+    const folder = await this.repository.findFolder(userId, folderId);
+    if (!folder) throw new NutritionNotFoundError("Folder not found");
+  }
+
+  async createRecipe(userId: string, input: RecipeInput): Promise<Recipe> {
+    await this.assertFolder(userId, input.folderId);
     return this.repository.createRecipe(userId, input);
   }
 
@@ -91,6 +155,7 @@ export class NutritionService {
     id: string,
     input: RecipeUpdate
   ): Promise<Recipe> {
+    await this.assertFolder(userId, input.folderId);
     const recipe = await this.repository.updateRecipe(userId, id, input);
     if (!recipe) throw new NutritionNotFoundError("Recipe not found");
     return recipe;

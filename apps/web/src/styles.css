@@ -1284,6 +1284,29 @@ textarea.input {
   cursor: pointer;
 }
 
+.folder-breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border-bottom: 0.5px solid var(--separator);
+  font-size: 0.875rem;
+}
+
+.folder-breadcrumb button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  cursor: pointer;
+}
+
+.folder-separator {
+  color: var(--muted);
+}
+
 .recipe-detail {
   display: flex;
   flex-direction: column;

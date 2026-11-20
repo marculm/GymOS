@@ -17,6 +17,7 @@ model User {
   nutritionLogs   NutritionLog[]
   nutritionTarget NutritionTarget?
   recipes         Recipe[]
+  recipeFolders   RecipeFolder[]
   plans           WorkoutPlan[]
   rotationItems   WorkoutRotationItem[]
   pushSubscriptions PushSubscription[]
@@ -75,22 +76,42 @@ model WorkoutSet {
   @@map("workout_sets")
 }
 
+model RecipeFolder {
+  id        String         @id @default(uuid())
+  userId    String
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  parentId  String?
+  parent    RecipeFolder?  @relation("RecipeFolderTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children  RecipeFolder[] @relation("RecipeFolderTree")
+  position  Int
+  recipes   Recipe[]
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  @@index([userId, parentId, position])
+  @@map("recipe_folders")
+}
+
 model Recipe {
-  id           String   @id @default(uuid())
+  id           String        @id @default(uuid())
   userId       String?
-  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user         User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  folderId     String?
+  folder       RecipeFolder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
   title        String
   sourceUrl    String?
-  servings     Int      @default(1)
+  servings     Int           @default(1)
   calories     Float
   proteinGrams Float
   carbsGrams   Float
   fatGrams     Float
   ingredients  Json
   instructions Json
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 
+  @@index([userId, folderId])
   @@map("recipes")
 }
 

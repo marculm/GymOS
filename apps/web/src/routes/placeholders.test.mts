@@ -7,6 +7,7 @@ const nutritionApi = vi.hoisted(() => ({
   getSummary: vi.fn(),
   listLogs: vi.fn(),
   listRecipes: vi.fn(),
+  listFolders: vi.fn(),
   getTargets: vi.fn(),
   createLog: vi.fn(),
   updateLog: vi.fn(),
@@ -35,6 +36,7 @@ describe("top-level routes", () => {
     });
     nutritionApi.listLogs.mockResolvedValue([]);
     nutritionApi.listRecipes.mockResolvedValue([]);
+    nutritionApi.listFolders.mockResolvedValue([]);
 
     render(NutritionPage);
 
