@@ -5,6 +5,7 @@ import {
   createPlan,
   deleteExercise,
   deletePlan,
+  deleteSession,
   deleteSet,
   getActiveSession,
   getRotation,
@@ -265,6 +266,16 @@ describe("gym api client", () => {
     await expect(deleteSet("session-1", "set-2")).resolves.toBeUndefined();
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/gym/sessions/session-1/sets/set-2",
+      expect.objectContaining({ method: "DELETE" })
+    );
+  });
+
+  it("deletes a session", async () => {
+    const fetchMock = mockFetch(new Response(null, { status: 204 }));
+
+    await expect(deleteSession("session-1")).resolves.toBeUndefined();
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/gym/sessions/session-1",
       expect.objectContaining({ method: "DELETE" })
     );
   });
