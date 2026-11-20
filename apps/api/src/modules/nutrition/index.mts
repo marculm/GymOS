@@ -6,6 +6,7 @@ import {
   NutritionRangeQuerySchema,
   RecipeExtractionInputSchema,
   RecipeFolderInputSchema,
+  RecipeFolderOrderSchema,
   RecipeFolderUpdateSchema,
   RecipeInputSchema,
   RecipeUpdateSchema,
@@ -81,6 +82,13 @@ nutritionModule.post("/recipe-folders", async (c) => {
   return c.json(
     await nutritionService.createFolder(c.get("user").id, input),
     201
+  );
+});
+
+nutritionModule.put("/recipe-folders/order", async (c) => {
+  const input = RecipeFolderOrderSchema.parse(await c.req.json());
+  return c.json(
+    await nutritionService.reorderFolders(c.get("user").id, input)
   );
 });
 

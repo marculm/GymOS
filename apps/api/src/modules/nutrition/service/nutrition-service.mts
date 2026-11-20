@@ -7,6 +7,7 @@ import type {
   Recipe,
   RecipeFolder,
   RecipeFolderInput,
+  RecipeFolderOrder,
   RecipeFolderUpdate,
   RecipeInput,
   RecipeUpdate,
@@ -104,6 +105,25 @@ export class NutritionService {
     const folder = await this.repository.updateFolder(userId, id, input);
     if (!folder) throw new NutritionNotFoundError("Folder not found");
     return folder;
+  }
+
+  async reorderFolders(
+    userId: string,
+    input: RecipeFolderOrder
+  ): Promise<RecipeFolder[]> {
+    const folders = await this.repository.listFolders(userId);
+    const siblings = new Set(
+      folders
+        .filter((folder) => folder.parentId === input.parentId)
+        .map((folder) => folder.id)
+    );
+    if (
+      siblings.size !== input.ids.length ||
+      input.ids.some((id) => !siblings.has(id))
+    ) {
+      throw new NutritionNotFoundError("Folder not found");
+    }
+    return this.repository.reorderFolders(userId, input.parentId, input.ids);
   }
 
   listRecipes(userId: string): Promise<Recipe[]> {

@@ -213,6 +213,22 @@ export class NutritionRepository {
     return toFolder(row);
   }
 
+  async reorderFolders(
+    userId: string,
+    parentId: string | null,
+    ids: string[]
+  ): Promise<SharedRecipeFolder[]> {
+    await prisma.$transaction(
+      ids.map((id, position) =>
+        prisma.recipeFolder.updateMany({
+          where: { id, userId, parentId },
+          data: { position },
+        })
+      )
+    );
+    return this.listFolders(userId);
+  }
+
   async listRecipes(userId: string): Promise<SharedRecipe[]> {
     const rows = await prisma.recipe.findMany({
       where: { userId },

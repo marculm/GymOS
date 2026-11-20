@@ -306,6 +306,80 @@ describe("nutrition API", () => {
       expect(unknownParent.status).toBe(404);
     });
 
+    it("reorders sibling folders and persists the order", async () => {
+      async function createFolder(name: string, parentId: string | null = null) {
+        const response = await sendJson(
+          "POST",
+          "/api/nutrition/recipe-folders",
+          { name, parentId }
+        );
+        return response.json() as Promise<{ id: string; name: string }>;
+      }
+
+      const dinner = await createFolder("Dinner");
+      const breakfast = await createFolder("Breakfast");
+      const lunch = await createFolder("Lunch");
+      const second = await createFolder("Second", breakfast.id);
+      const first = await createFolder("First", breakfast.id);
+
+      const reordered = await sendJson(
+        "PUT",
+        "/api/nutrition/recipe-folders/order",
+        { parentId: null, ids: [lunch.id, dinner.id, breakfast.id] }
+      );
+      expect(reordered.status).toBe(200);
+
+      const list = (await (
+        await get("/api/nutrition/recipe-folders")
+      ).json()) as Array<{
+        id: string;
+        name: string;
+        parentId: string | null;
+        position: number;
+      }>;
+      const topLevel = list
+        .filter((folder) => folder.parentId === null)
+        .sort((a, b) => a.position - b.position);
+      expect(topLevel.map((folder) => folder.name)).toEqual([
+        "Lunch",
+        "Dinner",
+        "Breakfast",
+      ]);
+
+      const children = list
+        .filter((folder) => folder.parentId === breakfast.id)
+        .sort((a, b) => a.position - b.position);
+      expect(children.map((folder) => folder.name)).toEqual(["Second", "First"]);
+      expect(children.map((folder) => folder.id)).toEqual([
+        second.id,
+        first.id,
+      ]);
+    });
+
+    it("rejects a reorder that mixes in a folder from another parent", async () => {
+      const parent = await (
+        await sendJson("POST", "/api/nutrition/recipe-folders", {
+          name: "Parent",
+        })
+      ).json();
+      const child = await (
+        await sendJson("POST", "/api/nutrition/recipe-folders", {
+          name: "Child",
+          parentId: parent.id,
+        })
+      ).json();
+
+      const response = await sendJson(
+        "PUT",
+        "/api/nutrition/recipe-folders/order",
+        { parentId: null, ids: [parent.id, child.id] }
+      );
+      expect(response.status).toBe(404);
+      expect(response.headers.get("content-type")).toContain(
+        "application/problem+json"
+      );
+    });
+
     it("keeps another user's folders inaccessible", async () => {
       const other = await createUser(
         `folders-${crypto.randomUUID()}@gymos.app`
