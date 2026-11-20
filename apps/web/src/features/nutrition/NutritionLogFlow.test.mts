@@ -214,6 +214,21 @@ describe("NutritionLogFlow", () => {
     expect(await screen.findByLabelText("Meal name")).toHaveValue("Skyr bowl");
   });
 
+  it("names a photo-only estimate when the AI omits a name", async () => {
+    nutritionApi.estimateMeal.mockResolvedValueOnce({
+      macros: mealEstimate.macros,
+    });
+    render(NutritionLogFlow, { props: { open: true } });
+
+    await fireEvent.click(
+      await screen.findByRole("button", { name: /^Describe/ })
+    );
+    await choosePhoto();
+    await fireEvent.click(screen.getByRole("button", { name: "Estimate" }));
+
+    expect(await screen.findByLabelText("Meal name")).toHaveValue("Photo meal");
+  });
+
   it("sends a description and a photo together", async () => {
     render(NutritionLogFlow, { props: { open: true } });
 
