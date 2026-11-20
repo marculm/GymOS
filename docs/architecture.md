@@ -391,8 +391,9 @@ ADR-0016.
 - `logger/response-time.mts` logs duration and status and sets `X-Response-Time`.
 - `admin/health-router.mts` exposes:
   - `GET /health/liveness` → `{ "status": "up" }`
-  - `GET /health/readiness` → `{ "status": "up" }` after a cheap Prisma query
-    (`prisma.user.count()`); `503` problem details when the database is unavailable.
+  - `GET /health/readiness` → `{ "status": "up" }` only when the configured
+    `GYMOS_USER_EMAIL` resolves to a user (ADR-0064); `503` problem details when the
+    database is unavailable or the owner is missing.
   - `GET /health` → liveness alias.
 - `monitoring/prometheus-metrics.mts` registers default metrics, an
   `http_requests_total` counter, an `http_request_duration_seconds` histogram, and
