@@ -599,6 +599,15 @@ describe("RecipesManager", () => {
       expect(await screen.findByText("Chicken rice bowl")).toBeInTheDocument();
     });
 
+    it("shows a recipe with a missing folder at the top level", async () => {
+      nutritionApi.listRecipes.mockResolvedValue([
+        { ...recipe, folderId: "missing-folder" },
+      ]);
+      render(RecipesManager);
+
+      expect(await screen.findByText("Chicken rice bowl")).toBeInTheDocument();
+    });
+
     it("reports the folder form as editing", async () => {
       const onEditingChange = vi.fn();
       render(RecipesManager, { props: { onEditingChange } });

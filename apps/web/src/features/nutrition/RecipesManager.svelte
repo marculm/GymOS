@@ -50,11 +50,16 @@ const subfolders = $derived(
     (folder) => folder.parentId === currentFolderId
   )
 );
-const visibleRecipes = $derived(
-  nutritionData.recipes.filter(
-    (recipe) => (recipe.folderId ?? null) === currentFolderId
-  )
-);
+const visibleRecipes = $derived.by(() => {
+  const folderIds = new Set(nutritionData.folders.map((folder) => folder.id));
+  return nutritionData.recipes.filter((recipe) => {
+    const folderId =
+      recipe.folderId && folderIds.has(recipe.folderId)
+        ? recipe.folderId
+        : null;
+    return folderId === currentFolderId;
+  });
+});
 const breadcrumb = $derived(
   currentFolderId ? folderPath(nutritionData.folders, currentFolderId) : []
 );
