@@ -1,20 +1,23 @@
 # Known Issues and Deferred Work
 
-Last updated: 2026-11-15
-Scope: Gym Tracker MVP on `refactor/ponytail`.
+Last updated: 2026-11-20
+Scope: GymOS (Gym Tracker and Nutrition) on `main`.
 
-These are known, non-blocking issues. They do not affect the core flow: create a plan, start a workout, log sets, finish, and review history.
+These are known, non-blocking issues. They do not affect the core flow: create a plan, start a workout, log sets, finish, review history, log meals, and manage recipes.
 
-## Fixed during the architecture migration
+## Fixed
 
-- Nutrition and extractor routes return `501 Not Implemented` instead of fabricated data.
+- Nutrition routes are implemented (ADR-0057, ADR-0058, ADR-0060, ADR-0062); the extractor returns `501 Not Implemented` instead of fabricated data.
 - Readiness checks the database; production logging no longer loads `pino-pretty`.
 - Plan input is bounded to 50 exercises and cannot repeat an exercise; the exercise register owns the working sets, reps, and weight.
 - Regression tests cover set/completion races and two-user isolation.
-- API errors use RFC 9457 problem details; list endpoints are paginated.
+- API errors use RFC 9457 problem details; gym list endpoints are paginated.
 - Missing or malformed JSON bodies return `400` instead of becoming `{}`.
 - The seed provisions the configured `GYMOS_USER_EMAIL`, so a custom owner has a usable first run (ADR-0023).
-- Write requests require `Content-Type: application/json`; a cross-site `text/plain` write returns `415` without writing (ADR-0015).
+- POST and PUT requests require `Content-Type: application/json`; a cross-site `text/plain` write returns `415` without writing (ADR-0015).
+- The web app runs on SvelteKit 3 as a static SPA (ADR-0054).
+- All workspaces run on Vitest, and `bun run test:watch` watches the API, web, and shared suites (ADR-0018, ADR-0061).
+- Configuration uses a single root `.env`.
 
 ## Deferred from the final review
 
@@ -24,16 +27,20 @@ These are known, non-blocking issues. They do not affect the core flow: create a
 
 ## Deferred features
 
-- A single root `.env` instead of the root/API duplication.
 - Mealprep slice.
 - The URL recipe extractor (needs its own ADR).
+
+## Build and test tooling
+
+- **API integration tests need a migrated PostgreSQL.** They create a unique test user and clean up. Service unit tests and the web and shared suites run without a database; CI migrates and seeds the database in `.github/workflows/ci.yml`.
+- **`bun run test:watch` has no Vitest keyboard shortcuts.** Bun's filter runner pipes stdin, so press Ctrl-C to stop all watchers (ADR-0061).
+- **The PWA build logs a `transform_index_html_unsupported` warning.** SvelteKit 3 no longer runs `transformIndexHtml`; the app links the manifest and registers the service worker itself, so the warning is accepted (ADR-0054).
+- **The root `glob` and `minimatch` overrides are temporary.** They patch `workbox-build`; remove them when it catches up (ADR-0054).
+- **A first visit to a deep link does not register the service worker.** The generated registration resolves `./sw.js` against the current URL, so the PWA is not installable until the app is opened at a top-level route and reloaded (#164).
 
 ## Security and operations
 
 - **No authentication.** ADR-0009 defines the single-user MVP; the API must not be exposed publicly without an access gate (reverse-proxy auth or an application login).
-- **Tests need a seeded PostgreSQL.** They use a unique test user and clean up; CI provisions and seeds the database in `.github/workflows/ci.yml`.
-- **The first deploy needs public GHCR packages and `DEPLOY_ENABLED=true`.** The repository is private, so the first push creates private packages; the deploy job is skipped until the variable is set, and then fails at the image pull until the packages are public. See `docs/deployment.md` steps 7 and 9.
-- **The K3s/Tailscale deploy path is unverified** until the VM is provisioned. The manifests and deploy script are validated statically in CI (`kubeconform`, `actionlint`, `shellcheck`).
 - **The metrics endpoint is not routed** by the ingress; `/prometheus` remains reachable only inside the cluster.
 - **Web push needs HTTPS and an installed PWA on iOS.** iOS 16.4+ requires the app on the
   Home Screen, and the browser push service may deliver a few seconds late. Without
