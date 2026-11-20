@@ -63,15 +63,7 @@ registerRoute(
 );
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches
-      .open(SHELL_CACHE)
-      .then(async (cache) => {
-        const response = await fetch(SHELL_URL, { cache: "no-cache" });
-        if (response.ok) await cache.put(SHELL_URL, response.clone());
-      })
-      .catch(() => undefined),
-  );
+  event.waitUntil(shellResponse().catch(() => undefined));
   void self.skipWaiting();
 });
 
