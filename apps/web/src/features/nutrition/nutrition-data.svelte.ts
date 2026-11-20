@@ -8,19 +8,25 @@ import type {
   NutritionSummary,
   Recipe,
   RecipeExtractionInput,
+  RecipeFolder,
   RecipeInput,
   RecipeUpdate,
 } from "@gymos/shared";
 import {
+  createFolder,
   createLog,
   createRecipe,
+  deleteFolder,
   deleteLog,
   deleteRecipe,
   estimateMeal,
   extractRecipe as requestRecipeExtraction,
   getSummary,
+  listFolders,
   listLogs,
   listRecipes,
+  renameFolder,
+  reorderFolders as requestFolderOrder,
   setTargets,
   updateLog,
   updateRecipe,
@@ -44,6 +50,7 @@ class NutritionData {
   summary = $state<NutritionSummary | null>(null);
   entries = $state<NutritionLogEntry[]>([]);
   recipes = $state<Recipe[]>([]);
+  folders = $state<RecipeFolder[]>([]);
   loading = $state(true);
   error = $state<string | null>(null);
 
@@ -72,14 +79,16 @@ class NutritionData {
     this.loading = true;
     this.error = null;
     try {
-      const [summary, entries, recipes] = await Promise.all([
+      const [summary, entries, recipes, folders] = await Promise.all([
         getSummary(range.from, range.to),
         listLogs(range.from, range.to),
         listRecipes(),
+        listFolders(),
       ]);
       this.summary = summary;
       this.entries = entries;
       this.recipes = recipes;
+      this.folders = folders;
       this.loadedDay = key;
     } catch (error) {
       this.error = messageOf(error);
@@ -133,7 +142,42 @@ class NutritionData {
   }
 
   async loadRecipes(): Promise<void> {
-    this.recipes = await listRecipes();
+    const [recipes, folders] = await Promise.all([
+      listRecipes(),
+      listFolders(),
+    ]);
+    this.recipes = recipes;
+    this.folders = folders;
+  }
+
+  async saveFolder(
+    id: string | null,
+    name: string,
+    parentId: string | null
+  ): Promise<RecipeFolder> {
+    const folderName = name.trim();
+    if (id) {
+      const folder = await renameFolder(id, { name: folderName });
+      this.folders = this.folders.map((item) =>
+        item.id === folder.id ? folder : item
+      );
+      return folder;
+    }
+    const folder = await createFolder({ name: folderName, parentId });
+    this.folders = [...this.folders, folder];
+    return folder;
+  }
+
+  async removeFolder(id: string): Promise<void> {
+    await deleteFolder(id);
+    await this.loadRecipes();
+  }
+
+  async reorderFolders(
+    parentId: string | null,
+    ids: string[]
+  ): Promise<void> {
+    this.folders = await requestFolderOrder(parentId, ids);
   }
 
   async saveRecipe(id: string | null, input: RecipeInput | RecipeUpdate): Promise<Recipe> {
