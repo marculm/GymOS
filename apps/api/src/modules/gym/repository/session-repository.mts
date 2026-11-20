@@ -261,7 +261,7 @@ export class SessionRepository {
 
       const set = await tx.workoutSet.findFirst({
         where: { id: setId, workoutSessionId: sessionId },
-        select: { id: true },
+        select: { id: true, exerciseId: true },
       });
       if (!set) return { kind: "not_found" } as const;
       if (!session.completedAt) return { kind: "active" } as const;
@@ -271,6 +271,9 @@ export class SessionRepository {
         data: { reps: input.reps, weightKg: input.weightKg },
         include: { exercise: { select: { name: true } } },
       });
+
+      await this.applyExerciseDefaults(tx, userId, new Set([set.exerciseId]));
+
       return { kind: "updated", set: toSet(updated) } as const;
     });
   }

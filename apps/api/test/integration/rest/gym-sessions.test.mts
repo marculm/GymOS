@@ -335,27 +335,97 @@ describe("Gym session routes", () => {
     expect(data.sets[1]).toMatchObject({ setNumber: 2, reps: 10, weightKg: 20 });
   });
 
-  it("does not recalculate exercise defaults when a completed set is corrected", async () => {
-    const session = await startSession();
-    const setId = await loggedSetId(session.id);
-    await postJson(`/api/gym/sessions/${session.id}/complete`, {});
-
-    const before = await prisma.exercise.findUniqueOrThrow({
-      where: { id: exerciseId },
+  it("recalculates exercise defaults when a completed set is corrected", async () => {
+    const created = await prisma.exercise.create({
+      data: {
+        name: `Correction Exercise ${crypto.randomUUID()}`,
+        muscleGroup: "chest",
+        defaultWeightKg: 20,
+      },
     });
 
-    const res = await updateSet(session.id, setId, {
-      reps: 12,
-      weightKg: 42.5,
-    });
-    expect(res.status).toBe(200);
+    try {
+      const planRes = await postJson("/api/gym/plans", {
+        name: `Correction Plan ${crypto.randomUUID()}`,
+        exercises: [{ exerciseId: created.id }],
+      });
+      expect(planRes.status).toBe(201);
+      const plan = (await planRes.json()) as { id: string };
 
-    const after = await prisma.exercise.findUniqueOrThrow({
-      where: { id: exerciseId },
+      const session = await startSession({ planId: plan.id });
+      const logRes = await logSet(session.id, {
+        exerciseId: created.id,
+        weightKg: 100,
+        reps: 5,
+      });
+      const setId = ((await logRes.json()) as { id: string }).id;
+      await postJson(`/api/gym/sessions/${session.id}/complete`, {});
+
+      const res = await updateSet(session.id, setId, {
+        reps: 8,
+        weightKg: 80,
+      });
+      expect(res.status).toBe(200);
+
+      const plansRes = await app.request("/api/gym/plans");
+      const plans = (await plansRes.json()) as {
+        content: Array<{
+          id: string;
+          exercises: Array<{ targetWeightKg: number | null; targetReps: number }>;
+        }>;
+      };
+      const updatedPlan = plans.content.find((entry) => entry.id === plan.id);
+      expect(updatedPlan?.exercises[0]).toMatchObject({
+        targetWeightKg: 80,
+        targetReps: 8,
+      });
+    } finally {
+      await prisma.workoutSession.deleteMany({
+        where: { user: { email: TEST_EMAIL } },
+      });
+      await prisma.workoutPlan.deleteMany({
+        where: { user: { email: TEST_EMAIL } },
+      });
+      await prisma.exercise.delete({ where: { id: created.id } });
+    }
+  });
+
+  it("keeps exercise defaults when a correction is rejected", async () => {
+    const created = await prisma.exercise.create({
+      data: {
+        name: `Rejected Correction Exercise ${crypto.randomUUID()}`,
+        muscleGroup: "chest",
+        defaultWeightKg: 20,
+      },
     });
-    expect(after.defaultWeightKg).toBe(before.defaultWeightKg);
-    expect(after.defaultReps).toBe(before.defaultReps);
-    expect(after.defaultSets).toBe(before.defaultSets);
+
+    try {
+      const session = await startSession();
+      const logRes = await logSet(session.id, {
+        exerciseId: created.id,
+        weightKg: 100,
+        reps: 5,
+      });
+      const setId = ((await logRes.json()) as { id: string }).id;
+      await postJson(`/api/gym/sessions/${session.id}/complete`, {});
+
+      const res = await updateSet(session.id, setId, {
+        reps: 10,
+        weightKg: 1000.5,
+      });
+      expect(res.status).toBe(422);
+
+      const unchanged = await prisma.exercise.findUniqueOrThrow({
+        where: { id: created.id },
+      });
+      expect(unchanged.defaultWeightKg).toBe(100);
+      expect(unchanged.defaultReps).toBe(5);
+    } finally {
+      await prisma.workoutSession.deleteMany({
+        where: { user: { email: TEST_EMAIL } },
+      });
+      await prisma.exercise.delete({ where: { id: created.id } });
+    }
   });
 
   it("rejects editing a set in an active session", async () => {
