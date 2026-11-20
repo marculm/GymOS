@@ -14,7 +14,7 @@ These are known, non-blocking issues. They do not affect the core flow: create a
 - API errors use RFC 9457 problem details; gym list endpoints are paginated.
 - Missing or malformed JSON bodies return `400` instead of becoming `{}`.
 - The seed provisions the configured `GYMOS_USER_EMAIL`, so a custom owner has a usable first run (ADR-0023).
-- Write requests require `Content-Type: application/json`; a cross-site `text/plain` write returns `415` without writing (ADR-0015).
+- POST and PUT requests require `Content-Type: application/json`; a cross-site `text/plain` write returns `415` without writing (ADR-0015).
 - The web app runs on SvelteKit 3 as a static SPA (ADR-0054).
 - All workspaces run on Vitest, and `bun run test:watch` watches the API, web, and shared suites (ADR-0018, ADR-0061).
 - Configuration uses a single root `.env`.
