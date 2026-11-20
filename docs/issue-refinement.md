@@ -46,14 +46,50 @@ it into the matching section; never discard it.
 
 ## Project 1
 
-- Add the issue to project 1 if it is not already there: `gh project item-add 1
-  --owner marculm --url <issue-url>`. Find the item ID in
-  `gh project item-list 1 --owner marculm --format json --limit 500` by matching
-  `content.number` to `ISSUE_NUMBER`.
-- Set `Priority` with the project field ID `PVTSSF_lAHOEAw6oM4BpWhezhnyjtc` and the
+- `gh project` subcommands fail with the workflow token; use `gh api graphql`.
+- Find the issue's project item in project 1 (`PVT_kwHOEAw6oM4BpWhe`):
+
+  ```bash
+  gh api graphql -f query='
+    query($issue: Int!) {
+      repository(owner: "marculm", name: "GymOS") {
+        issue(number: $issue) {
+          projectItems(first: 10) {
+            nodes { id project { id } }
+          }
+        }
+      }
+    }' -F issue="$ISSUE_NUMBER"
+  ```
+
+- If no node has `project.id` `PVT_kwHOEAw6oM4BpWhe`, add the issue:
+
+  ```bash
+  gh api graphql -f query='
+    mutation($projectId: ID!, $contentId: ID!) {
+      addProjectV2ItemById(input: {projectId: $projectId, contentId: $contentId}) {
+        item { id }
+      }
+    }' -f projectId=PVT_kwHOEAw6oM4BpWhe \
+       -f contentId="$(gh issue view "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --json id --jq .id)"
+  ```
+
+- Set `Priority` on the item with field ID `PVTSSF_lAHOEAw6oM4BpWhezhnyjtc` and the
   option IDs P0 `79628723`, P1 `0a877460`, P2 `da944a9c`:
-  `gh project item-edit --project-id PVT_kwHOEAw6oM4BpWhe --id <item-id> --field-id
-  PVTSSF_lAHOEAw6oM4BpWhezhnyjtc --single-select-option-id <option>`.
+
+  ```bash
+  gh api graphql -f query='
+    mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
+      updateProjectV2ItemFieldValue(input: {
+        projectId: $projectId, itemId: $itemId, fieldId: $fieldId,
+        value: {singleSelectOptionId: $optionId}
+      }) {
+        projectV2Item { id }
+      }
+    }' -f projectId=PVT_kwHOEAw6oM4BpWhe -f itemId=<item-id> \
+       -f fieldId=PVTSSF_lAHOEAw6oM4BpWhezhnyjtc -f optionId=<option-id>
+  ```
+
 - If the priority is uncertain, set a provisional priority and say so with the reason
   in the summary comment.
 - Do not touch `Size` or `Status`.

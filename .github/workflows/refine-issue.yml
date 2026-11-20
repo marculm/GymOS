@@ -77,7 +77,26 @@ jobs:
             exit 1
           fi
 
-          priority=$(gh project item-list 1 --owner marculm --format json --limit 500 | jq -r --argjson n "$ISSUE_NUMBER" '.items[] | select(.content.number == $n) | .priority // empty')
+          # shellcheck disable=SC2016
+          if ! response=$(gh api graphql -f query='
+            query($issue: Int!) {
+              repository(owner: "marculm", name: "GymOS") {
+                issue(number: $issue) {
+                  projectItems(first: 10) {
+                    nodes {
+                      project { id }
+                      fieldValueByName(name: "Priority") {
+                        ... on ProjectV2ItemFieldSingleSelectValue { name }
+                      }
+                    }
+                  }
+                }
+              }
+            }' -F issue="$ISSUE_NUMBER"); then
+            echo "Could not read Project 1 for issue #$ISSUE_NUMBER." >&2
+            exit 1
+          fi
+          priority=$(printf '%s' "$response" | jq -r '.data.repository.issue.projectItems.nodes[] | select(.project.id == "PVT_kwHOEAw6oM4BpWhe") | .fieldValueByName.name // empty')
           if [ -z "$priority" ]; then
             echo "No Priority set for issue #$ISSUE_NUMBER in project 1." >&2
             exit 1

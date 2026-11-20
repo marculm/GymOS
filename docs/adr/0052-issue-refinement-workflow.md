@@ -36,8 +36,14 @@ that the owner answers in the issue before the next run.
 - Epic checklists, `Size`, `Status`, and `auto-implement` stay untouched. Roadmap #32
   is the only epic body the agent edits. Adding `auto-implement` would start
   implementation and is forbidden.
-- The PAT must allow issues and project writes; checkout persists no credentials, and
-  the rulebook forbids repository writes, commits, and pushes.
+- Project 1 is read and written through `gh api graphql`: the workflow token cannot use
+  `gh project` subcommands (`unknown owner type`, missing `read:org`/`read:discussion`
+  scopes), but it can query and mutate ProjectV2 items. The rulebook reads and writes
+  Project 1 with `projectItems`, `addProjectV2ItemById`, and
+  `updateProjectV2ItemFieldValue`; the `Verify refinement` step reads `Priority` with
+  `projectItems`, all with the checked-in project, field, and option IDs.
+- The PAT must allow issues and Project 1 reads and writes; checkout persists no
+  credentials, and the rulebook forbids repository writes, commits, and pushes.
 
 ## Consequences
 
@@ -50,6 +56,8 @@ that the owner answers in the issue before the next run.
   rulebook.
 - The answer loop is manual by design: no comment-triggered runs and no `needs-info`
   state.
+- Project 1 access is GraphQL-only with the PAT; `gh project` subcommands fail with it
+  and are not part of the contract.
 - The repo-wide concurrency group keeps roadmap edits serial but cancels a pending run
   when three labels arrive quickly; recover by removing and re-adding `refine`.
 - The agent edits roadmap #32 free-form. A corrupting run means replacing that step
