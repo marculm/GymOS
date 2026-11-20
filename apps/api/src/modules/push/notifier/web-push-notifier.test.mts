@@ -59,7 +59,11 @@ describe("createWebPushNotifier", () => {
         endpoint: subscription.endpoint,
         keys: { p256dh: subscription.p256dh, auth: subscription.auth },
       },
-      JSON.stringify(REST_OVER_PAYLOAD),
+      JSON.stringify({
+        title: "Rest is over",
+        body: "Time for your next set.",
+        url: "/gym",
+      }),
       { urgency: "high", TTL: 60, timeout: 10_000 }
     );
   });

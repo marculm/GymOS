@@ -218,7 +218,7 @@ describe("service worker", () => {
         json: () => ({
           title: "Rest is over",
           body: "Time for your next set.",
-          url: "/",
+          url: "/gym",
         }),
       },
       waitUntil,
@@ -228,7 +228,7 @@ describe("service worker", () => {
       "Rest is over",
       expect.objectContaining({
         body: "Time for your next set.",
-        data: { url: "/" },
+        data: { url: "/gym" },
       })
     );
     expect(waitUntil).toHaveBeenCalledOnce();
@@ -257,7 +257,7 @@ describe("service worker", () => {
     const waitUntil = vi.fn();
 
     clickListener({
-      notification: { close, data: { url: "/" } },
+      notification: { close, data: { url: "/gym" } },
       waitUntil,
     });
     await waitUntil.mock.calls[0]?.[0];
@@ -272,11 +272,11 @@ describe("service worker", () => {
     const waitUntil = vi.fn();
 
     clickListener({
-      notification: { close, data: { url: "/" } },
+      notification: { close, data: { url: "/gym" } },
       waitUntil,
     });
     await waitUntil.mock.calls[0]?.[0];
 
-    expect(openWindow).toHaveBeenCalledWith("/");
+    expect(openWindow).toHaveBeenCalledWith("/gym");
   });
 });
