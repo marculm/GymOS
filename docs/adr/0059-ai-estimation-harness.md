@@ -41,7 +41,12 @@ cannot be parsed may come back as spaces-only content.
   503; an unreadable response surfaces as 502. The UI keeps manual entry as the
   fallback.
 - Images are compressed in the browser (JPEG, about 1536px) and sent as `data:` URLs
-  in `image_url` content blocks. The API stores no images and only passes them on.
+  in `image_url` content blocks. The re-encode strips EXIF metadata (GPS, capture time)
+  and bakes the EXIF orientation into the pixels first. A photo can stand alone or
+  accompany a description; either input alone is enough. The API stores no images, only
+  passes them on, and rejects data URLs over 2 MB.
+- Image tasks use `DEEPSEEK_VISION_MODEL` (default `deepseek-flash`), so the text model
+  stays independently selectable.
 - Configuration is server-side only: `DEEPSEEK_API_KEY`, optional
   `DEEPSEEK_BASE_URL`, `DEEPSEEK_TEXT_MODEL=deepseek-flash`, `DEEPSEEK_THINKING=true`;
   the photo slice adds `DEEPSEEK_VISION_MODEL=deepseek-flash` (#150). Prompt content —

@@ -369,6 +369,8 @@ once with a Zod schema and fails fast on invalid values:
 - `DEEPSEEK_BASE_URL`: DeepSeek API base URL, default `https://api.deepseek.com`
 - `DEEPSEEK_TEXT_MODEL`: text model, default `deepseek-flash`; `deepseek-v4-pro` is the
   higher-quality alternative (ADR-0059, ADR-0060)
+- `DEEPSEEK_VISION_MODEL`: vision model for meal photos, default `deepseek-flash`
+  (ADR-0059)
 - `DEEPSEEK_THINKING`: enable the model's thinking mode at high reasoning effort, default
   `true`; `false` trades accuracy for lower latency and cost (ADR-0059)
 
@@ -568,9 +570,9 @@ apps/web/
 - Errors render in `role="alert"` live regions. Starting or finishing a session moves
   focus to the session exercise heading or the next-workout heading (ADR-0034).
 - Nutrition loads the day's summary, logs, and recipes through `nutritionData`. The Log
-  food sheet logs a saved recipe portion, estimates a described meal with AI into the
-  editable logger, or opens manual entry; nothing is logged before the user confirms
-  (ADR-0057, ADR-0060). The recipe manager imports pasted recipe text with AI into the
+  food sheet logs a saved recipe portion, estimates a described or photographed meal
+  with AI into the editable logger, or opens manual entry; nothing is logged before the
+  user confirms (ADR-0057, ADR-0060). The recipe manager imports pasted recipe text with AI into the
   editable recipe form; nothing is saved before the user confirms (ADR-0062).
 - The PWA theme color and background are black; the light spaces are scoped by the
   `.light-space` token block. The theme test checks WCAG AA in both scopes.
