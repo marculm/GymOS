@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount, tick } from "svelte";
-  import { ChevronDown } from "lucide-svelte";
+  import { ChevronDown, Trash2 } from "lucide-svelte";
   import type {
     LoggedSet,
     WorkoutPlan,
@@ -8,7 +8,12 @@
     WorkoutSessionSummary,
   } from "@gymos/shared";
   import { MAX_SET_REPS, MAX_SET_WEIGHT_KG } from "@gymos/shared/limits";
-  import { getSession, listSessions, updateSet } from "../../api/gym.mts";
+  import {
+    deleteSession,
+    getSession,
+    listSessions,
+    updateSet,
+  } from "../../api/gym.mts";
   import { gymData } from "./gym-data.svelte.ts";
   import { formatDateTime, formatWeight } from "./format.mts";
 
@@ -130,6 +135,29 @@
     editError = null;
     await tick();
     document.getElementById(`edit-reps-${set.id}`)?.focus();
+  }
+
+  async function handleDelete(session: WorkoutSessionSummary) {
+    if (!confirm(`Delete ${session.title}? This cannot be undone.`)) {
+      return;
+    }
+
+    error = null;
+    try {
+      await deleteSession(session.id);
+    } catch (deleteError) {
+      error = messageOf(deleteError);
+      return;
+    }
+
+    sessions = sessions.filter((entry) => entry.id !== session.id);
+    totalElements = Math.max(0, totalElements - 1);
+    if (expandedId === session.id) {
+      expandedId = null;
+      detail = null;
+      resetEdit();
+    }
+    await gymData.reload();
   }
 
   async function saveEdit(set: LoggedSet, event: SubmitEvent) {
@@ -329,6 +357,16 @@
               </span>
             </div>
             <div class="list-actions">
+              {#if session.completedAt}
+                <button
+                  type="button"
+                  class="icon-btn danger"
+                  aria-label={`Delete ${session.title}`}
+                  onclick={() => void handleDelete(session)}
+                >
+                  <Trash2 size={18} aria-hidden="true" />
+                </button>
+              {/if}
               <button
                 type="button"
                 class="icon-btn muted"

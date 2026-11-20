@@ -16,12 +16,18 @@ import type {
 } from "@gymos/shared";
 import History from "./History.svelte";
 import { gymData } from "./gym-data.svelte.ts";
-import { getSession, listSessions, updateSet } from "../../api/gym.mts";
+import {
+  deleteSession,
+  getSession,
+  listSessions,
+  updateSet,
+} from "../../api/gym.mts";
 
 vi.mock("../../api/gym.mts", () => ({
   listSessions: vi.fn(),
   getSession: vi.fn(),
   updateSet: vi.fn(),
+  deleteSession: vi.fn(),
 }));
 
 const exercise: Exercise = {
@@ -411,6 +417,76 @@ describe("History", () => {
         screen.getByRole("button", { name: "Edit set 2 for Bench Press" })
       ).toHaveFocus();
     });
+  });
+
+  it("deletes a workout after confirmation", async () => {
+    vi.mocked(listSessions).mockResolvedValue(
+      page([pushSession, pullSession], 0, 2)
+    );
+    vi.mocked(deleteSession).mockResolvedValue();
+    const confirm = vi.fn(() => true);
+    vi.stubGlobal("confirm", confirm);
+    const reload = vi.spyOn(gymData, "reload").mockResolvedValue();
+
+    renderHistory();
+
+    await fireEvent.click(
+      await screen.findByRole("button", { name: "Delete Push Day" })
+    );
+
+    await waitFor(() => {
+      expect(deleteSession).toHaveBeenCalledWith("session-1");
+    });
+    expect(confirm).toHaveBeenCalledWith(
+      "Delete Push Day? This cannot be undone."
+    );
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("heading", { name: "Push Day" })
+      ).not.toBeInTheDocument();
+    });
+    expect(screen.getByText("Pull Day")).toBeInTheDocument();
+    expect(reload).toHaveBeenCalled();
+
+    vi.unstubAllGlobals();
+    reload.mockRestore();
+  });
+
+  it("keeps the workout and shows an error when deletion fails", async () => {
+    vi.mocked(listSessions).mockResolvedValue(page([pushSession], 0, 1));
+    vi.mocked(deleteSession).mockRejectedValue(new Error("Delete failed"));
+    vi.stubGlobal("confirm", vi.fn(() => true));
+
+    renderHistory();
+
+    await fireEvent.click(
+      await screen.findByRole("button", { name: "Delete Push Day" })
+    );
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Delete failed");
+    expect(
+      screen.getByRole("heading", { name: "Push Day" })
+    ).toBeInTheDocument();
+
+    vi.unstubAllGlobals();
+  });
+
+  it("does not delete when the confirmation is cancelled", async () => {
+    vi.mocked(listSessions).mockResolvedValue(page([pushSession], 0, 1));
+    vi.stubGlobal("confirm", vi.fn(() => false));
+
+    renderHistory();
+
+    await fireEvent.click(
+      await screen.findByRole("button", { name: "Delete Push Day" })
+    );
+
+    expect(deleteSession).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole("heading", { name: "Push Day" })
+    ).toBeInTheDocument();
+
+    vi.unstubAllGlobals();
   });
 
   it("displays weights with up to two decimals", async () => {
