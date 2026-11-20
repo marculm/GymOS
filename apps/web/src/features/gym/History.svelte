@@ -150,14 +150,15 @@
       return;
     }
 
-    sessions = sessions.filter((entry) => entry.id !== session.id);
-    totalElements = Math.max(0, totalElements - 1);
     if (expandedId === session.id) {
       expandedId = null;
       detail = null;
       resetEdit();
     }
-    await gymData.reload();
+    sessions = [];
+    totalElements = 0;
+    page = 0;
+    await Promise.all([loadPage(1), gymData.reload()]);
   }
 
   async function saveEdit(set: LoggedSet, event: SubmitEvent) {

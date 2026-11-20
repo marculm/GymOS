@@ -19,9 +19,10 @@ stayed in history and kept contributing to progress.
   `completedAt: { not: null }`. A missing, foreign, or active session matches no row and
   returns `404`; a completed session returns `204 No Content`.
 - History offers a per-workout delete action with a confirmation prompt, following the
-  plan-delete pattern (ADR-0025). A successful delete removes the row locally and reloads
-  the gym store, so the next-plan suggestion reflects the new last completed workout
-  (ADR-0026). A failed delete keeps the row and shows the error.
+  plan-delete pattern (ADR-0025). A successful delete refetches the first history page so
+  the list and its page offsets stay correct, and reloads the gym store so the next-plan
+  suggestion reflects the new last completed workout (ADR-0026). A failed delete keeps
+  the row and shows the error.
 - Exercise defaults are not recomputed when a workout is deleted; they update on the next
   completion or set correction (ADR-0039, ADR-0068).
 
