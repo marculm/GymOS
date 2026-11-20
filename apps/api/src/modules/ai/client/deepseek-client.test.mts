@@ -65,6 +65,19 @@ describe("DeepSeekClient.completeJson", () => {
     expect(init.signal).toBeInstanceOf(AbortSignal);
   });
 
+  it("uses the text model without an image", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(completion('{"ok":true}'));
+    const client = new DeepSeekClient(
+      { ...config, textModel: "text-model", visionModel: "vision-model" },
+      fetchMock as unknown as typeof fetch
+    );
+
+    await client.completeJson({ system: "s", user: "u" });
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(JSON.parse(String(init.body)).model).toBe("text-model");
+  });
+
   it("sends an image with the vision model", async () => {
     const fetchMock = vi.fn().mockResolvedValue(completion('{"ok":true}'));
     const client = new DeepSeekClient(
@@ -114,7 +127,8 @@ describe("DeepSeekClient.completeJson", () => {
     ]);
   });
 
-  it("uses the small cap when thinking is disabled", async () => {    const fetchMock = vi.fn().mockResolvedValue(completion('{"ok":true}'));
+  it("uses the small cap when thinking is disabled", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(completion('{"ok":true}'));
     const client = new DeepSeekClient(
       { ...config, thinking: false },
       fetchMock as unknown as typeof fetch
