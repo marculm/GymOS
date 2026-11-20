@@ -219,6 +219,22 @@ describe("SessionView", () => {
     expect(api.put).not.toHaveBeenCalled();
   });
 
+  it("does not sync a restored timer when push is unsupported", () => {
+    setPushPermission("granted");
+    Reflect.deleteProperty(window, "PushManager");
+    window.localStorage.setItem(
+      "gymos.restTimerEndsAt",
+      String(Date.now() + 90_000)
+    );
+
+    renderSession();
+
+    expect(
+      screen.getByRole("button", { name: /Rest timer running/ })
+    ).toBeInTheDocument();
+    expect(api.put).not.toHaveBeenCalled();
+  });
+
   it("syncs a fresh timer exactly once", async () => {
     setPushPermission("granted");
     renderSession();
