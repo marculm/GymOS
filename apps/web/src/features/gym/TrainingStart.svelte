@@ -119,7 +119,7 @@
         sets: [...activeSession.sets, set],
       };
     } catch (logError) {
-      await recoverCompletedSession(logError);
+      if (await recoverCompletedSession(logError)) return;
       throw logError;
     }
   }
