@@ -107,6 +107,11 @@ export class NutritionService {
     return folder;
   }
 
+  async deleteFolder(userId: string, id: string): Promise<void> {
+    const deleted = await this.repository.deleteFolder(userId, id);
+    if (!deleted) throw new NutritionNotFoundError("Folder not found");
+  }
+
   async reorderFolders(
     userId: string,
     input: RecipeFolderOrder

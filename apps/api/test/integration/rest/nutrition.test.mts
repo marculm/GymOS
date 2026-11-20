@@ -306,6 +306,65 @@ describe("nutrition API", () => {
       expect(unknownParent.status).toBe(404);
     });
 
+    it("deletes a folder subtree and moves its recipes to the top level", async () => {
+      async function createFolder(name: string, parentId: string | null = null) {
+        const response = await sendJson(
+          "POST",
+          "/api/nutrition/recipe-folders",
+          { name, parentId }
+        );
+        return response.json() as Promise<{ id: string; name: string }>;
+      }
+
+      const body = {
+        title: "Soup",
+        servings: 1,
+        macrosPerServing: secondMeal.macros,
+        ingredients: [{ name: "Carrot", amount: 100, unit: "g" }],
+        instructions: ["Boil the soup."],
+      };
+
+      async function createRecipe(title: string, folderId: string) {
+        const response = await sendJson("POST", "/api/nutrition/recipes", {
+          ...body,
+          title,
+          folderId,
+        });
+        return response.json() as Promise<{ id: string }>;
+      }
+
+      const parent = await createFolder("Dinner");
+      const child = await createFolder("Soup", parent.id);
+      const kept = await createFolder("Breakfast");
+      const parentRecipe = await createRecipe("Parent soup", parent.id);
+      const childRecipe = await createRecipe("Child soup", child.id);
+
+      const removed = await app.request(
+        `/api/nutrition/recipe-folders/${parent.id}`,
+        { method: "DELETE" }
+      );
+      expect(removed.status).toBe(204);
+
+      const folders = (await (
+        await get("/api/nutrition/recipe-folders")
+      ).json()) as Array<{ id: string }>;
+      expect(folders.map((folder) => folder.id)).toEqual([kept.id]);
+
+      const recipes = (await (
+        await get("/api/nutrition/recipes")
+      ).json()) as Array<{ id: string; folderId: string | null }>;
+      expect(recipes.map((recipe) => recipe.id)).toEqual(
+        expect.arrayContaining([parentRecipe.id, childRecipe.id])
+      );
+      expect(recipes.every((recipe) => recipe.folderId === null)).toBe(true);
+
+      const missing = await app.request(
+        `/api/nutrition/recipe-folders/${parent.id}`,
+        { method: "DELETE" }
+      );
+      expect(missing.status).toBe(404);
+    });
+
     it("reorders sibling folders and persists the order", async () => {
       async function createFolder(name: string, parentId: string | null = null) {
         const response = await sendJson(

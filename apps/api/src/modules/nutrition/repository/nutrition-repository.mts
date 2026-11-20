@@ -213,6 +213,13 @@ export class NutritionRepository {
     return toFolder(row);
   }
 
+  async deleteFolder(userId: string, id: string): Promise<boolean> {
+    const result = await prisma.recipeFolder.deleteMany({
+      where: { id, userId },
+    });
+    return result.count > 0;
+  }
+
   async reorderFolders(
     userId: string,
     parentId: string | null,

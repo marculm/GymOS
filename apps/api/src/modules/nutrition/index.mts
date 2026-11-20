@@ -103,6 +103,11 @@ nutritionModule.patch("/recipe-folders/:id", async (c) => {
   );
 });
 
+nutritionModule.delete("/recipe-folders/:id", async (c) => {
+  await nutritionService.deleteFolder(c.get("user").id, c.req.param("id"));
+  return c.body(null, 204);
+});
+
 nutritionModule.get("/recipes", async (c) =>
   c.json(await nutritionService.listRecipes(c.get("user").id))
 );
