@@ -11,7 +11,7 @@ These are known, non-blocking issues. They do not affect the core flow: create a
 - Readiness checks the database; production logging no longer loads `pino-pretty`.
 - Plan input is bounded to 50 exercises and cannot repeat an exercise; the exercise register owns the working sets, reps, and weight.
 - Regression tests cover set/completion races and two-user isolation.
-- API errors use RFC 9457 problem details; list endpoints are paginated.
+- API errors use RFC 9457 problem details; gym list endpoints are paginated.
 - Missing or malformed JSON bodies return `400` instead of becoming `{}`.
 - The seed provisions the configured `GYMOS_USER_EMAIL`, so a custom owner has a usable first run (ADR-0023).
 - Write requests require `Content-Type: application/json`; a cross-site `text/plain` write returns `415` without writing (ADR-0015).
