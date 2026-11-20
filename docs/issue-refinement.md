@@ -55,14 +55,14 @@ it into the matching section; never discard it.
       repository(owner: "marculm", name: "GymOS") {
         issue(number: $issue) {
           projectItems(first: 10) {
-            nodes { id project { number } }
+            nodes { id project { id } }
           }
         }
       }
     }' -F issue="$ISSUE_NUMBER"
   ```
 
-- If no node has `project.number` 1, add the issue:
+- If no node has `project.id` `PVT_kwHOEAw6oM4BpWhe`, add the issue:
 
   ```bash
   gh api graphql -f query='
