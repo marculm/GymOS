@@ -73,6 +73,12 @@ function deleteSet(sessionId: string, setId: string) {
   });
 }
 
+function deleteSession(sessionId: string) {
+  return app.request(`/api/gym/sessions/${sessionId}`, {
+    method: "DELETE",
+  });
+}
+
 function updateSet(sessionId: string, setId: string, body: unknown) {
   return app.request(`/api/gym/sessions/${sessionId}/sets/${setId}`, {
     method: "PUT",
@@ -690,6 +696,76 @@ describe("Gym session routes", () => {
     expect(data.content.some((session) => session.id === active.id)).toBe(false);
   });
 
+  it("deletes a completed session and its sets", async () => {
+    const session = await startSession();
+    await logSet(session.id, { reps: 8, weightKg: 60 });
+    await postJson(`/api/gym/sessions/${session.id}/complete`, {});
+
+    const res = await deleteSession(session.id);
+    expect(res.status).toBe(204);
+    expect(await res.text()).toBe("");
+
+    const detail = await app.request(`/api/gym/sessions/${session.id}`);
+    expect(detail.status).toBe(404);
+
+    const history = await app.request("/api/gym/sessions");
+    const historyData = (await history.json()) as {
+      content: unknown[];
+      page: { totalElements: number };
+    };
+    expect(historyData.content).toHaveLength(0);
+    expect(historyData.page.totalElements).toBe(0);
+
+    const progress = await app.request("/api/gym/progress");
+    expect(await progress.json()).toEqual({ personalRecords: [], volume: [] });
+
+    expect(
+      await prisma.workoutSet.count({
+        where: { workoutSessionId: session.id },
+      })
+    ).toBe(0);
+  });
+
+  it("returns 404 when deleting an unknown session", async () => {
+    const res = await deleteSession("00000000-0000-4000-8000-000000000099");
+
+    expect(res.status).toBe(404);
+    expect(res.headers.get("content-type")).toContain("application/problem+json");
+  });
+
+  it("rejects deleting an active session", async () => {
+    const session = await startSession();
+
+    const res = await deleteSession(session.id);
+
+    expect(res.status).toBe(404);
+    expect((await app.request(`/api/gym/sessions/${session.id}`)).status).toBe(
+      200
+    );
+  });
+
+  it("does not delete another user's session", async () => {
+    const other = await createUser(`other-${crypto.randomUUID()}@gymos.app`);
+    const foreign = await prisma.workoutSession.create({
+      data: {
+        userId: other.id,
+        title: "Other Workout",
+        completedAt: new Date(),
+      },
+    });
+
+    try {
+      const res = await deleteSession(foreign.id);
+
+      expect(res.status).toBe(404);
+      expect(
+        await prisma.workoutSession.findUnique({ where: { id: foreign.id } })
+      ).not.toBeNull();
+    } finally {
+      await deleteUser(other.id);
+    }
+  });
+
   it("reports personal records and volume for completed sessions", async () => {
     const older = await startSession();
     await logSet(older.id, { reps: 10, weightKg: 50 });
@@ -968,6 +1044,10 @@ describe("Gym session routes", () => {
 
       await expect(
         container.writeService.deleteSet(other.id, session.id, setId)
+      ).rejects.toBeInstanceOf(NotFoundError);
+
+      await expect(
+        container.writeService.deleteSession(other.id, session.id)
       ).rejects.toBeInstanceOf(NotFoundError);
 
       await expect(

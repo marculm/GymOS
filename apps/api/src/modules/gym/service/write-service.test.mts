@@ -108,6 +108,9 @@ function createService() {
       async (_userId: string, _sessionId: string) =>
         ({ kind: "completed", session }) as CompleteSessionResult
     ),
+    deleteCompleted: vi.fn(
+      async (_userId: string, _sessionId: string) => true
+    ),
     deleteSet: vi.fn(
       async (_userId: string, _sessionId: string, _setId: string) =>
         ({ kind: "deleted" }) as DeleteSetResult
@@ -496,5 +499,26 @@ describe("GymWriteService", () => {
     await expect(
       service.completeSession("user-1", "session-1")
     ).rejects.toBeInstanceOf(error);
+  });
+
+  it("deletes a completed session", async () => {
+    const { service, sessionRepository } = createService();
+
+    await expect(
+      service.deleteSession("user-1", "session-1")
+    ).resolves.toBeUndefined();
+    expect(sessionRepository.deleteCompleted).toHaveBeenCalledWith(
+      "user-1",
+      "session-1"
+    );
+  });
+
+  it("rejects deleting a session outside the user's completed history", async () => {
+    const { service, sessionRepository } = createService();
+    sessionRepository.deleteCompleted.mockResolvedValueOnce(false);
+
+    await expect(
+      service.deleteSession("user-1", "session-1")
+    ).rejects.toBeInstanceOf(NotFoundError);
   });
 });

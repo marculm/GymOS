@@ -39,7 +39,12 @@ type PlanWriter = Pick<
 type RotationWriter = Pick<RotationRepository, "replace">;
 type SessionWriter = Pick<
   SessionRepository,
-  "createIfNoActive" | "logSet" | "completeIfOpen" | "deleteSet" | "updateSet"
+  | "createIfNoActive"
+  | "logSet"
+  | "completeIfOpen"
+  | "deleteSet"
+  | "updateSet"
+  | "deleteCompleted"
 >;
 type RotationReader = Pick<GymReadService, "getRotation">;
 
@@ -237,6 +242,16 @@ export class GymWriteService {
         throw new SessionNotCompletedError(
           "Only completed sessions can be edited"
         );
+    }
+  }
+
+  async deleteSession(userId: string, sessionId: string): Promise<void> {
+    const deleted = await this.sessionRepository.deleteCompleted(
+      userId,
+      sessionId
+    );
+    if (!deleted) {
+      throw new NotFoundError("Session not found");
     }
   }
 
