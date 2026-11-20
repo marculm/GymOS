@@ -38,10 +38,10 @@ that the owner answers in the issue before the next run.
   implementation and is forbidden.
 - Project 1 is read and written through `gh api graphql`: the workflow token cannot use
   `gh project` subcommands (`unknown owner type`, missing `read:org`/`read:discussion`
-  scopes), but it can query and mutate ProjectV2 items. The rulebook and the
-  `Verify refinement` step use the issue's `projectItems` connection,
-  `addProjectV2ItemById`, and `updateProjectV2ItemFieldValue` with the checked-in
-  project, field, and option IDs.
+  scopes), but it can query and mutate ProjectV2 items. The rulebook reads and writes
+  Project 1 with `projectItems`, `addProjectV2ItemById`, and
+  `updateProjectV2ItemFieldValue`; the `Verify refinement` step reads `Priority` with
+  `projectItems`, all with the checked-in project, field, and option IDs.
 - The PAT must allow issues and Project 1 reads and writes; checkout persists no
   credentials, and the rulebook forbids repository writes, commits, and pushes.
 
