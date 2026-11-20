@@ -1,9 +1,12 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { app } from "../../../src/app.mts";
+import { prisma } from "../../../src/config/prisma-client.mts";
 import {
   cleanupTestUser,
   clearTestUserData,
   createTestUser,
+  createUser,
+  deleteUser,
 } from "../helpers.mts";
 
 const FROM = new Date("2026-11-14T00:00:00.000Z");
@@ -212,5 +215,136 @@ describe("nutrition API", () => {
     expect(missing.headers.get("content-type")).toContain(
       "application/problem+json"
     );
+  });
+
+  describe("recipe folders", () => {
+    it("creates top-level and nested folders and renames one", async () => {
+      const breakfast = await sendJson(
+        "POST",
+        "/api/nutrition/recipe-folders",
+        { name: "  Breakfast  " }
+      );
+      expect(breakfast.status).toBe(201);
+      const breakfastFolder = await breakfast.json();
+      expect(breakfastFolder).toMatchObject({
+        name: "Breakfast",
+        parentId: null,
+        position: 0,
+      });
+
+      const lunch = await sendJson(
+        "POST",
+        "/api/nutrition/recipe-folders",
+        { name: "Lunch" }
+      );
+      expect(lunch.status).toBe(201);
+      expect((await lunch.json()).position).toBe(1);
+
+      const oats = await sendJson(
+        "POST",
+        "/api/nutrition/recipe-folders",
+        { name: "Oats", parentId: breakfastFolder.id }
+      );
+      expect(oats.status).toBe(201);
+      expect(await oats.json()).toMatchObject({
+        name: "Oats",
+        parentId: breakfastFolder.id,
+        position: 0,
+      });
+
+      const list = await get("/api/nutrition/recipe-folders");
+      expect(list.status).toBe(200);
+      const folders = await list.json();
+      expect(
+        folders.map(
+          (folder: { name: string; parentId: string | null }) =>
+            `${folder.name}:${folder.parentId ?? "root"}`
+        )
+      ).toEqual(
+        expect.arrayContaining([
+          "Breakfast:root",
+          "Lunch:root",
+          `Oats:${breakfastFolder.id}`,
+        ])
+      );
+
+      const folderId = folders.find(
+        (folder: { name: string }) => folder.name === "Lunch"
+      ).id;
+      const renamed = await sendJson(
+        "PATCH",
+        `/api/nutrition/recipe-folders/${folderId}`,
+        { name: "Lunch & dinner" }
+      );
+      expect(renamed.status).toBe(200);
+      expect((await renamed.json()).name).toBe("Lunch & dinner");
+
+      const reloaded = await get("/api/nutrition/recipe-folders");
+      expect(
+        (await reloaded.json()).find(
+          (folder: { id: string }) => folder.id === folderId
+        ).name
+      ).toBe("Lunch & dinner");
+    });
+
+    it("rejects a blank folder name and an unknown parent", async () => {
+      const blank = await sendJson(
+        "POST",
+        "/api/nutrition/recipe-folders",
+        { name: "   " }
+      );
+      expect(blank.status).toBe(422);
+
+      const unknownParent = await sendJson(
+        "POST",
+        "/api/nutrition/recipe-folders",
+        {
+          name: "Dinner",
+          parentId: "00000000-0000-4000-8000-000000000000",
+        }
+      );
+      expect(unknownParent.status).toBe(404);
+    });
+
+    it("keeps another user's folders inaccessible", async () => {
+      const other = await createUser(
+        `folders-${crypto.randomUUID()}@gymos.app`
+      );
+      const foreign = await prisma.recipeFolder.create({
+        data: { userId: other.id, name: "Secret", position: 0 },
+      });
+
+      try {
+        const list = await get("/api/nutrition/recipe-folders");
+        expect(
+          (await list.json()).some(
+            (folder: { id: string }) => folder.id === foreign.id
+          )
+        ).toBe(false);
+
+        const rename = await sendJson(
+          "PATCH",
+          `/api/nutrition/recipe-folders/${foreign.id}`,
+          { name: "Stolen" }
+        );
+        expect(rename.status).toBe(404);
+
+        const remove = await app.request(
+          `/api/nutrition/recipe-folders/${foreign.id}`,
+          { method: "DELETE" }
+        );
+        expect(remove.status).toBe(404);
+
+        const nesting = await sendJson(
+          "POST",
+          "/api/nutrition/recipe-folders",
+          { name: "Nested", parentId: foreign.id }
+        );
+        expect(nesting.status).toBe(404);
+      } finally {
+        await prisma.recipeFolder.deleteMany({ where: { userId: other.id } });
+        await deleteUser(other.id);
+      }
+    });
   });
 });

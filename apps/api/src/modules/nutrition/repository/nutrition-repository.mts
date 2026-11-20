@@ -4,6 +4,9 @@ import type {
   NutritionLogInput,
   NutritionLogUpdate,
   Recipe as SharedRecipe,
+  RecipeFolder as SharedRecipeFolder,
+  RecipeFolderInput,
+  RecipeFolderUpdate,
   RecipeInput,
   RecipeUpdate,
 } from "@gymos/shared";
@@ -11,6 +14,7 @@ import type {
   NutritionLog as NutritionLogRow,
   Prisma,
   Recipe as RecipeRow,
+  RecipeFolder as RecipeFolderRow,
 } from "../../../generated/prisma/client";
 import { prisma } from "../../../config/prisma-client.mts";
 
@@ -48,6 +52,16 @@ function toRecipe(row: RecipeRow): SharedRecipe {
     macrosPerServing: toMacros(row),
     ingredients: row.ingredients as SharedRecipe["ingredients"],
     instructions: row.instructions as string[],
+    folderId: row.folderId,
+  };
+}
+
+function toFolder(row: RecipeFolderRow): SharedRecipeFolder {
+  return {
+    id: row.id,
+    name: row.name,
+    parentId: row.parentId,
+    position: row.position,
   };
 }
 
@@ -144,6 +158,59 @@ export class NutritionRepository {
       where: { id, userId },
     });
     return result.count > 0;
+  }
+
+  async listFolders(userId: string): Promise<SharedRecipeFolder[]> {
+    const rows = await prisma.recipeFolder.findMany({
+      where: { userId },
+      orderBy: [{ position: "asc" }, { name: "asc" }],
+    });
+    return rows.map(toFolder);
+  }
+
+  async findFolder(
+    userId: string,
+    id: string
+  ): Promise<SharedRecipeFolder | null> {
+    const row = await prisma.recipeFolder.findFirst({ where: { id, userId } });
+    return row ? toFolder(row) : null;
+  }
+
+  async createFolder(
+    userId: string,
+    input: RecipeFolderInput
+  ): Promise<SharedRecipeFolder> {
+    const parentId = input.parentId ?? null;
+    const sibling = await prisma.recipeFolder.aggregate({
+      where: { userId, parentId },
+      _max: { position: true },
+    });
+    const row = await prisma.recipeFolder.create({
+      data: {
+        userId,
+        name: input.name,
+        parentId,
+        position: (sibling._max.position ?? -1) + 1,
+      },
+    });
+    return toFolder(row);
+  }
+
+  async updateFolder(
+    userId: string,
+    id: string,
+    input: RecipeFolderUpdate
+  ): Promise<SharedRecipeFolder | null> {
+    const existing = await prisma.recipeFolder.findFirst({
+      where: { id, userId },
+    });
+    if (!existing) return null;
+
+    const row = await prisma.recipeFolder.update({
+      where: { id },
+      data: { name: input.name },
+    });
+    return toFolder(row);
   }
 
   async listRecipes(userId: string): Promise<SharedRecipe[]> {

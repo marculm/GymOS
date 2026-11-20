@@ -5,6 +5,9 @@ import type {
   NutritionLogUpdate,
   NutritionSummary,
   Recipe,
+  RecipeFolder,
+  RecipeFolderInput,
+  RecipeFolderUpdate,
   RecipeInput,
   RecipeUpdate,
 } from "@gymos/shared";
@@ -76,6 +79,31 @@ export class NutritionService {
   async deleteLog(userId: string, id: string): Promise<void> {
     const deleted = await this.repository.deleteLog(userId, id);
     if (!deleted) throw new NutritionNotFoundError("Meal not found");
+  }
+
+  listFolders(userId: string): Promise<RecipeFolder[]> {
+    return this.repository.listFolders(userId);
+  }
+
+  async createFolder(
+    userId: string,
+    input: RecipeFolderInput
+  ): Promise<RecipeFolder> {
+    if (input.parentId) {
+      const parent = await this.repository.findFolder(userId, input.parentId);
+      if (!parent) throw new NutritionNotFoundError("Folder not found");
+    }
+    return this.repository.createFolder(userId, input);
+  }
+
+  async renameFolder(
+    userId: string,
+    id: string,
+    input: RecipeFolderUpdate
+  ): Promise<RecipeFolder> {
+    const folder = await this.repository.updateFolder(userId, id, input);
+    if (!folder) throw new NutritionNotFoundError("Folder not found");
+    return folder;
   }
 
   listRecipes(userId: string): Promise<Recipe[]> {
