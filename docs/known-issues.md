@@ -32,7 +32,7 @@ These are known, non-blocking issues. They do not affect the core flow: create a
 
 ## Build and test tooling
 
-- **API integration tests need a seeded PostgreSQL.** They use a unique test user and clean up. Service unit tests and the web and shared suites run without a database; CI provisions and seeds the database in `.github/workflows/ci.yml`.
+- **API integration tests need a migrated PostgreSQL.** They create a unique test user and clean up. Service unit tests and the web and shared suites run without a database; CI migrates and seeds the database in `.github/workflows/ci.yml`.
 - **`bun run test:watch` has no Vitest keyboard shortcuts.** Bun's filter runner pipes stdin, so press Ctrl-C to stop all watchers (ADR-0061).
 - **The PWA build logs a `transform_index_html_unsupported` warning.** SvelteKit 3 no longer runs `transformIndexHtml`; the app links the manifest and registers the service worker itself, so the warning is accepted (ADR-0054).
 - **The root `glob` and `minimatch` overrides are temporary.** They patch `workbox-build`; remove them when it catches up (ADR-0054).
