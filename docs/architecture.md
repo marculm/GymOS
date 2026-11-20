@@ -258,7 +258,9 @@ Services are classes with constructor injection:
 The service layer throws domain errors and never imports Prisma or Hono (ADR-0013,
 ADR-0015). Transactional rules from ADR-0011 are enforced in the repository layer:
 checking for an active session, assigning set numbers, completing a session, and deriving
-exercise defaults from its history happen inside a serializable transaction.
+exercise defaults from its history happen inside a serializable transaction. Correcting a
+set in completed history updates the set and the edited exercise's defaults in one
+transaction (ADR-0068).
 
 ### 3.7 Repositories
 
@@ -523,7 +525,8 @@ apps/web/
   responses come from the exercise defaults, and past sessions and logged sets are
   unaffected (ADR-0024, ADR-0025, ADR-0038). Exercise defaults also provide the targets
   shown in sessions; completing a session updates them from the last two workouts
-  (ADR-0039).
+  (ADR-0039), and correcting a completed set refreshes the edited exercise's defaults
+  (ADR-0068).
 - The rotation shows the next suggested plan and lets the user add, remove, and reorder
   plans. Free workouts never advance it (ADR-0026). Plans, the rotation, and the exercise
   register are managed in grouped Settings subviews; their forms use the settings-row
