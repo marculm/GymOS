@@ -41,9 +41,13 @@ export const NutritionSummarySchema = z.object({
   remaining: MacroDeltaSchema.nullable(),
 });
 
+const MEAL_PHOTO_MAX_BYTES = 2 * 1024 * 1024;
+// 4 base64 characters encode 3 bytes; 23 characters are the data URL prefix.
+const MEAL_PHOTO_MAX_LENGTH = 23 + Math.ceil(MEAL_PHOTO_MAX_BYTES / 3) * 4;
+
 const MealPhotoSchema = z
   .string()
-  .max(2_800_000)
+  .max(MEAL_PHOTO_MAX_LENGTH)
   .regex(/^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+/]+={0,2}$/);
 
 export const MealEstimateInputSchema = z

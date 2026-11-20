@@ -39,11 +39,16 @@ describe("MealEstimateInputSchema", () => {
     ).toBe(false);
   });
 
+  it("accepts an image at the 2 MB limit", () => {
+    const image = `data:image/jpeg;base64,${"A".repeat(2_796_204)}`;
+    expect(MealEstimateInputSchema.safeParse({ image }).success).toBe(true);
+  });
+
   it("rejects an image over 2 MB", () => {
     expect(
       MealEstimateInputSchema.safeParse({
         description: "burger",
-        image: `data:image/jpeg;base64,${"A".repeat(2_800_000)}`,
+        image: `data:image/jpeg;base64,${"A".repeat(2_796_205)}`,
       }).success
     ).toBe(false);
   });

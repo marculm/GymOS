@@ -44,7 +44,7 @@ cannot be parsed may come back as spaces-only content.
   in `image_url` content blocks. The re-encode strips EXIF metadata (GPS, capture time)
   and bakes the EXIF orientation into the pixels first. A photo can stand alone or
   accompany a description; either input alone is enough. The API stores no images, only
-  passes them on, and rejects data URLs over 2 MB.
+  passes them on, and rejects decoded images over 2 MB.
 - Image tasks use `DEEPSEEK_VISION_MODEL` (default `deepseek-flash`), so the text model
   stays independently selectable.
 - Configuration is server-side only: `DEEPSEEK_API_KEY`, optional
