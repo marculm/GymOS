@@ -234,6 +234,25 @@ describe("NutritionLogFlow", () => {
     );
   });
 
+  it("shows an error when the photo cannot be read", async () => {
+    photoCompression.compressMealPhoto.mockRejectedValueOnce(
+      new Error("decode failed")
+    );
+    render(NutritionLogFlow, { props: { open: true } });
+
+    await fireEvent.click(
+      await screen.findByRole("button", { name: /^Describe/ })
+    );
+    await fireEvent.change(screen.getByLabelText("Meal photo"), {
+      target: { files: [new File(["photo"], "meal.heic", { type: "image/heic" })] },
+    });
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Could not read the photo."
+    );
+    expect(screen.getByRole("button", { name: "Estimate" })).toBeDisabled();
+  });
+
   it("keeps the description when the estimate fails", async () => {
     nutritionApi.estimateMeal.mockRejectedValueOnce(
       new Error(
