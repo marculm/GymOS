@@ -272,6 +272,10 @@ Repositories own all Prisma access (ADR-0007):
     it is a duplicate set (ADR-0047). A rotation unique conflict is retried and, if it
     persists, becomes a concurrent update.
   - `P2034` after retries → concurrent update.
+  - `P2003` from the rotation insert, when a plan is deleted between the ownership read
+    and the write → concurrent update (ADR-0066).
+  - `P2025` from a plan update, when the plan is deleted between the ownership read and
+    the write → missing plan, so the service returns not found (ADR-0066).
 - `transaction.mts` owns `withSerializableRetry`, which retries `P2034` up to three
   times. Rotation replacement also retries `P2002` conflicts up to three times.
 - Repositories never throw `HTTPException`.

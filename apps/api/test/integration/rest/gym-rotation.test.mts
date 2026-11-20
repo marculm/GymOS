@@ -1,6 +1,8 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { app } from "../../../src/app.mts";
+import { prisma } from "../../../src/config/prisma-client.mts";
 import { container } from "../../../src/container.mts";
+import { Prisma } from "../../../src/generated/prisma/client";
 import { UnknownPlanError } from "../../../src/modules/gym/service/errors.mts";
 import {
   cleanupTestUser,
@@ -31,6 +33,27 @@ function sendJson(method: string, path: string, body: unknown) {
 
 function putRotation(planIds: string[]) {
   return sendJson("PUT", "/api/gym/rotation", { planIds });
+}
+
+function deletePlanAfterOwnershipRead(planId: string) {
+  const original = prisma.$transaction.bind(prisma);
+  return vi.spyOn(prisma, "$transaction").mockImplementation(((
+    operation: (tx: Prisma.TransactionClient) => Promise<unknown>,
+    options?: { isolationLevel?: Prisma.TransactionIsolationLevel }
+  ) =>
+    original(async (tx) => {
+      const racingTx = {
+        workoutPlan: {
+          findMany: async (...args: Parameters<typeof tx.workoutPlan.findMany>) => {
+            const owned = await tx.workoutPlan.findMany(...args);
+            await tx.workoutPlan.deleteMany({ where: { id: planId } });
+            return owned;
+          },
+        },
+        workoutRotationItem: tx.workoutRotationItem,
+      } as unknown as Prisma.TransactionClient;
+      return operation(racingTx);
+    }, options)) as typeof prisma.$transaction);
 }
 
 async function getRotation() {
@@ -178,6 +201,23 @@ describe("Gym rotation routes", () => {
     const stored = await getRotation();
     expect(stored.plans.map((plan) => plan.id)).toHaveLength(3);
     expect(orders).toContainEqual(stored.plans.map((plan) => plan.id));
+  });
+
+  it("returns a conflict when the plan is deleted during the rotation save", async () => {
+    const push = await createPlan("Push");
+    const spy = deletePlanAfterOwnershipRead(push.id);
+
+    try {
+      const res = await putRotation([push.id]);
+
+      expect(res.status).toBe(409);
+      expect(res.headers.get("content-type")).toContain(
+        "application/problem+json"
+      );
+      expect(await getRotation()).toEqual({ plans: [], nextPlanId: null });
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   it("wraps to the first plan after the last rotation item", async () => {

@@ -1,7 +1,8 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { app } from "../../../src/app.mts";
 import { prisma } from "../../../src/config/prisma-client.mts";
 import { container } from "../../../src/container.mts";
+import { Prisma } from "../../../src/generated/prisma/client";
 import { NotFoundError } from "../../../src/modules/gym/service/errors.mts";
 import {
   cleanupTestUser,
@@ -54,6 +55,31 @@ function planBody(name: string) {
     name,
     exercises: [{ exerciseId }],
   };
+}
+
+function deletePlanAfterOwnershipRead(planId: string) {
+  const original = prisma.$transaction.bind(prisma);
+  return vi.spyOn(prisma, "$transaction").mockImplementation(((
+    operation: (tx: Prisma.TransactionClient) => Promise<unknown>,
+    options?: { isolationLevel?: Prisma.TransactionIsolationLevel }
+  ) =>
+    original(async (tx) => {
+      const racingTx = {
+        workoutPlan: {
+          findFirst: async (
+            ...args: Parameters<typeof tx.workoutPlan.findFirst>
+          ) => {
+            const owned = await tx.workoutPlan.findFirst(...args);
+            await tx.workoutPlan.deleteMany({ where: { id: planId } });
+            return owned;
+          },
+          update: (args: Parameters<typeof tx.workoutPlan.update>[0]) =>
+            tx.workoutPlan.update(args),
+        },
+        workoutPlanExercise: tx.workoutPlanExercise,
+      } as unknown as Prisma.TransactionClient;
+      return operation(racingTx);
+    }, options)) as typeof prisma.$transaction);
 }
 
 async function createPlan(name: string) {
@@ -349,6 +375,26 @@ describe("Gym plan routes", () => {
     expect(res.status).toBe(409);
     const data = (await res.json()) as { detail: string };
     expect(data.detail).toContain("already exists");
+  });
+
+  it("returns 404 when the plan is deleted during the update", async () => {
+    const created = await createPlan("Racing Plan");
+    const spy = deletePlanAfterOwnershipRead(created.id);
+
+    try {
+      const res = await sendJson(
+        "PUT",
+        `/api/gym/plans/${created.id}`,
+        planBody("Racing Plan")
+      );
+
+      expect(res.status).toBe(404);
+      expect(res.headers.get("content-type")).toContain(
+        "application/problem+json"
+      );
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   it("returns 404 when updating or deleting a missing plan", async () => {

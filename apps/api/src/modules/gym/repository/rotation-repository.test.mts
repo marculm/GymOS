@@ -1,13 +1,29 @@
 import { describe, expect, it, vi } from "vitest";
 import { Prisma } from "../../../generated/prisma/client";
 import { ConcurrentUpdateError } from "../service/errors.mts";
-import { withRotationReplaceRetry } from "./rotation-repository.mts";
+import {
+  RotationRepository,
+  withRotationReplaceRetry,
+} from "./rotation-repository.mts";
+
+const { transaction } = vi.hoisted(() => ({ transaction: vi.fn() }));
+
+vi.mock("../../../config/prisma-client.mts", () => ({
+  prisma: { $transaction: transaction },
+}));
 
 function uniqueConflict() {
   return new Prisma.PrismaClientKnownRequestError("Unique constraint failed", {
     code: "P2002",
     clientVersion: "test",
   });
+}
+
+function foreignKeyConflict() {
+  return new Prisma.PrismaClientKnownRequestError(
+    "Foreign key constraint failed",
+    { code: "P2003", clientVersion: "test" }
+  );
 }
 
 describe("withRotationReplaceRetry", () => {
@@ -43,5 +59,17 @@ describe("withRotationReplaceRetry", () => {
 
     await expect(withRotationReplaceRetry(operation)).rejects.toBe(error);
     expect(operation).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("RotationRepository.replace", () => {
+  it("maps a plan deleted during the write to a concurrent update error", async () => {
+    transaction.mockRejectedValueOnce(foreignKeyConflict());
+
+    const repository = new RotationRepository();
+
+    await expect(
+      repository.replace("user-1", ["plan-1"])
+    ).rejects.toBeInstanceOf(ConcurrentUpdateError);
   });
 });
