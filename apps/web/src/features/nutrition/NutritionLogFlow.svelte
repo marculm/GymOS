@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, Pencil, X } from "lucide-svelte";
 import type { NutritionLogEntry, Recipe } from "@gymos/shared";
 import { goto } from "$app/navigation";
 import { nutritionData } from "./nutrition-data.svelte.ts";
+import { compressMealPhoto } from "./meal-photo.mts";
 
 type View = "choice" | "describe" | "saved" | "focus" | "today";
 
@@ -25,6 +26,10 @@ let name = $state("");
 let description = $state("");
 let estimated = $state(false);
 let descriptionInput = $state<HTMLTextAreaElement | null>(null);
+let photoInput = $state<HTMLInputElement | null>(null);
+let photo = $state<string | null>(null);
+let preparingPhoto = $state(false);
+let photoRun = 0;
 let calories = $state<number | null>(0);
 let proteinGrams = $state<number | null>(0);
 let carbsGrams = $state<number | null>(0);
@@ -48,12 +53,15 @@ $effect(() => {
 
 function resetDraft() {
   estimateRun += 1;
+  photoRun += 1;
   pending = false;
+  preparingPhoto = false;
   editing = null;
   recipeId = null;
   portion = 1;
   name = "";
   description = "";
+  photo = null;
   estimated = false;
   calories = 0;
   proteinGrams = 0;
@@ -101,11 +109,36 @@ function startManualFromDescribe() {
   view = "focus";
 }
 
+async function choosePhoto(event: Event) {
+  const input = event.currentTarget as HTMLInputElement;
+  const file = input.files?.[0];
+  input.value = "";
+  if (!file || pending) return;
+
+  const run = photoRun + 1;
+  photoRun = run;
+  preparingPhoto = true;
+  error = null;
+  try {
+    const image = await compressMealPhoto(file);
+    if (run === photoRun) photo = image;
+  } catch {
+    if (run === photoRun) error = "Could not read the photo.";
+  } finally {
+    if (run === photoRun) preparingPhoto = false;
+  }
+}
+
+function removePhoto() {
+  if (pending) return;
+  photo = null;
+}
+
 async function estimate() {
   if (pending) return;
   const text = description.trim();
-  if (!text) {
-    error = "Describe the meal first.";
+  if (!text && !photo) {
+    error = "Describe the meal or add a photo first.";
     return;
   }
 
@@ -114,11 +147,14 @@ async function estimate() {
   pending = true;
   error = null;
   try {
-    const result = await nutritionData.estimate({ description: text });
+    const result = await nutritionData.estimate({
+      ...(text ? { description: text } : {}),
+      ...(photo ? { image: photo } : {}),
+    });
     if (run !== estimateRun) return;
     editing = null;
     recipeId = null;
-    name = result.name ?? text.slice(0, 120);
+    name = result.name ?? (text ? text.slice(0, 120) : "Photo meal");
     calories = result.macros.calories;
     proteinGrams = result.macros.proteinGrams;
     carbsGrams = result.macros.carbsGrams;
@@ -351,9 +387,42 @@ function handleClose() {
           bind:value={description}
         ></textarea>
         <p class="nutrition-describe-hint">
-          Include portions when you know them. The estimate fills the logger; you can
-          edit every value.
+          Include portions when you know them, and add a photo if it helps. The
+          estimate fills the logger; you can edit every value.
         </p>
+        <input
+          bind:this={photoInput}
+          class="nutrition-photo-input"
+          type="file"
+          accept="image/*"
+          aria-label="Meal photo"
+          disabled={pending || preparingPhoto}
+          onchange={(event) => void choosePhoto(event)}
+        />
+        {#if photo}
+          <img
+            class="nutrition-photo-preview"
+            src={photo}
+            alt="Selected meal"
+          />
+          <button
+            type="button"
+            class="nutrition-secondary"
+            disabled={pending}
+            onclick={removePhoto}
+          >
+            Remove photo
+          </button>
+        {:else}
+          <button
+            type="button"
+            class="nutrition-secondary"
+            disabled={pending || preparingPhoto}
+            onclick={() => photoInput?.click()}
+          >
+            {preparingPhoto ? "Preparing photo…" : "Add photo"}
+          </button>
+        {/if}
         {#if error}
           <p class="error" role="alert">{error}</p>
         {/if}
@@ -362,7 +431,9 @@ function handleClose() {
         <button
           type="button"
           class="nutrition-primary"
-          disabled={pending || description.trim().length === 0}
+          disabled={pending ||
+            preparingPhoto ||
+            (description.trim().length === 0 && !photo)}
           aria-busy={pending}
           onclick={() => void estimate()}
         >
