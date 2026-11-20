@@ -130,7 +130,17 @@ export class NutritionService {
     return this.repository.listRecipes(userId);
   }
 
-  createRecipe(userId: string, input: RecipeInput): Promise<Recipe> {
+  private async assertFolder(
+    userId: string,
+    folderId: string | null | undefined
+  ): Promise<void> {
+    if (!folderId) return;
+    const folder = await this.repository.findFolder(userId, folderId);
+    if (!folder) throw new NutritionNotFoundError("Folder not found");
+  }
+
+  async createRecipe(userId: string, input: RecipeInput): Promise<Recipe> {
+    await this.assertFolder(userId, input.folderId);
     return this.repository.createRecipe(userId, input);
   }
 
@@ -139,6 +149,7 @@ export class NutritionService {
     id: string,
     input: RecipeUpdate
   ): Promise<Recipe> {
+    await this.assertFolder(userId, input.folderId);
     const recipe = await this.repository.updateRecipe(userId, id, input);
     if (!recipe) throw new NutritionNotFoundError("Recipe not found");
     return recipe;

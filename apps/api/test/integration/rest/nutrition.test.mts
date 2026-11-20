@@ -380,6 +380,58 @@ describe("nutrition API", () => {
       );
     });
 
+    it("assigns a recipe to a folder and moves it back to the top level", async () => {
+      const folder = await (
+        await sendJson("POST", "/api/nutrition/recipe-folders", {
+          name: "Dinner",
+        })
+      ).json();
+      const body = {
+        title: "Salmon",
+        servings: 1,
+        macrosPerServing: secondMeal.macros,
+        ingredients: [{ name: "Salmon", amount: 200, unit: "g" }],
+        instructions: ["Bake the salmon."],
+      };
+
+      const created = await sendJson("POST", "/api/nutrition/recipes", {
+        ...body,
+        folderId: folder.id,
+      });
+      expect(created.status).toBe(201);
+      const recipe = await created.json();
+      expect(recipe.folderId).toBe(folder.id);
+
+      const listed = (await (
+        await get("/api/nutrition/recipes")
+      ).json()) as Array<{ id: string; folderId: string | null }>;
+      expect(listed.find((item) => item.id === recipe.id)?.folderId).toBe(
+        folder.id
+      );
+
+      const cleared = await sendJson(
+        "PATCH",
+        `/api/nutrition/recipes/${recipe.id}`,
+        { folderId: null }
+      );
+      expect(cleared.status).toBe(200);
+      expect((await cleared.json()).folderId).toBeNull();
+
+      const unknown = "00000000-0000-4000-8000-000000000000";
+      const badCreate = await sendJson("POST", "/api/nutrition/recipes", {
+        ...body,
+        folderId: unknown,
+      });
+      expect(badCreate.status).toBe(404);
+
+      const badUpdate = await sendJson(
+        "PATCH",
+        `/api/nutrition/recipes/${recipe.id}`,
+        { folderId: unknown }
+      );
+      expect(badUpdate.status).toBe(404);
+    });
+
     it("keeps another user's folders inaccessible", async () => {
       const other = await createUser(
         `folders-${crypto.randomUUID()}@gymos.app`

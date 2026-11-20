@@ -244,6 +244,7 @@ export class NutritionRepository {
     const row = await prisma.recipe.create({
       data: {
         userId,
+        folderId: input.folderId ?? null,
         title: input.title,
         sourceUrl: input.sourceUrl,
         servings: input.servings,
@@ -264,6 +265,11 @@ export class NutritionRepository {
     if (!existing) return null;
 
     const data: Prisma.RecipeUpdateInput = {};
+    if (input.folderId !== undefined) {
+      data.folder = input.folderId
+        ? { connect: { id: input.folderId } }
+        : { disconnect: true };
+    }
     if (input.title !== undefined) data.title = input.title;
     if (input.sourceUrl !== undefined) data.sourceUrl = input.sourceUrl;
     if (input.servings !== undefined) data.servings = input.servings;
