@@ -9,6 +9,7 @@
   } from "@gymos/shared";
   import { MAX_SET_REPS, MAX_SET_WEIGHT_KG } from "@gymos/shared/limits";
   import { getSession, listSessions, updateSet } from "../../api/gym.mts";
+  import { gymData } from "./gym-data.svelte.ts";
   import { formatDateTime, formatWeight } from "./format.mts";
 
   let { plans }: { plans: WorkoutPlan[] } = $props();
@@ -157,6 +158,7 @@
     }
 
     if (!updated || !detail) return;
+    await gymData.reload();
     const savedSet = updated;
     detail = {
       ...detail,

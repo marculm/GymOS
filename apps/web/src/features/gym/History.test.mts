@@ -15,6 +15,7 @@ import type {
   WorkoutSessionSummary,
 } from "@gymos/shared";
 import History from "./History.svelte";
+import { gymData } from "./gym-data.svelte.ts";
 import { getSession, listSessions, updateSet } from "../../api/gym.mts";
 
 vi.mock("../../api/gym.mts", () => ({
@@ -192,6 +193,7 @@ describe("History", () => {
   it("edits a set in a completed session", async () => {
     vi.mocked(listSessions).mockResolvedValue(page([pushSession], 0, 1));
     vi.mocked(getSession).mockResolvedValue(detail);
+    const reload = vi.spyOn(gymData, "reload").mockResolvedValue();
     const firstSet = detail.sets[0];
     if (!firstSet) throw new Error("detail fixture is missing a set");
     vi.mocked(updateSet).mockResolvedValue({
@@ -229,6 +231,8 @@ describe("History", () => {
       });
     });
     expect(await screen.findByText("9 × 82.5 kg")).toBeInTheDocument();
+    expect(reload).toHaveBeenCalledTimes(1);
+    reload.mockRestore();
     expect(
       screen.queryByLabelText("Reps for set 1 of Bench Press")
     ).not.toBeInTheDocument();
