@@ -143,6 +143,7 @@ function setPushPermission(permission: NotificationPermission) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  setPushPermission("default");
   try {
     window.localStorage?.clear();
   } catch {
