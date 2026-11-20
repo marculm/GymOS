@@ -68,4 +68,28 @@ describe("estimateMeal", () => {
       description: "300g skyr with berries",
     });
   });
+
+  it("posts a meal photo with an optional description", async () => {
+    const estimate = {
+      macros: { calories: 410, proteinGrams: 38, carbsGrams: 44, fatGrams: 6 },
+    };
+    const fetchMock = vi.fn().mockImplementation(() =>
+      Promise.resolve(
+        new Response(JSON.stringify(estimate), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        })
+      )
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const image = "data:image/jpeg;base64,AAAA";
+    await estimateMeal({ image });
+    await estimateMeal({ description: "half portion", image });
+
+    const bodies = fetchMock.mock.calls.map(([, init]) =>
+      JSON.parse(String((init as RequestInit).body))
+    );
+    expect(bodies).toEqual([{ image }, { description: "half portion", image }]);
+  });
 });

@@ -17,6 +17,41 @@ describe("MealEstimateInputSchema", () => {
         .success
     ).toBe(false);
   });
+
+  it("accepts an image alone or with a description", () => {
+    const image = "data:image/jpeg;base64,AAAA";
+    expect(MealEstimateInputSchema.parse({ image })).toEqual({ image });
+    expect(
+      MealEstimateInputSchema.parse({ description: "  burger  ", image })
+    ).toEqual({ description: "burger", image });
+  });
+
+  it("rejects an input without text or image", () => {
+    expect(MealEstimateInputSchema.safeParse({}).success).toBe(false);
+  });
+
+  it("rejects an image that is not a base64 data URL", () => {
+    expect(
+      MealEstimateInputSchema.safeParse({
+        description: "burger",
+        image: "https://example.com/meal.jpg",
+      }).success
+    ).toBe(false);
+  });
+
+  it("accepts an image at the 2 MB limit", () => {
+    const image = `data:image/jpeg;base64,${"A".repeat(2_796_204)}`;
+    expect(MealEstimateInputSchema.safeParse({ image }).success).toBe(true);
+  });
+
+  it("rejects an image over 2 MB", () => {
+    expect(
+      MealEstimateInputSchema.safeParse({
+        description: "burger",
+        image: `data:image/jpeg;base64,${"A".repeat(2_796_205)}`,
+      }).success
+    ).toBe(false);
+  });
 });
 
 describe("MealEstimateSchema", () => {

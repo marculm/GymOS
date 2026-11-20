@@ -40,11 +40,11 @@ The **Nutrition** slice is implemented:
   entries from Today's log
 - Manage recipes on their own page with per-serving macros, ingredients, steps, and a
   cooking view (ADR-0058)
-- Describe a meal and let AI estimate calories and macros; every value stays editable
-  before logging (ADR-0060)
+- Describe a meal or add a photo and let AI estimate calories and macros; every value
+  stays editable before logging (ADR-0060)
 - Import a recipe from pasted text and let AI fill the editable recipe form (ADR-0062)
 
-Photo-based meal estimation, the URL recipe extractor, authentication, and offline logging are not implemented yet. The API is single-user (no login) and must be protected before public deployment. See [`docs/known-issues.md`](docs/known-issues.md) for known limitations.
+The URL recipe extractor, authentication, and offline logging are not implemented yet. The API is single-user (no login) and must be protected before public deployment. See [`docs/known-issues.md`](docs/known-issues.md) for known limitations.
 
 ---
 

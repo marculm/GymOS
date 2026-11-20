@@ -62,7 +62,7 @@ nutritionModule.put("/targets", async (c) => {
 
 nutritionModule.post("/estimate", async (c) => {
   const input = MealEstimateInputSchema.parse(await c.req.json());
-  return c.json(await container.aiService.estimateMeal(input.description));
+  return c.json(await container.aiService.estimateMeal(input));
 });
 
 nutritionModule.post("/recipes/extract", async (c) => {

@@ -58,10 +58,10 @@ The app has three layers. Reuse them instead of inventing a fourth.
 
 ### Log flow
 
-1. `Log food` opens the Log sheet: Saved meal, Describe, Manual, Photo.
-2. Saved meal, Describe, and Photo open a full-screen Settings step; Manual opens the
-   focus logger directly. Describe estimates the macros and pre-fills the logger;
-   `Enter manually` skips the estimate. Photo stays hidden until its slice.
+1. `Log food` opens the Log sheet: Saved meal, Describe, Manual.
+2. Saved meal and Describe open a full-screen Settings step; Manual opens the focus
+   logger directly. Describe accepts a description, a photo, or both; it estimates the
+   macros and pre-fills the logger, and `Enter manually` skips the estimate.
 3. The final step is the focus logger: meal name, source, portion stepper for a saved
    recipe, 2x2 metrics (calories, protein, carbs, fat), tap-to-edit, `Log meal`.
 4. Today's log lists the entries. Tapping one reopens the focus logger with
@@ -115,8 +115,8 @@ data.
 - `PATCH /api/nutrition/recipes/:id`; `DELETE /api/nutrition/recipes/:id`.
 - `GET /api/nutrition/targets` → targets or null.
 - `PUT /api/nutrition/targets` `{ calories, proteinGrams, carbsGrams, fatGrams }`.
-- `POST /api/nutrition/estimate` `{ description }` → `{ name?, macros }`; persists
-  nothing (ADR-0060).
+- `POST /api/nutrition/estimate` `{ description?, image? }` (at least one) →
+  `{ name?, macros }`; persists nothing (ADR-0060).
 - `POST /api/nutrition/recipes/extract` `{ text }` → recipe draft (per-serving macros);
   persists nothing (ADR-0062).
 

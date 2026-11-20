@@ -22,7 +22,10 @@ const nutritionApi = vi.hoisted(() => ({
   deleteRecipe: vi.fn(),
 }));
 
+const photoCompression = vi.hoisted(() => ({ compressMealPhoto: vi.fn() }));
+
 vi.mock("../../api/nutrition.mts", () => nutritionApi);
+vi.mock("./meal-photo.mts", () => photoCompression);
 
 import NutritionLogFlow from "./NutritionLogFlow.svelte";
 import { nutritionData } from "./nutrition-data.svelte.ts";
@@ -98,7 +101,20 @@ beforeEach(() => {
   nutritionApi.deleteLog.mockResolvedValue(undefined);
   nutritionApi.estimateMeal.mockResolvedValue(mealEstimate);
   nutritionApi.listRecipes.mockResolvedValue([recipe]);
+  photoCompression.compressMealPhoto.mockResolvedValue(
+    "data:image/jpeg;base64,AAAA"
+  );
 });
+
+async function choosePhoto() {
+  const file = new File(["photo"], "meal.jpg", { type: "image/jpeg" });
+  await fireEvent.change(screen.getByLabelText("Meal photo"), {
+    target: { files: [file] },
+  });
+  await waitFor(() =>
+    expect(photoCompression.compressMealPhoto).toHaveBeenCalledWith(file)
+  );
+}
 
 describe("NutritionLogFlow", () => {
   it("logs a meal manually", async () => {
@@ -178,6 +194,78 @@ describe("NutritionLogFlow", () => {
         },
       })
     );
+  });
+
+  it("estimates a photographed meal", async () => {
+    render(NutritionLogFlow, { props: { open: true } });
+
+    await fireEvent.click(
+      await screen.findByRole("button", { name: /^Describe/ })
+    );
+    await choosePhoto();
+    expect(await screen.findByAltText("Selected meal")).toBeInTheDocument();
+    await fireEvent.click(screen.getByRole("button", { name: "Estimate" }));
+
+    await waitFor(() =>
+      expect(nutritionApi.estimateMeal).toHaveBeenCalledWith({
+        image: "data:image/jpeg;base64,AAAA",
+      })
+    );
+    expect(await screen.findByLabelText("Meal name")).toHaveValue("Skyr bowl");
+  });
+
+  it("names a photo-only estimate when the AI omits a name", async () => {
+    nutritionApi.estimateMeal.mockResolvedValueOnce({
+      macros: mealEstimate.macros,
+    });
+    render(NutritionLogFlow, { props: { open: true } });
+
+    await fireEvent.click(
+      await screen.findByRole("button", { name: /^Describe/ })
+    );
+    await choosePhoto();
+    await fireEvent.click(screen.getByRole("button", { name: "Estimate" }));
+
+    expect(await screen.findByLabelText("Meal name")).toHaveValue("Photo meal");
+  });
+
+  it("sends a description and a photo together", async () => {
+    render(NutritionLogFlow, { props: { open: true } });
+
+    await fireEvent.click(
+      await screen.findByRole("button", { name: /^Describe/ })
+    );
+    await fireEvent.input(screen.getByLabelText("Meal description"), {
+      target: { value: "half of this" },
+    });
+    await choosePhoto();
+    await fireEvent.click(screen.getByRole("button", { name: "Estimate" }));
+
+    await waitFor(() =>
+      expect(nutritionApi.estimateMeal).toHaveBeenCalledWith({
+        description: "half of this",
+        image: "data:image/jpeg;base64,AAAA",
+      })
+    );
+  });
+
+  it("shows an error when the photo cannot be read", async () => {
+    photoCompression.compressMealPhoto.mockRejectedValueOnce(
+      new Error("decode failed")
+    );
+    render(NutritionLogFlow, { props: { open: true } });
+
+    await fireEvent.click(
+      await screen.findByRole("button", { name: /^Describe/ })
+    );
+    await fireEvent.change(screen.getByLabelText("Meal photo"), {
+      target: { files: [new File(["photo"], "meal.heic", { type: "image/heic" })] },
+    });
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Could not read the photo."
+    );
+    expect(screen.getByRole("button", { name: "Estimate" })).toBeDisabled();
   });
 
   it("keeps the description when the estimate fails", async () => {
