@@ -308,8 +308,8 @@ kubectl -n gymos rollout restart deployment/gymos-api
 ```
 
 For the local `app` profile, add `DEEPSEEK_API_KEY` to the `api` service environment in
-`deploy/docker/docker-compose.yml` (see the commented line there). Meal descriptions are
-sent only to DeepSeek; prompts and descriptions are not logged.
+`deploy/docker/docker-compose.yml` (see the commented line there). Meal descriptions and
+photos are sent only to DeepSeek; prompts and content are not logged.
 
 ## Deploy and rollback
 
