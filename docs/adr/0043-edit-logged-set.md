@@ -32,10 +32,9 @@ backend checks session state and writes in one serializable transaction.
   fields, Save and Cancel. Success replaces the set in local state without reloading; a
   failure keeps the form open and shows a `role="alert"` message. Every control has an
   accessible name that includes the set number and exercise name.
-- A correction does not recalculate exercise defaults, which were derived when the
-  session completed (ADR-0039); the defaults change only when that exercise next appears
-  in a completed session. Progress and personal records read logged sets directly, so a
-  fresh load reflects the correction.
+- A correction also recalculates the defaults of the edited exercise in the same
+  transaction (ADR-0068), so the next workout reflects the corrected set. Progress and
+  personal records read logged sets directly, so a fresh load reflects the correction.
 
 ## Consequences
 
