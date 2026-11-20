@@ -19,6 +19,8 @@ export default defineConfig({
       registerType: "autoUpdate",
       injectRegister: null,
       strategies: "injectManifest",
+      base: "/",
+      scope: "/",
       srcDir: "src",
       // The plugin only compiles service-worker sources named with a .ts extension.
       filename: "sw.ts",
