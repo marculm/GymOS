@@ -74,6 +74,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllGlobals();
 });
 
@@ -105,6 +106,34 @@ describe("service worker", () => {
 
     await expect(worker.shellResponse()).resolves.toBe(response);
     expect(put).toHaveBeenCalledWith("/index.html", expect.any(Response));
+  });
+
+  it("falls back to the cached shell when the network hangs", async () => {
+    vi.useFakeTimers();
+    const put = vi.fn();
+    const cached = new Response("cached", { status: 200 });
+    const match = vi.fn().mockResolvedValue(cached);
+    Object.defineProperty(globalThis, "caches", {
+      configurable: true,
+      value: { open: vi.fn().mockResolvedValue({ put, match }) },
+    });
+    let signal: AbortSignal | undefined;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((_url: string, init: RequestInit) => {
+        signal = init.signal as AbortSignal;
+        return new Promise<Response>(() => {});
+      })
+    );
+
+    const response = worker.shellResponse();
+    await vi.advanceTimersByTimeAsync(2_999);
+    expect(signal?.aborted).toBe(false);
+    await vi.advanceTimersByTimeAsync(1);
+
+    await expect(response).resolves.toBe(cached);
+    expect(signal?.aborted).toBe(true);
+    expect(put).not.toHaveBeenCalled();
   });
 
   it("falls back to the cached shell when offline", async () => {
