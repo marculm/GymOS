@@ -393,9 +393,15 @@ describe("NutritionLogFlow", () => {
       await screen.findByRole("button", { name: /^Saved meal/ })
     );
 
-    expect(screen.getByText("Breakfast")).toBeInTheDocument();
-    expect(screen.getByText("Breakfast / Oats")).toBeInTheDocument();
-    expect(screen.getByText("Unfiled")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Breakfast" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Breakfast / Oats" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Unfiled" })
+    ).toBeInTheDocument();
     expect(screen.getByText("Eggs")).toBeInTheDocument();
     expect(screen.getByText("Overnight oats")).toBeInTheDocument();
     expect(screen.getByText("Toast")).toBeInTheDocument();

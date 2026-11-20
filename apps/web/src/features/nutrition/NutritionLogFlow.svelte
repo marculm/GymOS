@@ -474,7 +474,7 @@ function handleClose() {
         {:else}
           {#each recipeGroups as group (group.key)}
             <div class="recipe-section">
-              <p class="section-header">{group.label}</p>
+              <h3 class="section-header">{group.label}</h3>
               <div class="group">
                 {#each group.recipes as recipe (recipe.id)}
                   <button type="button" class="list-row" onclick={() => startRecipe(recipe)}>
