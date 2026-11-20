@@ -71,7 +71,7 @@ onMount(() => {
 });
 
 $effect(() => {
-  onEditingChange?.(formOpen || importOpen);
+  onEditingChange?.(formOpen || importOpen || folderDraft !== null);
 });
 
 $effect(() => {
@@ -226,10 +226,17 @@ function openRenameFolder(folder: RecipeFolder) {
   folderError = null;
 }
 
-function cancelFolderForm() {
+async function closeFolderForm(focusId: string) {
   folderDraft = null;
   folderName = "";
   folderError = null;
+  await tick();
+  document.getElementById(focusId)?.focus();
+}
+
+function cancelFolderForm() {
+  const id = folderDraft?.id;
+  void closeFolderForm(id ? `rename-folder-${id}` : "new-folder-button");
 }
 
 async function saveFolder(event: SubmitEvent) {
@@ -241,12 +248,12 @@ async function saveFolder(event: SubmitEvent) {
     return;
   }
 
+  const id = folderDraft.id;
   folderPending = true;
   folderError = null;
   try {
-    await nutritionData.saveFolder(folderDraft.id, name, folderDraft.parentId);
-    folderDraft = null;
-    folderName = "";
+    await nutritionData.saveFolder(id, name, folderDraft.parentId);
+    await closeFolderForm(id ? `rename-folder-${id}` : "new-folder-button");
   } catch (saveError) {
     folderError = messageOf(saveError);
   } finally {
@@ -421,6 +428,7 @@ function format(value: number): string {
               <button
                 type="button"
                 class="icon-btn muted"
+                id={`rename-folder-${folder.id}`}
                 aria-label={`Rename ${folder.name}`}
                 onclick={() => openRenameFolder(folder)}
               >

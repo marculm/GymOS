@@ -599,6 +599,32 @@ describe("RecipesManager", () => {
       expect(await screen.findByText("Chicken rice bowl")).toBeInTheDocument();
     });
 
+    it("reports the folder form as editing", async () => {
+      const onEditingChange = vi.fn();
+      render(RecipesManager, { props: { onEditingChange } });
+
+      await fireEvent.click(screen.getByRole("button", { name: "New folder" }));
+      await waitFor(() =>
+        expect(onEditingChange).toHaveBeenLastCalledWith(true)
+      );
+
+      await fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+      await waitFor(() =>
+        expect(onEditingChange).toHaveBeenLastCalledWith(false)
+      );
+    });
+
+    it("restores focus after canceling the folder form", async () => {
+      render(RecipesManager);
+
+      await fireEvent.click(screen.getByRole("button", { name: "New folder" }));
+      await fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+      expect(
+        await screen.findByRole("button", { name: "New folder" })
+      ).toHaveFocus();
+    });
+
     it("shows the empty state inside an empty folder", async () => {
       nutritionApi.listFolders.mockResolvedValue([breakfast]);
       render(RecipesManager);
