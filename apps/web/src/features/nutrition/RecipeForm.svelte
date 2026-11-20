@@ -1,7 +1,7 @@
 <script lang="ts">
 import { tick } from "svelte";
 import type { Recipe, RecipeFolder, RecipeInput } from "@gymos/shared";
-import { folderTree } from "./nutrition-data.svelte.ts";
+import { folderLabel, folderTree } from "./folders.mts";
 
 type IngredientRow = { name: string; amount: string; unit: string };
 

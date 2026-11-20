@@ -3,7 +3,8 @@ import { tick } from "svelte";
 import { ChevronLeft, ChevronRight, Pencil, X } from "lucide-svelte";
 import type { NutritionLogEntry, Recipe } from "@gymos/shared";
 import { goto } from "$app/navigation";
-import { groupRecipes, nutritionData } from "./nutrition-data.svelte.ts";
+import { groupRecipes } from "./folders.mts";
+import { nutritionData } from "./nutrition-data.svelte.ts";
 import { compressMealPhoto } from "./meal-photo.mts";
 
 type View = "choice" | "describe" | "saved" | "focus" | "today";

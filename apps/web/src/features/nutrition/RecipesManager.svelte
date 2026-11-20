@@ -12,6 +12,7 @@ import {
 import type { Recipe, RecipeFolder, RecipeInput } from "@gymos/shared";
 import RecipeDetail from "./RecipeDetail.svelte";
 import RecipeForm from "./RecipeForm.svelte";
+import { folderPath } from "./folders.mts";
 import { nutritionData } from "./nutrition-data.svelte.ts";
 
 let {
@@ -54,17 +55,9 @@ const visibleRecipes = $derived(
     (recipe) => (recipe.folderId ?? null) === currentFolderId
   )
 );
-const breadcrumb = $derived.by(() => {
-  const path: RecipeFolder[] = [];
-  let id = currentFolderId;
-  while (id) {
-    const folder = nutritionData.folders.find((item) => item.id === id);
-    if (!folder) break;
-    path.unshift(folder);
-    id = folder.parentId;
-  }
-  return path;
-});
+const breadcrumb = $derived(
+  currentFolderId ? folderPath(nutritionData.folders, currentFolderId) : []
+);
 
 onMount(() => {
   void load();
