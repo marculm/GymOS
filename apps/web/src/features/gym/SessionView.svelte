@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, tick } from "svelte";
+  import { onDestroy, onMount, tick } from "svelte";
   import {
     Check,
     ChevronLeft,
@@ -75,6 +75,7 @@
   let deleteTarget = $state<string | null>(null);
   let deleteError = $state<string | null>(null);
   let swipeStart: { x: number; y: number; pointerId: number } | null = null;
+  let destroyed = false;
   const pendingSetKeys = new Map<string, string>();
 
   let timerPreset = $state(loadRestSeconds());
@@ -159,6 +160,10 @@
 
   onMount(() => {
     if (!timerRunning) storeEnd(null);
+  });
+
+  onDestroy(() => {
+    destroyed = true;
   });
 
   const pages = $derived.by<SessionPage[]>(() => {
@@ -329,6 +334,8 @@
         weightKg: draft.weightKg,
         idempotencyKey,
       });
+      // Recovery clears the session and unmounts this view before the log resolves.
+      if (destroyed) return;
       pendingSetKeys.delete(current.exerciseId);
       drafts = {
         ...drafts,

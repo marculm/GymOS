@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/svelte";
 import type {
   Exercise,
@@ -7,6 +7,7 @@ import type {
 } from "@gymos/shared";
 import { ApiError } from "../../api/client.mts";
 import {
+  addSet,
   completeSession,
   getActiveSession,
   getRotation,
@@ -181,6 +182,52 @@ describe("TrainingStart", () => {
     expect(
       await screen.findByRole("heading", { name: "Push Day" })
     ).toBeInTheDocument();
+  });
+
+  it("returns to the gym screen when logging a set finds the session completed", async () => {
+    vi.mocked(getActiveSession)
+      .mockResolvedValueOnce(session)
+      .mockResolvedValueOnce(null);
+    vi.mocked(addSet).mockRejectedValueOnce(
+      new ApiError(409, "Session is already completed")
+    );
+    const unhandled = vi.fn();
+    window.addEventListener("unhandledrejection", unhandled);
+    onTestFinished(() =>
+      window.removeEventListener("unhandledrejection", unhandled)
+    );
+
+    render(TrainingStart);
+
+    await fireEvent.click(
+      await screen.findByRole("button", { name: "Log set" })
+    );
+
+    expect(
+      await screen.findByRole("heading", { name: "Push Day" })
+    ).toBeInTheDocument();
+    await waitFor(() => expect(getRotation).toHaveBeenCalledTimes(2));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(unhandled).not.toHaveBeenCalled();
+    expect(window.localStorage.getItem("gymos.restTimerEndsAt")).toBeNull();
+  });
+
+  it("shows the log error when the session is still active", async () => {
+    vi.mocked(getActiveSession).mockResolvedValue(session);
+    vi.mocked(addSet).mockRejectedValueOnce(
+      new ApiError(409, "Session is already completed")
+    );
+
+    render(TrainingStart);
+
+    await fireEvent.click(
+      await screen.findByRole("button", { name: "Log set" })
+    );
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Session is already completed"
+    );
   });
 
   it("recovers a start conflict by opening the active session", async () => {
