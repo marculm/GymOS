@@ -30,8 +30,9 @@ defaults.
 
 ## Consequences
 
-- A corrected weight or rep count feeds the next workout's targets and prefilled weight
-  after the client reloads the exercise and plan lists, as after completion (ADR-0039).
+- History reloads the exercise and plan lists after a successful correction, so the next
+  workout's targets and prefilled weight reflect the corrected set, as after completion
+  (ADR-0039).
 - Default weight and reps can change outside session completion. A manual edit to them is
   overwritten by the next completion or correction of that exercise.
 - Every correction rescans the user's completed sets to group the last two sessions per
