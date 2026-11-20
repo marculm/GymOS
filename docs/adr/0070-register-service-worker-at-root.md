@@ -28,5 +28,7 @@ and the app only becomes installable and offline-capable after a top-level reloa
 - A first visit to any route registers the worker at the origin root.
 - SvelteKit's relative asset paths are unchanged because the plugin options affect
   only the PWA registration and manifest output.
-- A deployment under a sub-path must set `base` and `scope` to that path instead.
+- A deployment under a sub-path must set `base` and `scope` to that path with a
+  trailing slash (for example `/app/`), because the plugin concatenates `base` and
+  the worker filename.
 - The build check catches a regression to a relative registration before release.
