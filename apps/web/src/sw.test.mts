@@ -35,6 +35,7 @@ const openWindow = vi.fn().mockResolvedValue(undefined);
 const matchAll = vi.fn();
 const close = vi.fn();
 
+let installListener: WorkerListener;
 let pushListener: WorkerListener;
 let clickListener: WorkerListener;
 let worker: typeof import("./sw.ts");
@@ -52,6 +53,10 @@ beforeAll(async () => {
     value: { matchAll, openWindow },
     configurable: true,
   });
+  Object.defineProperty(window, "skipWaiting", {
+    value: vi.fn(),
+    configurable: true,
+  });
 
   const addEventListener = vi.spyOn(window, "addEventListener");
   worker = await import("./sw.ts");
@@ -61,6 +66,7 @@ beforeAll(async () => {
       | WorkerListener
       | undefined;
 
+  installListener = listenerFor("install") ?? (() => {});
   pushListener = listenerFor("push") ?? (() => {});
   clickListener = listenerFor("notificationclick") ?? (() => {});
 });
@@ -74,6 +80,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllGlobals();
 });
 
@@ -105,6 +112,79 @@ describe("service worker", () => {
 
     await expect(worker.shellResponse()).resolves.toBe(response);
     expect(put).toHaveBeenCalledWith("/index.html", expect.any(Response));
+  });
+
+  it("falls back to the cached shell when the network hangs", async () => {
+    vi.useFakeTimers();
+    const put = vi.fn();
+    const cached = new Response("cached", { status: 200 });
+    const match = vi.fn().mockResolvedValue(cached);
+    Object.defineProperty(globalThis, "caches", {
+      configurable: true,
+      value: { open: vi.fn().mockResolvedValue({ put, match }) },
+    });
+    let signal: AbortSignal | undefined;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((_url: string, init: RequestInit) => {
+        signal = init.signal as AbortSignal;
+        return new Promise<Response>(() => {});
+      })
+    );
+
+    const response = worker.shellResponse();
+    await vi.advanceTimersByTimeAsync(2_999);
+    expect(signal?.aborted).toBe(false);
+    await vi.advanceTimersByTimeAsync(1);
+
+    await expect(response).resolves.toBe(cached);
+    expect(signal?.aborted).toBe(true);
+    expect(put).not.toHaveBeenCalled();
+  });
+
+  it("caches the shell on install", async () => {
+    const put = vi.fn().mockResolvedValue(undefined);
+    const match = vi.fn();
+    Object.defineProperty(globalThis, "caches", {
+      configurable: true,
+      value: { open: vi.fn().mockResolvedValue({ put, match }) },
+    });
+    const response = new Response("shell", { status: 200 });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response));
+    const waitUntil = vi.fn();
+
+    installListener({ waitUntil });
+
+    await expect(waitUntil.mock.calls[0]?.[0]).resolves.toBe(response);
+    expect(put).toHaveBeenCalledWith("/index.html", expect.any(Response));
+  });
+
+  it("times out the install prefetch", async () => {
+    vi.useFakeTimers();
+    const put = vi.fn();
+    const match = vi
+      .fn()
+      .mockResolvedValue(new Response("cached", { status: 200 }));
+    Object.defineProperty(globalThis, "caches", {
+      configurable: true,
+      value: { open: vi.fn().mockResolvedValue({ put, match }) },
+    });
+    let signal: AbortSignal | undefined;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((_url: string, init: RequestInit) => {
+        signal = init.signal as AbortSignal;
+        return new Promise<Response>(() => {});
+      })
+    );
+    const waitUntil = vi.fn();
+
+    installListener({ waitUntil });
+    await vi.advanceTimersByTimeAsync(3_000);
+
+    expect(signal?.aborted).toBe(true);
+    await expect(waitUntil.mock.calls[0]?.[0]).resolves.toBeInstanceOf(Response);
+    expect(put).not.toHaveBeenCalled();
   });
 
   it("falls back to the cached shell when offline", async () => {

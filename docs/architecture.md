@@ -600,8 +600,9 @@ returns `null` for a `404`. `src/api/nutrition.mts` exposes the nutrition endpoi
   icon, and an Apple touch icon (`apps/web/public/`).
 - `src/pwa.test.mts` fails when a manifest icon or the Apple touch icon is missing or
   has a size that does not match its declaration.
-- The service worker caches the app shell. There is no offline data store, background
-  sync, or offline mutation queue (ADR-0012).
+- The service worker caches the app shell. The shell fetch times out after 3 seconds and
+  serves the cached copy when the network hangs (ADR-0065). There is no offline data
+  store, background sync, or offline mutation queue (ADR-0012).
 
 ### 4.6 Testing and Type Checking
 

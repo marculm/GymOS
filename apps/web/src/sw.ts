@@ -11,14 +11,35 @@ declare const self: ServiceWorkerGlobalScope & {
 
 const SHELL_CACHE = "gymos-shell";
 const SHELL_URL = "/index.html";
+const SHELL_TIMEOUT_MS = 3_000;
 
 precacheAndRoute(self.__WB_MANIFEST);
 cleanupOutdatedCaches();
 
+async function fetchShell(): Promise<Response> {
+  const controller = new AbortController();
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new Error("App shell fetch timed out"));
+      controller.abort();
+    }, SHELL_TIMEOUT_MS);
+  });
+
+  try {
+    return await Promise.race([
+      fetch(SHELL_URL, { cache: "no-cache", signal: controller.signal }),
+      timeout,
+    ]);
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 export async function shellResponse(): Promise<Response> {
   const cache = await caches.open(SHELL_CACHE);
   try {
-    const response = await fetch(SHELL_URL, { cache: "no-cache" });
+    const response = await fetchShell();
     if (response.ok) {
       await cache.put(SHELL_URL, response.clone());
     }
@@ -42,15 +63,7 @@ registerRoute(
 );
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches
-      .open(SHELL_CACHE)
-      .then(async (cache) => {
-        const response = await fetch(SHELL_URL, { cache: "no-cache" });
-        if (response.ok) await cache.put(SHELL_URL, response.clone());
-      })
-      .catch(() => undefined),
-  );
+  event.waitUntil(shellResponse().catch(() => undefined));
   void self.skipWaiting();
 });
 
