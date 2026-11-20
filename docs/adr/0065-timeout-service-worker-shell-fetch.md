@@ -26,4 +26,5 @@ cached shell is not used and the PWA appears dead.
 - A cached shell loads in about 3 seconds even when the network hangs.
 - A navigation response slower than 3 seconds is abandoned and not cached; the next
   successful navigation refreshes the cache.
-- A first visit with no cached shell still waits for the browser's network failure.
+- A first visit with no cached shell has nothing to fall back to and still fails after the
+  3-second timeout.
