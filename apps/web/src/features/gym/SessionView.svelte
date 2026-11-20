@@ -159,7 +159,8 @@
   });
 
   onMount(() => {
-    if (!timerRunning) storeEnd(null);
+    if (timerRunning) void syncRestTimer(endsAt);
+    else storeEnd(null);
   });
 
   onDestroy(() => {

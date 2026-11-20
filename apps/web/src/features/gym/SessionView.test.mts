@@ -6,7 +6,17 @@ import type {
   WorkoutPlan,
   WorkoutSessionDetail,
 } from "@gymos/shared";
+import { api } from "../../api/client.mts";
 import SessionView from "./SessionView.svelte";
+
+vi.mock("../../api/client.mts", () => ({
+  api: {
+    get: vi.fn(),
+    post: vi.fn(),
+    put: vi.fn(),
+    delete: vi.fn(),
+  },
+}));
 
 const bench: Exercise = {
   id: "ex-1",
@@ -116,7 +126,23 @@ function activePage(): HTMLElement {
   return page;
 }
 
+function setPushPermission(permission: NotificationPermission) {
+  Object.defineProperty(navigator, "serviceWorker", {
+    value: {},
+    configurable: true,
+  });
+  Object.defineProperty(window, "PushManager", {
+    value: class PushManager {},
+    configurable: true,
+  });
+  Object.defineProperty(window, "Notification", {
+    value: { permission, requestPermission: vi.fn() },
+    configurable: true,
+  });
+}
+
 beforeEach(() => {
+  vi.clearAllMocks();
   try {
     window.localStorage?.clear();
   } catch {
@@ -160,6 +186,46 @@ describe("SessionView", () => {
         name: /Rest timer running, 2:30/,
       })
     ).toBeInTheDocument();
+  });
+
+  it("syncs the restored rest timer on mount", () => {
+    setPushPermission("granted");
+    const endAt = Date.now() + 90_000;
+    window.localStorage.setItem("gymos.restTimerEndsAt", String(endAt));
+
+    renderSession();
+
+    expect(
+      screen.getByRole("button", { name: /Rest timer running/ })
+    ).toBeInTheDocument();
+    expect(api.put).toHaveBeenCalledWith("/push/rest-timer", {
+      endAt: new Date(endAt).toISOString(),
+    });
+  });
+
+  it("does not sync a restored timer without notification permission", () => {
+    setPushPermission("denied");
+    window.localStorage.setItem(
+      "gymos.restTimerEndsAt",
+      String(Date.now() + 90_000)
+    );
+
+    renderSession();
+
+    expect(
+      screen.getByRole("button", { name: /Rest timer running/ })
+    ).toBeInTheDocument();
+    expect(api.put).not.toHaveBeenCalled();
+  });
+
+  it("syncs a fresh timer exactly once", async () => {
+    setPushPermission("granted");
+    renderSession();
+
+    await fireEvent.click(screen.getByRole("button", { name: "Log set" }));
+
+    await screen.findByRole("button", { name: /Rest timer running/ });
+    expect(api.put).toHaveBeenCalledOnce();
   });
 
   it("advances to the next exercise after the completing set", async () => {
