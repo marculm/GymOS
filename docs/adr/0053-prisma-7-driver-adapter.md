@@ -30,7 +30,8 @@ explicit output path for the generated client, moves the datasource URL into
 ## Consequences
 
 - `bun audit --audit-level=high` passes without an override, and Prisma's own pinned
-  dependency graph is used unmodified.
+  dependency graph is used unmodified. (Superseded for `effect` by ADR-0072 while its
+  override is in place.)
 - `prisma migrate dev` no longer generates the client, so `db:migrate` chains
   `prisma generate`.
 - The Docker builder generates the client and the runtime image copies it; the runtime
