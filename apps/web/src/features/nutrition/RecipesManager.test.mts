@@ -1,12 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/svelte";
 import { tick } from "svelte";
-import type { Recipe } from "@gymos/shared";
+import type { Recipe, RecipeFolder } from "@gymos/shared";
 
 const nutritionApi = vi.hoisted(() => ({
   getSummary: vi.fn(),
   listLogs: vi.fn(),
   listRecipes: vi.fn(),
+  listFolders: vi.fn(),
   getTargets: vi.fn(),
   createLog: vi.fn(),
   updateLog: vi.fn(),
@@ -15,6 +16,10 @@ const nutritionApi = vi.hoisted(() => ({
   createRecipe: vi.fn(),
   updateRecipe: vi.fn(),
   deleteRecipe: vi.fn(),
+  createFolder: vi.fn(),
+  renameFolder: vi.fn(),
+  reorderFolders: vi.fn(),
+  deleteFolder: vi.fn(),
   extractRecipe: vi.fn(),
 }));
 
@@ -37,10 +42,35 @@ const recipe: Recipe = {
   instructions: ["Cook the rice."],
 };
 
+const breakfast: RecipeFolder = {
+  id: "folder-1",
+  name: "Breakfast",
+  parentId: null,
+  position: 0,
+};
+
+const dinner: RecipeFolder = {
+  id: "folder-2",
+  name: "Dinner",
+  parentId: null,
+  position: 1,
+};
+
+const oatsFolder: RecipeFolder = {
+  id: "folder-3",
+  name: "Oats",
+  parentId: breakfast.id,
+  position: 0,
+};
+
+const nestedRecipe: Recipe = { ...recipe, id: "recipe-2", title: "Overnight oats", folderId: breakfast.id };
+
 beforeEach(() => {
   vi.clearAllMocks();
   nutritionData.recipes = [];
+  nutritionData.folders = [];
   nutritionApi.listRecipes.mockResolvedValue([]);
+  nutritionApi.listFolders.mockResolvedValue([]);
 });
 
 afterEach(() => {
@@ -409,5 +439,218 @@ describe("RecipesManager", () => {
       expect(nutritionApi.deleteRecipe).toHaveBeenCalledWith(recipe.id)
     );
     expect(await screen.findByText("No recipes yet.")).toBeInTheDocument();
+  });
+
+  describe("folders", () => {
+    it("creates a top-level folder", async () => {
+      nutritionApi.createFolder.mockResolvedValue(breakfast);
+      render(RecipesManager);
+
+      await fireEvent.click(screen.getByRole("button", { name: "New folder" }));
+      await fireEvent.input(screen.getByLabelText("Folder name"), {
+        target: { value: "  Breakfast " },
+      });
+      await fireEvent.click(
+        screen.getByRole("button", { name: "Create folder" })
+      );
+
+      await waitFor(() =>
+        expect(nutritionApi.createFolder).toHaveBeenCalledWith({
+          name: "Breakfast",
+          parentId: null,
+        })
+      );
+      expect(await screen.findByText("Breakfast")).toBeInTheDocument();
+    });
+
+    it("creates a subfolder inside the open folder", async () => {
+      nutritionApi.listFolders.mockResolvedValue([breakfast]);
+      nutritionApi.createFolder.mockResolvedValue(oatsFolder);
+      render(RecipesManager);
+
+      await fireEvent.click(
+        await screen.findByRole("button", { name: "Open Breakfast" })
+      );
+      await fireEvent.click(screen.getByRole("button", { name: "New folder" }));
+      await fireEvent.input(screen.getByLabelText("Folder name"), {
+        target: { value: "Oats" },
+      });
+      await fireEvent.click(
+        screen.getByRole("button", { name: "Create folder" })
+      );
+
+      await waitFor(() =>
+        expect(nutritionApi.createFolder).toHaveBeenCalledWith({
+          name: "Oats",
+          parentId: breakfast.id,
+        })
+      );
+    });
+
+    it("browses folders and their recipes", async () => {
+      nutritionApi.listFolders.mockResolvedValue([breakfast, oatsFolder]);
+      nutritionApi.listRecipes.mockResolvedValue([recipe, nestedRecipe]);
+      render(RecipesManager);
+
+      expect(await screen.findByText("Chicken rice bowl")).toBeInTheDocument();
+      expect(screen.queryByText("Overnight oats")).toBeNull();
+      expect(screen.queryByText("Oats")).toBeNull();
+
+      await fireEvent.click(
+        screen.getByRole("button", { name: "Open Breakfast" })
+      );
+
+      expect(await screen.findByText("Overnight oats")).toBeInTheDocument();
+      expect(screen.getByText("Oats")).toBeInTheDocument();
+      expect(screen.queryByText("Chicken rice bowl")).toBeNull();
+
+      await fireEvent.click(screen.getByRole("button", { name: "Top level" }));
+
+      expect(await screen.findByText("Chicken rice bowl")).toBeInTheDocument();
+      expect(screen.queryByText("Overnight oats")).toBeNull();
+    });
+
+    it("renames a folder", async () => {
+      nutritionApi.listFolders.mockResolvedValue([breakfast]);
+      nutritionApi.renameFolder.mockResolvedValue({
+        ...breakfast,
+        name: "Morning",
+      });
+      render(RecipesManager);
+
+      await fireEvent.click(
+        await screen.findByRole("button", { name: "Rename Breakfast" })
+      );
+      expect(screen.getByLabelText("Folder name")).toHaveValue("Breakfast");
+      await fireEvent.input(screen.getByLabelText("Folder name"), {
+        target: { value: "Morning" },
+      });
+      await fireEvent.click(screen.getByRole("button", { name: "Save folder" }));
+
+      await waitFor(() =>
+        expect(nutritionApi.renameFolder).toHaveBeenCalledWith(breakfast.id, {
+          name: "Morning",
+        })
+      );
+      expect(await screen.findByText("Morning")).toBeInTheDocument();
+    });
+
+    it("reorders sibling folders", async () => {
+      nutritionApi.listFolders.mockResolvedValue([breakfast, dinner]);
+      nutritionApi.reorderFolders.mockResolvedValue([
+        { ...dinner, position: 0 },
+        { ...breakfast, position: 1 },
+      ]);
+      render(RecipesManager);
+
+      await fireEvent.click(
+        await screen.findByRole("button", { name: "Move Dinner up" })
+      );
+
+      await waitFor(() =>
+        expect(nutritionApi.reorderFolders).toHaveBeenCalledWith(null, [
+          dinner.id,
+          breakfast.id,
+        ])
+      );
+    });
+
+    it("deletes a folder after confirmation", async () => {
+      nutritionApi.listFolders
+        .mockResolvedValueOnce([breakfast])
+        .mockResolvedValue([]);
+      nutritionApi.deleteFolder.mockResolvedValue(undefined);
+      vi.stubGlobal("confirm", vi.fn(() => true));
+      render(RecipesManager);
+
+      await screen.findByRole("button", { name: "Open Breakfast" });
+      await fireEvent.click(
+        screen.getByRole("button", { name: "Delete Breakfast" })
+      );
+
+      await waitFor(() =>
+        expect(nutritionApi.deleteFolder).toHaveBeenCalledWith(breakfast.id)
+      );
+      expect(await screen.findByText("No recipes yet.")).toBeInTheDocument();
+    });
+
+    it("creates a recipe in the open folder", async () => {
+      nutritionApi.listFolders.mockResolvedValue([breakfast]);
+      nutritionApi.createRecipe.mockResolvedValue({
+        ...recipe,
+        folderId: breakfast.id,
+      });
+      render(RecipesManager);
+
+      await fireEvent.click(
+        await screen.findByRole("button", { name: "Open Breakfast" })
+      );
+      await fireEvent.click(screen.getByRole("button", { name: "Add recipe" }));
+      await fillRecipeFields();
+      await fireEvent.click(
+        screen.getByRole("button", { name: "Save recipe" })
+      );
+
+      await waitFor(() =>
+        expect(nutritionApi.createRecipe).toHaveBeenCalledWith(
+          expect.objectContaining({ folderId: breakfast.id })
+        )
+      );
+      expect(await screen.findByText("Chicken rice bowl")).toBeInTheDocument();
+    });
+
+    it("shows a recipe with a missing folder at the top level", async () => {
+      nutritionApi.listRecipes.mockResolvedValue([
+        { ...recipe, folderId: "missing-folder" },
+      ]);
+      render(RecipesManager);
+
+      expect(await screen.findByText("Chicken rice bowl")).toBeInTheDocument();
+    });
+
+    it("reports the folder form as editing", async () => {
+      const onEditingChange = vi.fn();
+      render(RecipesManager, { props: { onEditingChange } });
+
+      await fireEvent.click(screen.getByRole("button", { name: "New folder" }));
+      await waitFor(() =>
+        expect(onEditingChange).toHaveBeenLastCalledWith(true)
+      );
+
+      await fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+      await waitFor(() =>
+        expect(onEditingChange).toHaveBeenLastCalledWith(false)
+      );
+    });
+
+    it("focuses the folder name field when the form opens", async () => {
+      render(RecipesManager);
+
+      await fireEvent.click(screen.getByRole("button", { name: "New folder" }));
+
+      expect(screen.getByLabelText("Folder name")).toHaveFocus();
+    });
+
+    it("restores focus after canceling the folder form", async () => {
+      render(RecipesManager);
+
+      await fireEvent.click(screen.getByRole("button", { name: "New folder" }));
+      await fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+      expect(
+        await screen.findByRole("button", { name: "New folder" })
+      ).toHaveFocus();
+    });
+
+    it("shows the empty state inside an empty folder", async () => {
+      nutritionApi.listFolders.mockResolvedValue([breakfast]);
+      render(RecipesManager);
+
+      await fireEvent.click(
+        await screen.findByRole("button", { name: "Open Breakfast" })
+      );
+
+      expect(screen.getByText("This folder is empty.")).toBeInTheDocument();
+    });
   });
 });

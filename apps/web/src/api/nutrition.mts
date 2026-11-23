@@ -8,6 +8,9 @@ import type {
   NutritionSummary,
   Recipe,
   RecipeExtractionInput,
+  RecipeFolder,
+  RecipeFolderInput,
+  RecipeFolderUpdate,
   RecipeInput,
   RecipeUpdate,
 } from "@gymos/shared";
@@ -16,6 +19,7 @@ import {
   MealEstimateSchema,
   NutritionLogEntrySchema,
   NutritionSummarySchema,
+  RecipeFolderSchema,
   RecipeInputSchema,
   RecipeSchema,
 } from "@gymos/shared";
@@ -99,6 +103,42 @@ export async function setTargets(input: Macros): Promise<Macros> {
   return MacrosSchema.parse(
     await api.put<unknown>("/nutrition/targets", input)
   );
+}
+
+export async function listFolders(): Promise<RecipeFolder[]> {
+  return RecipeFolderSchema.array().parse(
+    await api.get<unknown>("/nutrition/recipe-folders")
+  );
+}
+
+export async function createFolder(
+  input: RecipeFolderInput
+): Promise<RecipeFolder> {
+  return RecipeFolderSchema.parse(
+    await api.post<unknown>("/nutrition/recipe-folders", input)
+  );
+}
+
+export async function renameFolder(
+  id: string,
+  input: RecipeFolderUpdate
+): Promise<RecipeFolder> {
+  return RecipeFolderSchema.parse(
+    await api.patch<unknown>(`/nutrition/recipe-folders/${id}`, input)
+  );
+}
+
+export async function reorderFolders(
+  parentId: string | null,
+  ids: string[]
+): Promise<RecipeFolder[]> {
+  return RecipeFolderSchema.array().parse(
+    await api.put<unknown>("/nutrition/recipe-folders/order", { parentId, ids })
+  );
+}
+
+export function deleteFolder(id: string): Promise<void> {
+  return api.delete<void>(`/nutrition/recipe-folders/${id}`);
 }
 
 export async function listRecipes(): Promise<Recipe[]> {

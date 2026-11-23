@@ -5,6 +5,9 @@ import {
   NutritionLogUpdateSchema,
   NutritionRangeQuerySchema,
   RecipeExtractionInputSchema,
+  RecipeFolderInputSchema,
+  RecipeFolderOrderSchema,
+  RecipeFolderUpdateSchema,
   RecipeInputSchema,
   RecipeUpdateSchema,
 } from "@gymos/shared";
@@ -68,6 +71,41 @@ nutritionModule.post("/estimate", async (c) => {
 nutritionModule.post("/recipes/extract", async (c) => {
   const input = RecipeExtractionInputSchema.parse(await c.req.json());
   return c.json(await container.aiService.extractRecipe(input.text));
+});
+
+nutritionModule.get("/recipe-folders", async (c) =>
+  c.json(await nutritionService.listFolders(c.get("user").id))
+);
+
+nutritionModule.post("/recipe-folders", async (c) => {
+  const input = RecipeFolderInputSchema.parse(await c.req.json());
+  return c.json(
+    await nutritionService.createFolder(c.get("user").id, input),
+    201
+  );
+});
+
+nutritionModule.put("/recipe-folders/order", async (c) => {
+  const input = RecipeFolderOrderSchema.parse(await c.req.json());
+  return c.json(
+    await nutritionService.reorderFolders(c.get("user").id, input)
+  );
+});
+
+nutritionModule.patch("/recipe-folders/:id", async (c) => {
+  const input = RecipeFolderUpdateSchema.parse(await c.req.json());
+  return c.json(
+    await nutritionService.renameFolder(
+      c.get("user").id,
+      c.req.param("id"),
+      input
+    )
+  );
+});
+
+nutritionModule.delete("/recipe-folders/:id", async (c) => {
+  await nutritionService.deleteFolder(c.get("user").id, c.req.param("id"));
+  return c.body(null, 204);
 });
 
 nutritionModule.get("/recipes", async (c) =>
