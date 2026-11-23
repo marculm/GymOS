@@ -8,7 +8,8 @@
   ],
   "overrides": {
     "glob": "^14.0.2",
-    "minimatch": "^11.0.1"
+    "minimatch": "^11.0.1",
+    "effect": "3.22.5"
   },
   "scripts": {
     "dev": "bun --filter @gymos/api dev & bun --filter @gymos/web dev",
